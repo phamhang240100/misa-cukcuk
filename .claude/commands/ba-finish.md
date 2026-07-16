@@ -232,7 +232,7 @@ For developer review:
   • Pending items:   {N_high} high-priority questions
 
 Recommended next steps:
-  • For BA: /ba:export       — produce a client-friendly question list
+  • For BA: /export       — produce a client-friendly question list
   • For BA: /prototype-theme — switch prototype if needed
   • For dev: /ba-to-gsd      — generate development plan from the specs
 
