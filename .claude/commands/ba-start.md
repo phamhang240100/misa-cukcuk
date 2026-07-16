@@ -4,7 +4,7 @@ description: Prepare workspace for a BA Clarity session — safety checks, git s
 
 Wrapper command to safely onboard a BA/PO user into a BA Clarity session. Handles git plumbing and workspace checks so the BA never has to touch git directly.
 
-**This command does NOT run `/ba:discuss` or `/ba:analyze` itself** — slash commands cannot call each other. It only verifies the workspace is ready and recommends the correct next command.
+**This command does NOT run `/discuss` or `/analyze` itself** — slash commands cannot call each other. It only verifies the workspace is ready and recommends the correct next command.
 
 ## Step 1 — Verify current branch
 
@@ -80,9 +80,9 @@ Check for `specs/.clarity/state.json`:
 If the file does not exist:
 - Check if `project/` submodule has any existing `specs/` with domain documents:
   - Run: `ls project/specs/ 2>/dev/null` if `project/` exists
-  - If it returns directories with `.md` files, list them as "raw source materials" that the BA can reference or paste into `/ba:analyze`
+  - If it returns directories with `.md` files, list them as "raw source materials" that the BA can reference or paste into `/analyze`
 - Set `session_state = "new"`
-- Set `recommended_next = "/ba:discuss (if exploring) or /ba:analyze (if you have BRD/notes ready)"`
+- Set `recommended_next = "/discuss (if exploring) or /analyze (if you have BRD/notes ready)"`
 
 ### Case B — Session in progress
 
@@ -90,14 +90,14 @@ If the file exists and contains pending items with any 🔴 High impact:
 - Parse `state.json`: `project_name`, `current_version`, `clarity_score`, `phase`
 - Read the pending count from `specs/.clarity/reports/clarity-v{current_version}.md` if possible
 - Set `session_state = "continue"`
-- Set `recommended_next = "/ba:status (to see details) then /ba:refine"`
+- Set `recommended_next = "/status (to see details) then /refine"`
 
 ### Case C — Session essentially complete
 
 If the file exists and no 🔴 High pending items remain:
 - Same parse as Case B
 - Set `session_state = "ready for handoff"`
-- Set `recommended_next = "/ba:export (send remaining questions to client) or /ba-finish (save and send to team)"`
+- Set `recommended_next = "/export (send remaining questions to client) or /ba-finish (save and send to team)"`
 
 ## Step 6 — Print the action card
 
@@ -120,7 +120,7 @@ Always print this at the end, formatted clearly:
 
 If the session is new, add after the card:
 > 💡 Tip: If you have existing documents (BRD, meeting notes, screenshots),
-> `/ba:analyze` is the right starting point. Paste them in and answer
+> `/analyze` is the right starting point. Paste them in and answer
 > the clarifying questions.
 
 ## Operating principles
@@ -129,7 +129,7 @@ If the session is new, add after the card:
 2. **Never delete `specs/`** — always preserve BA session data
 3. **Never create a new branch** — if BA needs a new project, tell them to ask a developer
 4. **Always give ONE recommended next command** — no paralysis
-5. **Never run `/ba:*` commands directly** — cannot be done from within another slash command; just recommend them
+5. **Never run BA skills (`/analyze`, `/discuss`, `/refine`, `/export`, `/status`) directly** — cannot be done from within another slash command; just recommend them
 6. **Always idempotent** — running `/ba-start` twice in a row should be safe
 
 ## Language

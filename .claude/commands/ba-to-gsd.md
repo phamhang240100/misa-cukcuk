@@ -9,7 +9,7 @@ Bridge between the `ba@duongvanha-skills` plugin (which produces `specs/`) and t
 ## Step 1 — Preconditions
 
 1. Read `specs/.clarity/state.json`. If missing → abort with:
-   > ❌ `specs/.clarity/state.json` not found. Run `/ba:analyze` first to produce BA specs.
+   > ❌ `specs/.clarity/state.json` not found. Run `/analyze` first to produce BA specs.
 
 2. Read `current_version` from `state.json`, locate `specs/.clarity/reports/clarity-v{N}.md`.
 
@@ -36,7 +36,7 @@ Read **every** file below (do not skip any):
 - `specs/.clarity/reports/clarity-v{N}.md` — single source of truth, **most important** — contains Confirmed Requirements and Pending TODOs
 
 **Optional (if present)**:
-- `specs/.clarity/discussion-log.md` — context from `/ba:discuss`
+- `specs/.clarity/discussion-log.md` — context from `/discuss`
 
 ## Step 3 — Extract structured data
 
@@ -133,7 +133,7 @@ Supplementary file, not in GSD templates but needed so the dev does not lose con
 
 Pending clarifications from BA. The dev must either:
 - Answer with best judgment (record as decision in PROJECT.md)
-- Or escalate back to client via `/ba:export` and `/ba:refine`
+- Or escalate back to client via `/export` and `/refine`
 
 | # | ID | Question | Impact | Suggested Default |
 |---|----|----------|--------|-------------------|

@@ -105,7 +105,7 @@ Read the following files from `specs/` to understand the domain:
 5. `specs/modules/*.md` — per-module detailed specs (read all that exist)
 
 If `specs/` does not exist or is empty → abort:
-> ⚠️ No specs found. Run `/ba:analyze` first to generate requirements, then come back to build the prototype.
+> ⚠️ No specs found. Run `/analyze` first to generate requirements, then come back to build the prototype.
 
 ## Step 3 — Choose platform to build
 
