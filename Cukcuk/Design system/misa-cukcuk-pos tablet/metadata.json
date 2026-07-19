@@ -1,6 +1,0 @@
-{
-  "name": "Tourguide_POS - V3",
-  "description": "Hệ thống quản lý bán hàng (POS) tối ưu cho Quán Coffee quy mô vừa/nhỏ, chuyên đồ uống theo mùa, 3 tầng (12 bàn/tầng) và đội ngũ 5 nhân viên.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
