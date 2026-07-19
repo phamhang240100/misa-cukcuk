@@ -42,10 +42,12 @@ import {
   WARDS,
   districtsOf,
   isEmail,
+  quoteDelivery,
 } from '../constants';
 import {RESTAURANT_DEFAULT} from '../data';
 import {APPLICATIONS_DATA, SIDEBAR_ITEMS, type WebApp} from '../webData';
-import {Button, ConfirmDialog, GrabExpressLogo, inputCls} from '../components/ui';
+import {AlertPopup, Button, ConfirmDialog, GrabExpressLogo, inputCls} from '../components/ui';
+import {WebReportsView} from './WebReportsView';
 
 interface Props {
   connection: ConnectionState;
@@ -95,6 +97,7 @@ export const WebConnectSurface: React.FC<Props> = ({
   pushToast,
 }) => {
   const [openGe, setOpenGe] = useState(false);
+  const [nav, setNav] = useState<'apps' | 'reports'>('apps');
   const [restaurant, setRestaurant] = useState(RESTAURANT_DEFAULT.name);
   const [restOpen, setRestOpen] = useState(false);
 
@@ -169,22 +172,54 @@ export const WebConnectSurface: React.FC<Props> = ({
           <div className="space-y-0.5 py-2">
             {SIDEBAR_ITEMS.map((item) => {
               const Icon = SIDEBAR_ICONS[item.icon] ?? LayoutGrid;
-              const active = item.id === 'ung-dung';
+              const active = nav === 'reports' ? item.id === 'bao-cao' : item.id === 'ung-dung';
+              const onClick = () => {
+                if (item.id === 'bao-cao') setNav('reports');
+                else if (item.id === 'ung-dung') {
+                  setNav('apps');
+                  setOpenGe(false);
+                }
+              };
               return (
-                <button
-                  key={item.id}
-                  className={`flex h-9 w-full items-center px-3 text-left text-xs transition-all ${
-                    active
-                      ? 'border-l-4 border-[#2563EB] bg-[#F0F6FE] font-semibold text-[#2563EB]'
-                      : 'font-medium text-[#101828] hover:bg-gray-50 hover:text-blue-600'
-                  }`}
-                >
-                  <span className={`mr-2.5 ${active ? 'text-[#2563EB]' : 'text-[#717680]'}`}>
-                    <Icon size={16} />
-                  </span>
-                  <span className="flex-1 truncate">{item.title}</span>
-                  {item.arrow && <ChevronDown className="h-3 w-3 text-[#717680] opacity-60" />}
-                </button>
+                <div key={item.id}>
+                  <button
+                    onClick={onClick}
+                    className={`flex h-9 w-full items-center px-3 text-left text-xs transition-all ${
+                      active
+                        ? 'border-l-4 border-[#2563EB] bg-[#F0F6FE] font-semibold text-[#2563EB]'
+                        : 'font-medium text-[#101828] hover:bg-gray-50 hover:text-blue-600'
+                    }`}
+                  >
+                    <span className={`mr-2.5 ${active ? 'text-[#2563EB]' : 'text-[#717680]'}`}>
+                      <Icon size={16} />
+                    </span>
+                    <span className="flex-1 truncate">{item.title}</span>
+                    {item.arrow && (
+                      <ChevronDown
+                        className={`h-3 w-3 text-[#717680] transition-transform ${
+                          nav === 'reports' && item.id === 'bao-cao' ? 'rotate-180' : 'opacity-60'
+                        }`}
+                      />
+                    )}
+                  </button>
+                  {/* Nhóm báo cáo con khi mở Báo cáo */}
+                  {item.id === 'bao-cao' && nav === 'reports' && (
+                    <div className="mb-1 ml-4 space-y-0.5 border-l border-[#E9EAEB] pl-2">
+                      {['Bán hàng', 'Mua hàng', 'Kho', 'Công nợ', 'Quỹ tiền', 'Lợi nhuận'].map((c, idx) => (
+                        <button
+                          key={c}
+                          className={`flex h-8 w-full items-center rounded px-3 text-left text-xs ${
+                            idx === 0
+                              ? 'bg-[#F0F6FE] font-semibold text-[#2563EB]'
+                              : 'text-[#101828] hover:bg-gray-50'
+                          }`}
+                        >
+                          {c}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
@@ -196,7 +231,9 @@ export const WebConnectSurface: React.FC<Props> = ({
         </aside>
 
         <section className="min-w-0 flex-1 overflow-y-auto">
-          {!openGe ? (
+          {nav === 'reports' ? (
+            <WebReportsView />
+          ) : !openGe ? (
             <ApplicationsList
               connection={connection}
               onOpenGe={() => setOpenGe(true)}
@@ -348,6 +385,8 @@ const GrabExpressConnect: React.FC<{
   const [vatEmail, setVatEmail] = useState(connection.vatEmail);
   const [errors, setErrors] = useState<Errors>({});
   const [confirmUnlink, setConfirmUnlink] = useState(false);
+  const [areaAlert, setAreaAlert] = useState(false);
+  const [simOutOfArea, setSimOutOfArea] = useState(false); // demo: mô phỏng ngoài vùng phục vụ
 
   const editing = !connection.isConnected;
 
@@ -373,8 +412,12 @@ const GrabExpressConnect: React.FC<{
     }
     setErrors(e);
     if (Object.keys(e).length > 0) return false;
-    // BR-006 — KHÔNG hard-code danh sách tỉnh/TP. Vùng phục vụ được validate động
-    // qua Quote API lúc tạo đơn giao hàng (Grab báo giá được = phục vụ được).
+    // BR-web-03 (BR-006) — vùng phục vụ validate động qua Grab (báo giá được = phục vụ được),
+    // KHÔNG hard-code danh sách tỉnh/TP.
+    if (simOutOfArea || !quoteDelivery(form).covered) {
+      setAreaAlert(true);
+      return false;
+    }
     return true;
   };
 
@@ -565,8 +608,19 @@ const GrabExpressConnect: React.FC<{
               )}
             </div>
 
+            {/* Demo — mô phỏng địa chỉ ngoài vùng phục vụ để thử cảnh báo E-005 */}
+            <label className="mt-4 flex w-fit cursor-pointer items-center gap-2 pl-[148px] text-[12px] text-text-hint">
+              <input
+                type="checkbox"
+                checked={simOutOfArea}
+                onChange={(e) => setSimOutOfArea(e.target.checked)}
+                className="h-3.5 w-3.5 accent-[var(--color-brand)]"
+              />
+              Demo: mô phỏng địa chỉ ngoài vùng Grab phục vụ
+            </label>
+
             {/* Nút hành động — thẳng cột với ô nhập */}
-            <div className="mt-8 flex gap-3 pl-[148px]">
+            <div className="mt-4 flex gap-3 pl-[148px]">
               {!connection.isConnected ? (
                 <Button variant="primary" onClick={handleConnect} className="min-w-[150px]">
                   Kết nối
@@ -590,6 +644,13 @@ const GrabExpressConnect: React.FC<{
           </div>
         </div>
       </div>
+
+      <AlertPopup
+        open={areaAlert}
+        title="Khu vực chưa được hỗ trợ"
+        message="Địa chỉ gian hàng hiện chưa nằm trong khu vực Grab Express phục vụ (không lấy được báo giá). Vui lòng kiểm tra lại địa chỉ."
+        onClose={() => setAreaAlert(false)}
+      />
 
       <ConfirmDialog
         open={confirmUnlink}

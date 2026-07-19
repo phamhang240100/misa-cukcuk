@@ -72,6 +72,7 @@ import {
   Modal,
   inputCls,
 } from '../components/ui';
+import {PosCheckoutScreen} from './PosCheckoutScreen';
 
 interface Props {
   connection: ConnectionState;
@@ -120,7 +121,8 @@ export const PosOrderSurface: React.FC<Props> = ({
   pushToast,
   goToBook,
 }) => {
-  const [screen, setScreen] = useState<'order' | 'orderList'>('order');
+  const [screen, setScreen] = useState<'order' | 'orderList' | 'checkout'>('order');
+  const [checkoutOrder, setCheckoutOrder] = useState<DeliveryOrder | null>(null);
 
   // ---- Order compose state ----
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -131,7 +133,8 @@ export const PosOrderSurface: React.FC<Props> = ({
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   // ---- Thông tin Order: Giao hàng ----
-  const [method, setMethod] = useState<DeliveryMethod>('GRAB');
+  // Mặc định "Nhà hàng tự giao" — thu ngân chủ động đổi sang Grab Express khi cần.
+  const [method, setMethod] = useState<DeliveryMethod>('SELF');
   const [deliveryDate, setDeliveryDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [deliveryTime, setDeliveryTime] = useState(() => {
     const d = new Date(Date.now() + 30 * 60000);
@@ -157,7 +160,6 @@ export const PosOrderSurface: React.FC<Props> = ({
   const [provinceAlert, setProvinceAlert] = useState(false);
   const [codAlert, setCodAlert] = useState(false);
   const [connFailAlert, setConnFailAlert] = useState(false);
-  const [invoiceOrder, setInvoiceOrder] = useState<DeliveryOrder | null>(null);
 
   const subtotal = cart.reduce((s, i) => s + i.qty * i.price, 0);
   const addressComplete = !!(addr.province && addr.district && addr.ward);
@@ -463,11 +465,11 @@ export const PosOrderSurface: React.FC<Props> = ({
                         <SecBtn icon={<Bell className="h-4 w-4 text-[#717680]" />} label="Nhắc bếp" onClick={() => pushToast('success', 'Đã nhắc bếp')} />
                       </div>
 
-                      <div className="grid grid-cols-4 gap-2">
+                      {/* Bỏ nút "Giao hàng" — thông tin giao hàng đã ở đầu order; đơn Grab không giao thủ công (BR-007). Lưu → Chờ gửi đối tác. */}
+                      <div className="grid grid-cols-3 gap-2">
                         <PrimBtn color="#12B76A" icon={<Save className="h-5 w-5" />} label="Lưu" onClick={doSave} />
                         <PrimBtn color="#245FDF" icon={<ChefHat className="h-5 w-5" />} label="Gửi bếp/bar" onClick={() => cart.length ? pushToast('success', 'Gửi bếp/bar thành công!') : pushToast('warning', 'Chưa chọn món')} />
                         <PrimBtn color="#F79009" icon={<Receipt className="h-5 w-5" />} label="Tính tiền" onClick={() => pushToast('info', 'Mở màn tính tiền')} />
-                        <PrimBtn color="#1570EF" icon={<Truck className="h-5 w-5" />} label="Giao hàng" onClick={doSave} />
                       </div>
                     </div>
                   </div>
@@ -527,12 +529,33 @@ export const PosOrderSurface: React.FC<Props> = ({
                     </div>
                   </div>
                 </div>
+              ) : screen === 'checkout' && checkoutOrder ? (
+                <PosCheckoutScreen
+                  order={checkoutOrder}
+                  connection={connection}
+                  isGrab
+                  onClose={() => setScreen('orderList')}
+                  onSend={(id) => {
+                    patchStatus(id, {
+                      cukcukStatus: 'cho_giao_hang',
+                      geStatus: 'ALLOCATING',
+                      trackingNo: 'GE-' + Math.floor(8_800_000_000 + Math.abs(id.length * 918_271)),
+                    });
+                    pushToast('success', 'Đã gửi đơn sang Grab Express', 'Chuyển sang Chờ giao hàng · GE đang tìm tài xế.');
+                    setScreen('orderList');
+                    goToBook();
+                  }}
+                  pushToast={pushToast}
+                />
               ) : (
                 <DanhSachOrder
                   orders={orders}
                   connection={connection}
                   onCompose={() => setScreen('order')}
-                  onInvoice={(o) => setInvoiceOrder(o)}
+                  onInvoice={(o) => {
+                    setCheckoutOrder(o);
+                    setScreen('checkout');
+                  }}
                   onCancel={(o) => {
                     const sentToGe = o.cukcukStatus === 'cho_giao_hang';
                     setOrders((os) => os.filter((x) => x.id !== o.id));
@@ -541,7 +564,10 @@ export const PosOrderSurface: React.FC<Props> = ({
                   onConfirmOnline={(o, deliver) => {
                     setOrders((os) => [o, ...os]);
                     pushToast('success', 'Đã xác nhận đơn online', `Đơn ${o.orderNo} chuyển sang Chờ gửi đối tác (Grab Express).`);
-                    if (deliver) setInvoiceOrder(o);
+                    if (deliver) {
+                      setCheckoutOrder(o);
+                      setScreen('checkout');
+                    }
                   }}
                   goToBook={goToBook}
                 />
@@ -593,26 +619,6 @@ export const PosOrderSurface: React.FC<Props> = ({
               onClose={() => setDrawerOpen(false)}
             />
           )}
-
-      {/* Hóa đơn giao hàng */}
-      {invoiceOrder && (
-        <InvoiceDeliveryScreen
-          order={invoiceOrder}
-          connection={connection}
-          onClose={() => setInvoiceOrder(null)}
-          pushToast={pushToast}
-          onSend={(id) => {
-            patchStatus(id, {
-              cukcukStatus: 'cho_giao_hang',
-              geStatus: 'ALLOCATING',
-              trackingNo: 'GE-' + Math.floor(8_800_000_000 + Math.abs(id.length * 918_271)),
-            });
-            setInvoiceOrder(null);
-            pushToast('success', 'Đã gửi đơn sang Grab Express', 'Chuyển sang Chờ giao hàng · GE đang tìm tài xế.');
-            goToBook();
-          }}
-        />
-      )}
 
       {/* Alerts */}
       <AlertPopup
@@ -1755,26 +1761,31 @@ const DeliveryInfoModal: React.FC<{
                 </div>
               </Row>
               <Row label="Phí GH thu khách">
-                <div className="relative">
-                  <input
-                    type="number"
-                    value={p.feeCust}
-                    disabled={!p.addressComplete}
-                    onChange={(e) => p.setFeeCustomer(Number(e.target.value))}
-                    className={rowInput() + ' pl-10 text-right font-bold disabled:bg-slate-50'}
-                  />
-                  <Truck className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                </div>
+                <>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={p.feeCust}
+                      disabled={!p.addressComplete}
+                      onChange={(e) => p.setFeeCustomer(Number(e.target.value))}
+                      className={rowInput() + ' pl-10 text-right font-bold disabled:bg-slate-50'}
+                    />
+                    <Truck className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                  </div>
+                  {/* BR-pos-03 — cảnh báo mềm (không chặn) khi thu khách < trả đối tác */}
+                  {p.addressComplete && p.quoteCovered && p.feeCust < p.partnerFee && (
+                    <div className="mt-1 text-[12px] text-amber-600">
+                      Phí thu khách thấp hơn phí trả đối tác — nhà hàng bù phần chênh {formatCurrency(p.partnerFee - p.feeCust)}.
+                    </div>
+                  )}
+                </>
               </Row>
-              <Row label="Thu tiền hộ">
-                <label className="flex h-11 cursor-pointer items-center justify-between rounded-xl border border-slate-200 bg-white px-4">
-                  <span className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" checked={p.isCod} onChange={(e) => p.setIsCod(e.target.checked)} className="h-4 w-4 accent-[var(--color-brand)]" />
-                    <span className="font-medium text-slate-700">COD (Thu hộ)</span>
-                    <span className="text-[11px] text-slate-400">= Còn phải thu</span>
-                  </span>
-                  <span className="font-black text-slate-800">{p.isCod ? formatCurrency(p.codAmount) : formatCurrency(0)}</span>
-                </label>
+              {/* BR-pos-02 — COD = Còn phải thu, tự tính (không nhập tay, không tick). */}
+              <Row label="Thu hộ (COD)">
+                <div className="flex h-11 items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4">
+                  <span className="text-[13px] text-slate-500">Tài xế thu của khách khi giao</span>
+                  <span className="text-sm font-black text-slate-800">{formatCurrency(p.codAmount)}</span>
+                </div>
               </Row>
             </>
           ) : (

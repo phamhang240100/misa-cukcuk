@@ -17,7 +17,8 @@ export const RESTAURANT_DEFAULT = {
 };
 
 export const INITIAL_CONNECTION: ConnectionState = {
-  isConnected: false,
+  // Mặc định đã kết nối để luồng gửi đơn chạy thông ngay; test Hủy kết nối ở Web quản lý.
+  isConnected: true,
   info: {
     phone: RESTAURANT_DEFAULT.phone,
     province: RESTAURANT_DEFAULT.province,

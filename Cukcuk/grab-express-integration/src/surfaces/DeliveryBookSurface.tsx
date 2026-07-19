@@ -2,7 +2,6 @@ import React, {useMemo, useState} from 'react';
 import {
   Banknote,
   Bell,
-  CheckCircle2,
   ChevronDown,
   Cloud,
   Home,
@@ -292,7 +291,7 @@ export const DeliveryBookSurface: React.FC<Props> = ({
               <tbody className="divide-y divide-slate-100">
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="px-4 py-20 text-center">
+                    <td colSpan={9} className="px-4 py-20 text-center">
                       <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
                         <Truck size={22} />
                       </div>
@@ -331,22 +330,14 @@ export const DeliveryBookSurface: React.FC<Props> = ({
                       <td className="whitespace-nowrap px-4 py-3 text-right font-black text-slate-800">
                         {formatCurrency(o.subtotal + o.shippingFeeCustomer)}
                       </td>
-                      {/* Trạng thái đơn (CukCuk) — tách riêng với trạng thái GE (NT-01) */}
+                      {/* Trạng thái đơn (CukCuk) — 1 trạng thái duy nhất, tách với GE (NT-01) */}
                       <td className="px-3 py-3">
-                        <div className="flex flex-col gap-1">
-                          <span
-                            className="w-fit rounded-full px-2 py-0.5 text-[11px] font-semibold"
-                            style={{color: st.color, background: st.bg}}
-                          >
-                            {st.label}
-                          </span>
-                          {o.geStatus === 'COMPLETED' && o.cukcukStatus !== 'da_thanh_toan' && (
-                            <span className="text-[11px] font-medium text-warning">Chờ thu tiền</span>
-                          )}
-                          {(o.geStatus === 'FAILED' || o.geStatus === 'CANCELLED' || o.geStatus === 'RETURNED') && (
-                            <span className="text-[11px] font-medium text-danger">Cần xử lý</span>
-                          )}
-                        </div>
+                        <span
+                          className="w-fit rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                          style={{color: st.color, background: st.bg}}
+                        >
+                          {st.label}
+                        </span>
                       </td>
                       {/* Trạng thái Grab Express (GE) */}
                       <td className="px-3 py-3">
@@ -389,7 +380,7 @@ export const DeliveryBookSurface: React.FC<Props> = ({
                     <td className="px-4 py-2.5 text-right">
                       {formatCurrency(sum((o) => o.subtotal + o.shippingFeeCustomer))}
                     </td>
-                    <td colSpan={2} />
+                    <td colSpan={3} />
                   </tr>
                 </tfoot>
               )}
@@ -500,14 +491,8 @@ const RowActions: React.FC<{
     fn();
   };
 
-  if (order.cukcukStatus === 'da_thanh_toan')
-    return (
-      <div className="flex justify-end">
-        <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-[12px] font-semibold text-green-700">
-          <CheckCircle2 size={13} /> Đã thanh toán
-        </span>
-      </div>
-    );
+  // Đơn đã thanh toán → hết nút (trạng thái đã hiển thị ở cột Trạng thái đơn).
+  if (order.cukcukStatus === 'da_thanh_toan') return <span className="text-slate-300">—</span>;
 
   const failed = order.geStatus === 'FAILED' || order.geStatus === 'CANCELLED';
   const returned = order.geStatus === 'RETURNED';
@@ -531,7 +516,7 @@ const RowActions: React.FC<{
         // FR-pos-040 — Thu tiền chỉ mở khi COMPLETED.
         <button
           onClick={stop(onCollect)}
-          className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#F59E0B] px-3 text-[13px] font-semibold text-white hover:brightness-105"
+          className="inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#F59E0B] px-3 text-[13px] font-semibold text-white hover:brightness-105"
         >
           <Banknote size={14} /> Thu tiền
         </button>
