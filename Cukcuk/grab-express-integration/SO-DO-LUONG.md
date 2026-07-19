@@ -135,7 +135,7 @@ sequenceDiagram
     GE-->>CUK: Phí giao + thời gian dự kiến
     CUK-->>TN: Phí trả đối tác (khóa) · Phí thu khách (sửa được)
     TN->>CUK: Nhập phí thu khách rồi Lưu
-    Note over CUK: COD tự tính = Còn phải thu;<br/>check COD ≤ 2tr và địa chỉ trong khu vực GE
+    Note over CUK: COD tự tính = Còn phải thu.<br/>Kiểm tra COD ≤ 2tr và địa chỉ trong khu vực GE
     CUK-->>TN: Đơn: Chờ gửi đối tác
     end
 
