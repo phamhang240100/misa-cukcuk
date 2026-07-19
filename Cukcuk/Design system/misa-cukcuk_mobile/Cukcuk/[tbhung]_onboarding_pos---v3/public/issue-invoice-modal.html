@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phát hành hóa đơn - Demo</title>
+    <style>
+        /* Base Reset */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* Modal Backdrop */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        /* Modal Container */
+        .modal-dialog {
+            background-color: #FFFFFF;
+            width: 100%;
+            max-width: 650px;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+            animation: modalFadeIn 0.3s ease-out;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Header */
+        .modal-header {
+            padding: 20px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #212121;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #757575;
+            cursor: pointer;
+            padding: 4px;
+            line-height: 1;
+        }
+
+        .close-btn:hover {
+            color: #212121;
+        }
+
+        /* Modal Body */
+        .modal-body {
+            padding: 0 24px 24px;
+        }
+
+        /* Section Titles */
+        .section-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #212121;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        /* Radio Group */
+        .radio-group {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 20px;
+        }
+
+        .radio-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .radio-item input {
+            cursor: pointer;
+        }
+
+        /* Form Group (Section with border) */
+        .form-border-group {
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 120px 1fr;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .form-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .label {
+            font-size: 13px;
+            color: #616161;
+        }
+
+        .required {
+            color: #D32F2F;
+            margin-left: 2px;
+        }
+
+        /* Inputs */
+        .input-wrapper {
+            position: relative;
+        }
+
+        .form-control {
+            width: 100%;
+            height: 36px;
+            padding: 0 12px;
+            border: 1px solid #BDBDBD;
+            border-radius: 4px;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-control:focus {
+            border-color: #076EFF;
+        }
+
+        .form-control.error {
+            border-color: #D32F2F;
+        }
+
+        .error-msg {
+            color: #D32F2F;
+            font-size: 11px;
+            margin-top: 4px;
+            display: none;
+        }
+
+        /* Icons in Inputs */
+        .input-icon {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #757575;
+            pointer-events: none;
+        }
+
+        /* Customer Info */
+        .customer-info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .customer-name {
+            font-weight: bold;
+            color: #212121;
+        }
+
+        .edit-link {
+            color: #076EFF;
+            text-decoration: none;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .edit-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Checkbox Section */
+        .checkbox-group {
+            margin-bottom: 16px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        /* Dynamic Fields Area */
+        .dynamic-fields {
+            margin-top: 12px;
+            padding-left: 24px;
+            display: block; /* Visible by default */
+        }
+
+        .dynamic-row {
+            margin-bottom: 12px;
+        }
+
+        .dynamic-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .dynamic-label {
+            display: block;
+            font-size: 13px;
+            color: #616161;
+            margin-bottom: 4px;
+        }
+
+        /* Footer Actions */
+        .modal-footer {
+            padding: 16px 24px;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .btn {
+            height: 36px;
+            padding: 0 20px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-cancel {
+            background-color: #FFFFFF;
+            border: 1px solid #BDBDBD;
+            color: #212121;
+        }
+
+        .btn-cancel:hover {
+            background-color: #f5f5f5;
+        }
+
+        .btn-preview {
+            background-color: #FFFFFF;
+            border: 1px solid #076EFF;
+            color: #076EFF;
+        }
+
+        .btn-preview:hover {
+            background-color: rgba(7, 110, 255, 0.05);
+        }
+
+        .btn-submit {
+            background-color: #076EFF;
+            color: #FFFFFF;
+            font-weight: bold;
+        }
+
+        .btn-submit:hover {
+            background-color: #0056D4;
+        }
+
+        .btn-submit:disabled {
+            background-color: #e0e0e0;
+            color: #bdbdbd;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="modal-overlay">
+        <div class="modal-dialog">
+            <!-- Header section -->
+            <div class="modal-header">
+                <h2 class="modal-title">Phát hành hóa đơn</h2>
+                <button class="close-btn">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <!-- Section 1: Invoice Type - Hidden per request -->
+                <!--
+                <label class="section-label">Loại hóa đơn phát hành</label>
+                <div class="radio-group">
+                    <label class="radio-item">
+                        <input type="radio" name="invoiceType" checked>
+                        <span>Hóa đơn điện tử khởi tạo từ MTT</span>
+                    </label>
+                    <label class="radio-item">
+                        <input type="radio" name="invoiceType">
+                        <span>Hóa đơn GTGT</span>
+                    </label>
+                </div>
+                -->
+
+                <!-- Section 2: Invoice Info -->
+                <div class="form-border-group">
+                    <!-- Invoice Date -->
+                    <div class="form-row">
+                        <label class="label">Ngày hóa đơn<span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <input type="text" class="form-control" value="17/04/2026" id="invoiceDate">
+                            <span class="input-icon">📅</span>
+                            <div class="error-msg" id="dateError">Trường này không được để trống</div>
+                        </div>
+                    </div>
+
+                    <!-- Series Symbol -->
+                    <div class="form-row">
+                        <label class="label">Ký hiệu<span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <select class="form-control" style="appearance: none;">
+                                <option value="1C26MAH">1C26MAH</option>
+                                <option value="1C26MBH">1C26MBH</option>
+                            </select>
+                            <span class="input-icon">▼</span>
+                        </div>
+                    </div>
+
+                    <!-- Customer -->
+                    <div class="form-row">
+                        <label class="label">Khách hàng</label>
+                        <div class="customer-info-row">
+                            <span class="customer-name">Khách lẻ không lấy hóa đơn</span>
+                            <a href="#" class="edit-link">
+                                <span>✏ Sửa thông tin</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Send Options -->
+                <div class="checkbox-group">
+                    <label class="checkbox-item">
+                        <input type="checkbox" id="sendCheckbox">
+                        <span>Gửi hóa đơn cho khách hàng</span>
+                    </label>
+                </div>
+
+                <!-- Fields appearing when checkbox is checked -->
+                <div id="dynamicFields" class="dynamic-fields" style="display: none;">
+                    <div class="dynamic-row">
+                        <label class="dynamic-label">Tên người nhận</label>
+                        <input type="text" class="form-control" placeholder="Nhập tên người nhận">
+                    </div>
+                    <div class="dynamic-row">
+                        <label class="dynamic-label">Email<span class="required">*</span></label>
+                        <input type="text" class="form-control" placeholder="Mỗi email cách nhau bởi dấu ;" id="emailInput">
+                        <div class="error-msg" id="emailError">Trường này không được để trống</div>
+                    </div>
+                </div>
+
+                <!-- Section 4: Digital Signature -->
+                <div class="checkbox-group" style="margin-top: 16px;">
+                    <label class="checkbox-item">
+                        <input type="checkbox">
+                        <span>Ký số khi phát hành hóa đơn</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="modal-footer">
+                <button class="btn btn-cancel">Hủy</button>
+                <button class="btn btn-preview">Xem trước</button>
+                <button class="btn btn-submit" id="submitBtn">Phát hành</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Toggle Hide/Show based on "Gửi hóa đơn" checkbox
+        const sendCheckbox = document.getElementById('sendCheckbox');
+        const dynamicFields = document.getElementById('dynamicFields');
+        const emailInput = document.getElementById('emailInput');
+        
+        sendCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                dynamicFields.style.display = 'block';
+            } else {
+                dynamicFields.style.display = 'none';
+                // Reset error state if hidden
+                emailInput.classList.remove('error');
+                document.getElementById('emailError').style.display = 'none';
+            }
+            validateForm();
+        });
+
+        // Basic Validation Logic
+        const invoiceDate = document.getElementById('invoiceDate');
+        const submitBtn = document.getElementById('submitBtn');
+
+        function validateForm() {
+            let isValid = true;
+
+            // Date validation
+            if (!invoiceDate.value.trim()) {
+                isValid = false;
+            }
+
+            // Email validation (only if checkbox is checked)
+            if (sendCheckbox.checked) {
+                if (!emailInput.value.trim()) {
+                    isValid = false;
+                }
+            }
+
+            // Toggle button state
+            submitBtn.disabled = !isValid;
+        }
+
+        // Event listeners for real-time validation
+        invoiceDate.addEventListener('input', function() {
+            if (!this.value.trim()) {
+                this.classList.add('error');
+                document.getElementById('dateError').style.display = 'block';
+            } else {
+                this.classList.remove('error');
+                document.getElementById('dateError').style.display = 'none';
+            }
+            validateForm();
+        });
+
+        emailInput.addEventListener('input', function() {
+            if (sendCheckbox.checked && !this.value.trim()) {
+                this.classList.add('error');
+                document.getElementById('emailError').style.display = 'block';
+            } else {
+                this.classList.remove('error');
+                document.getElementById('emailError').style.display = 'none';
+            }
+            validateForm();
+        });
+
+        // Initial validation call
+        validateForm();
+        
+        // Modal close button demo alert
+        document.querySelector('.close-btn').addEventListener('click', () => {
+            alert('Đóng Dialog');
+        });
+        
+        document.querySelector('.btn-cancel').addEventListener('click', () => {
+            alert('Hủy thao tác');
+        });
+
+        submitBtn.addEventListener('click', () => {
+            alert('Đã phát hành hóa đơn thành công!');
+        });
+    </script>
+</body>
+</html>

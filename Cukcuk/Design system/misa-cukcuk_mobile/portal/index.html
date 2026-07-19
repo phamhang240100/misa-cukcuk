@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MISA CukCuk — Workspace Hub</title>
+    <script>
+      window.location.href = "/grab-express/";
+    </script>
+    <!-- Tailwind CSS v4 CDN -->
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+      }
+      .font-display {
+        font-family: "Space Grotesk", sans-serif;
+      }
+    </style>
+  </head>
+  <body class="bg-[#F0F2F4] text-[#101828] min-h-screen flex flex-col justify-between">
+    
+    <!-- Header/Navigation -->
+    <header class="bg-white border-b border-[#E9EAEB] py-4 px-6 md:px-12 shrink-0">
+      <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <!-- Logo MISA CukCuk Mockup -->
+          <div class="h-10 w-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-sm">
+            C
+          </div>
+          <div>
+            <h1 class="text-lg font-bold text-slate-900 leading-tight">MISA CukCuk</h1>
+            <p class="text-xs text-slate-500 font-medium">Workspace Prototype Hub</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            Môi trường kiểm thử
+          </span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex items-center py-12 px-6 md:px-12">
+      <div class="max-w-7xl mx-auto w-full">
+        <!-- Hero Section -->
+        <div class="text-center max-w-2xl mx-auto mb-12">
+          <h2 class="font-display text-3xl md:text-4xl font-bold tracking-tight text-slate-900 mb-4">
+            Cổng Giải Pháp Tích Hợp <span class="text-blue-600">CukCuk</span>
+          </h2>
+          <p class="text-sm md:text-base text-slate-600 leading-relaxed">
+            Chào mừng bạn đến với Workspace phát triển của MISA CukCuk. Dưới đây là ba phân hệ giải pháp và tính năng phục vụ quản lý, vận hành và tối ưu hóa quy trình dịch vụ ăn uống.
+          </p>
+        </div>
+
+        <!-- Solutions Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          
+          <!-- Card 1: ShopeeFood Integration -->
+          <div class="bg-white rounded-2xl border border-[#D5D7DA] p-6 flex flex-col justify-between transition-all duration-300 hover:translate-y-[-4px] hover:border-blue-300 hover:shadow-lg">
+            <div>
+              <div class="flex items-center justify-between mb-4">
+                <span class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-orange-50 text-orange-600 border border-orange-200">
+                  ShopeeFood 2.0
+                </span>
+                <span class="text-xs text-slate-400 font-mono">by [hangpt]</span>
+              </div>
+              <h3 class="text-lg font-bold text-slate-900 mb-2">Đồng Bộ ShopeeFood 2.0</h3>
+              <p class="text-xs text-slate-500 leading-relaxed mb-6">
+                Hệ thống kết nối MISA CukCuk và gian hàng ShopeeFood. Hỗ trợ đồng bộ thực đơn món ăn, tự động tiếp nhận đơn hàng trực tuyến, đối soát hóa đơn và lập báo cáo doanh thu kênh giao hàng chi tiết.
+              </p>
+            </div>
+            <a href="/shopeefood/" class="w-full py-2.5 px-4 bg-orange-500 hover:bg-orange-600 text-white font-semibold text-xs rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer">
+              Truy cập ShopeeFood
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </a>
+          </div>
+
+          <!-- Card 2: Onboarding POS v3 -->
+          <div class="bg-white rounded-2xl border border-[#D5D7DA] p-6 flex flex-col justify-between transition-all duration-300 hover:translate-y-[-4px] hover:border-blue-300 hover:shadow-lg">
+            <div>
+              <div class="flex items-center justify-between mb-4">
+                <span class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-200">
+                  Onboarding POS v3
+                </span>
+                <span class="text-xs text-slate-400 font-mono">by [tbhung]</span>
+              </div>
+              <h3 class="text-lg font-bold text-slate-900 mb-2">Onboarding POS Coffee</h3>
+              <p class="text-xs text-slate-500 leading-relaxed mb-6">
+                Giao diện bán hàng trực quan (POS) tối ưu cho các quán Coffee vừa và nhỏ. Tích hợp sẵn bộ hướng dẫn sử dụng (Interactive Tour Guide), quản lý sơ đồ bàn 3 tầng, gọi món và thanh toán linh hoạt.
+              </p>
+            </div>
+            <a href="/onboarding/" class="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer">
+              Truy cập POS Bán Hàng
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </a>
+          </div>
+
+          <!-- Card 3: Grab Express Integration -->
+          <div class="bg-white rounded-2xl border border-[#D5D7DA] p-6 flex flex-col justify-between transition-all duration-300 hover:translate-y-[-4px] hover:border-blue-300 hover:shadow-lg">
+            <div>
+              <div class="flex items-center justify-between mb-4">
+                <span class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  Grab Express
+                </span>
+                <span class="text-xs text-slate-400 font-mono">Phân hệ tích hợp</span>
+              </div>
+              <h3 class="text-lg font-bold text-slate-900 mb-2">Kết Nối Grab Express</h3>
+              <p class="text-xs text-slate-500 leading-relaxed mb-6">
+                Phân hệ đặt xe giao hàng tự động thông qua Grab Express. Cho phép tính toán khoảng cách phí vận chuyển, kết nối với tài xế, quản lý sổ giao hàng và theo dõi hành trình đơn hàng theo thời gian thực.
+              </p>
+            </div>
+            <a href="/grab-express/" class="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer">
+              Truy cập Grab Express
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </a>
+          </div>
+
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-[#E9EAEB] py-6 px-6 text-center shrink-0 text-xs text-slate-400 font-medium">
+      <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div>
+          &copy; 2026 MISA JSC. Phát triển phục vụ mục đích kiểm thử sản phẩm.
+        </div>
+        <div class="flex items-center gap-4">
+          <span class="hover:text-slate-600 cursor-help">Tài liệu hướng dẫn</span>
+          <span class="hover:text-slate-600 cursor-help">Hỗ trợ kỹ thuật</span>
+        </div>
+      </div>
+    </footer>
+
+  </body>
+</html>

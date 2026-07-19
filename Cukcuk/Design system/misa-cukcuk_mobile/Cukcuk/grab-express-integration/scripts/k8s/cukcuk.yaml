@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cukcuk
+  namespace: default
+  labels:
+    app: cukcuk
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cukcuk
+  template:
+    metadata:
+      labels:
+        app: cukcuk
+    spec:
+      containers:
+        - name: cukcuk
+          image: 100.104.168.197:30500/cukcuk:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cukcuk
+  namespace: default
+  labels:
+    app: cukcuk
+spec:
+  selector:
+    app: cukcuk
+  ports:
+    - port: 80
+      targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cukcuk
+  namespace: default
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: cukcuk.teval.site
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: cukcuk
+                port:
+                  number: 80

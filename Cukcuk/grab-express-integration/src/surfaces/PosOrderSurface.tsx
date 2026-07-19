@@ -57,7 +57,7 @@ import {
   WARDS,
   districtsOf,
   formatCurrency,
-  isSupportedProvince,
+  quoteDelivery,
 } from '../constants';
 import {CUSTOMERS} from '../data';
 import {MENU_CATEGORIES, POS_MENU, type PosMenuItem} from '../posMenu';
@@ -91,17 +91,6 @@ const METHOD_LABELS: Record<DeliveryMethod, string> = {
   GRAB: 'Grab Express',
   AHAMOVE: 'AhaMove',
   SHOPEE: 'ShopeeFood',
-};
-
-const mockPartnerFee = (province: string) => {
-  const table: Record<string, number> = {
-    'TP. Hà Nội': 18000,
-    'TP. Hồ Chí Minh': 22000,
-    'Đà Nẵng': 16000,
-    'Quảng Ninh': 25000,
-    'Cần Thơ': 20000,
-  };
-  return table[province] ?? 20000;
 };
 
 // Ảnh có fallback gradient + emoji nếu URL lỗi
@@ -160,6 +149,8 @@ export const PosOrderSurface: React.FC<Props> = ({
   const [feeCustomer, setFeeCustomer] = useState<number | null>(null);
   const [isCod, setIsCod] = useState(true);
   const [note, setNote] = useState('');
+  // Demo (BR-006 / E-005): mô phỏng Grab KHÔNG báo giá được cho địa chỉ hiện tại.
+  const [simNoQuote, setSimNoQuote] = useState(false);
   const isGrab = method === 'GRAB';
 
   // ---- Alerts / modals ----
@@ -170,10 +161,17 @@ export const PosOrderSurface: React.FC<Props> = ({
 
   const subtotal = cart.reduce((s, i) => s + i.qty * i.price, 0);
   const addressComplete = !!(addr.province && addr.district && addr.ward);
-  const partnerFee = addressComplete ? mockPartnerFee(addr.province) : 0;
+  // BR-006 — phí + vùng phục vụ suy ra động từ Quote (không theo allow-list tỉnh).
+  // simNoQuote = demo Grab không báo giá được (E-005).
+  const quote = useMemo(
+    () => (simNoQuote ? {covered: false, fee: 0} : quoteDelivery(addr)),
+    [addr, simNoQuote],
+  );
+  const partnerFee = quote.covered ? quote.fee : 0;
   const feeCust = feeCustomer ?? partnerFee;
   const total = subtotal + feeCust;
-  const codAmount = total;
+  // BR-003 — COD (Còn phải thu) = (tiền món + phí GH thu khách) − Đặt cọc trước.
+  const codAmount = Math.max(0, total - (hasDeposit ? depositAmount : 0));
 
   const orderNo = 'DH' + String(150 + orders.length).padStart(6, '0');
 
@@ -245,7 +243,7 @@ export const PosOrderSurface: React.FC<Props> = ({
       return;
     }
     if (isGrab) {
-      if (!isSupportedProvince(addr.province)) {
+      if (!quote.covered) {
         setProvinceAlert(true);
         return;
       }
@@ -588,6 +586,9 @@ export const PosOrderSurface: React.FC<Props> = ({
               setNote={setNote}
               subtotal={subtotal}
               total={total}
+              simNoQuote={simNoQuote}
+              setSimNoQuote={setSimNoQuote}
+              quoteCovered={quote.covered}
               onProvinceUnsupported={() => setProvinceAlert(true)}
               onClose={() => setDrawerOpen(false)}
             />
@@ -608,11 +609,6 @@ export const PosOrderSurface: React.FC<Props> = ({
             });
             setInvoiceOrder(null);
             pushToast('success', 'Đã gửi đơn sang Grab Express', 'Chuyển sang Chờ giao hàng · GE đang tìm tài xế.');
-          }}
-          onDeliver={(id) => {
-            patchStatus(id, {cukcukStatus: 'dang_giao_hang'});
-            setInvoiceOrder(null);
-            pushToast('success', 'Đã giao hàng', 'Chuyển sang Đang giao hàng.');
             goToBook();
           }}
         />
@@ -623,7 +619,7 @@ export const PosOrderSurface: React.FC<Props> = ({
         contained
         open={provinceAlert}
         title="Khu vực chưa được hỗ trợ"
-        message={MSG.provinceUnsupportedPickOther}
+        message={MSG.areaNoQuote}
         primaryText="Chọn đối tác GH khác"
         onPrimary={resetToOtherPartner}
         onClose={() => setProvinceAlert(false)}
@@ -1124,13 +1120,15 @@ const OrderCard: React.FC<{
             <ClipboardCheck className="h-4 w-4" /> Xác nhận đơn
           </button>
         ) : isGe && row.ge ? (
-          <button
-            onClick={() => onInvoice(row.ge!)}
-            className="flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-grab text-sm font-semibold text-white hover:bg-grab-hover"
-          >
-            {isSend ? <Send className="h-4 w-4" /> : <Truck className="h-4 w-4" />}
-            {isSend ? 'Gửi đơn hàng' : 'Giao hàng'}
-          </button>
+          // FR-pos-062 — Chờ gửi đối tác → Gửi đơn hàng; Chờ/Đang giao hàng → chỉ còn nút Hủy (không nút Giao hàng thủ công).
+          isSend ? (
+            <button
+              onClick={() => onInvoice(row.ge!)}
+              className="flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-brand text-sm font-semibold text-white hover:bg-brand-hover"
+            >
+              <Send className="h-4 w-4" /> Gửi đơn hàng
+            </button>
+          ) : null
         ) : (
           <button className="flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border-2 border-brand bg-white text-sm font-medium text-brand hover:bg-blue-50">
             <CircleDollarSign className="h-4 w-4" /> Tính tiền
@@ -1140,7 +1138,9 @@ const OrderCard: React.FC<{
           (isGe && row.ge ? (
             <button
               onClick={() => onCancel(row.ge!)}
-              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-medium text-slate-600 hover:bg-red-50 hover:text-danger"
+              className={`flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-medium text-slate-600 hover:bg-red-50 hover:text-danger ${
+                isSend ? '' : 'flex-1'
+              }`}
             >
               <XCircle className="h-4 w-4" /> Hủy
             </button>
@@ -1212,9 +1212,12 @@ const OrderListTable: React.FC<{
                     </Button>
                   ) : isGe && r.ge ? (
                     <>
-                      <Button variant="grab" size="sm" icon={isSend ? <Send className="h-4 w-4" /> : <Truck className="h-4 w-4" />} onClick={() => onInvoice(r.ge!)}>
-                        {isSend ? 'Gửi đơn' : 'Giao hàng'}
-                      </Button>
+                      {/* FR-pos-062 — Chờ gửi đối tác → Gửi đơn; Chờ/Đang giao → chỉ Hủy (không nút Giao hàng thủ công). */}
+                      {isSend && (
+                        <Button variant="primary" size="sm" icon={<Send className="h-4 w-4" />} onClick={() => onInvoice(r.ge!)}>
+                          Gửi đơn
+                        </Button>
+                      )}
                       <button onClick={() => onCancel(r.ge!)} className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-danger">
                         <XCircle className="h-4 w-4" />
                       </button>
@@ -1247,10 +1250,13 @@ const OnlineOrderPanel: React.FC<{
   const [method, setMethod] = useState<DeliveryMethod>('GRAB');
   const [feeCustomer, setFeeCustomer] = useState<number | null>(null);
   const [provinceAlert, setProvinceAlert] = useState(false);
+  const [simNoQuote, setSimNoQuote] = useState(false); // demo: Grab không báo giá được
 
   const isGrab = method === 'GRAB';
-  const supported = isSupportedProvince(order.province);
-  const partnerFee = isGrab && supported ? mockPartnerFee(order.province) : 0;
+  // BR-006 — coverage + phí từ Quote động (simNoQuote = demo ngoài vùng).
+  const quote = quoteDelivery(order);
+  const supported = !simNoQuote && quote.covered;
+  const partnerFee = isGrab && supported ? quote.fee : 0;
   const feeCust = feeCustomer ?? partnerFee;
   const total = order.subtotal + (isGrab ? feeCust : 0);
 
@@ -1368,12 +1374,31 @@ const OnlineOrderPanel: React.FC<{
                   <Row label="Loại dịch vụ">
                     <input value={SERVICE_TYPE_DEFAULT} disabled className={rowInput() + ' cursor-not-allowed bg-slate-50 text-slate-500'} />
                   </Row>
+                  {/* Demo control — mô phỏng Grab không báo giá được (E-005) */}
+                  <Row label="">
+                    <div className="flex items-center justify-between rounded-xl border border-dashed border-amber-300 bg-amber-50/60 px-4 py-2.5">
+                      <span className="flex items-center gap-2 text-[12.5px] font-medium text-amber-700">
+                        <Info className="h-4 w-4" /> Demo: Grab không báo giá được
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setSimNoQuote((v) => !v)}
+                        className={`relative h-6 w-12 shrink-0 rounded-full transition-all ${simNoQuote ? 'bg-amber-500' : 'bg-slate-300'}`}
+                      >
+                        <div className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-all ${simNoQuote ? 'left-7' : 'left-1'}`} />
+                      </button>
+                    </div>
+                  </Row>
                   <Row label="Phí GH trả đối tác">
                     <div className="flex h-11 items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4">
                       <span className="flex items-center gap-1.5 text-[13px] text-slate-500">
                         Theo Grab Express <InfoTip text={MSG.feeHint} />
                       </span>
-                      <span className="text-sm font-bold text-slate-800">{formatCurrency(partnerFee)}</span>
+                      {supported ? (
+                        <span className="text-sm font-bold text-slate-800">{formatCurrency(partnerFee)}</span>
+                      ) : (
+                        <span className="text-[12px] font-semibold text-amber-600">Không báo giá được</span>
+                      )}
                     </div>
                   </Row>
                   <Row label="Phí GH thu khách">
@@ -1429,7 +1454,7 @@ const OnlineOrderPanel: React.FC<{
         contained
         open={provinceAlert}
         title="Khu vực chưa được hỗ trợ"
-        message={MSG.provinceUnsupportedPickOther}
+        message={MSG.areaNoQuote}
         onClose={() => setProvinceAlert(false)}
       />
     </div>
@@ -1488,6 +1513,9 @@ const DeliveryInfoModal: React.FC<{
   setNote: (s: string) => void;
   subtotal: number;
   total: number;
+  simNoQuote: boolean;
+  setSimNoQuote: (b: boolean) => void;
+  quoteCovered: boolean;
   onProvinceUnsupported: () => void;
   onClose: () => void;
 }> = (p) => {
@@ -1500,7 +1528,8 @@ const DeliveryInfoModal: React.FC<{
     p.setCustErr(custMissing);
     p.setAddrErr(addrMissing);
     if (custMissing || addrMissing) return;
-    if (isGrab && !isSupportedProvince(p.addr.province)) {
+    // BR-006 — chặn Lưu khi Grab không báo giá được (E-001/E-005).
+    if (isGrab && !p.quoteCovered) {
       p.onProvinceUnsupported();
       return;
     }
@@ -1586,8 +1615,8 @@ const DeliveryInfoModal: React.FC<{
                   value={p.addr.province}
                   onChange={(e) => {
                     const prov = e.target.value;
+                    // BR-006 — coverage kiểm tra khi đủ địa chỉ + có báo giá, không chặn theo tỉnh.
                     p.setAddr((a) => ({...a, province: prov, district: '', ward: ''}));
-                    if (prov && !isSupportedProvince(prov)) p.onProvinceUnsupported();
                   }}
                   className="h-10 rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-brand"
                 >
@@ -1614,7 +1643,13 @@ const DeliveryInfoModal: React.FC<{
                 <select
                   value={p.addr.ward}
                   disabled={!p.addr.district}
-                  onChange={(e) => p.setAddr((a) => ({...a, ward: e.target.value}))}
+                  onChange={(e) => {
+                    const ward = e.target.value;
+                    p.setAddr((a) => ({...a, ward}));
+                    // Đủ địa chỉ + Grab không báo giá được → cảnh báo ngoài vùng (E-005).
+                    const covered = !p.simNoQuote && quoteDelivery({...p.addr, ward}).covered;
+                    if (isGrab && ward && !covered) p.onProvinceUnsupported();
+                  }}
                   className="h-10 rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-brand disabled:bg-slate-50 disabled:text-slate-400"
                 >
                   <option value="">Phường/Xã</option>
@@ -1690,15 +1725,32 @@ const DeliveryInfoModal: React.FC<{
                   className={rowInput() + ' cursor-not-allowed bg-slate-50 text-slate-500'}
                 />
               </Row>
+              {/* Demo control — mô phỏng Grab KHÔNG báo giá được (E-005), thay cho việc hard-code vùng */}
+              <Row label="">
+                <div className="flex items-center justify-between rounded-xl border border-dashed border-amber-300 bg-amber-50/60 px-4 py-2.5">
+                  <span className="flex items-center gap-2 text-[12.5px] font-medium text-amber-700">
+                    <Info className="h-4 w-4" /> Demo: Grab không báo giá được (ngoài vùng phục vụ)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => p.setSimNoQuote(!p.simNoQuote)}
+                    className={`relative h-6 w-12 shrink-0 rounded-full transition-all ${p.simNoQuote ? 'bg-amber-500' : 'bg-slate-300'}`}
+                  >
+                    <div className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-all ${p.simNoQuote ? 'left-7' : 'left-1'}`} />
+                  </button>
+                </div>
+              </Row>
               <Row label="Phí GH trả đối tác">
                 <div className="flex h-11 items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4">
                   <span className="flex items-center gap-1.5 text-[13px] text-slate-500">
                     Theo Grab Express <InfoTip text={MSG.feeHint} />
                   </span>
-                  {p.addressComplete ? (
+                  {!p.addressComplete ? (
+                    <span className="text-[12px] italic text-slate-400">Điền đủ Tỉnh/Quận/Phường</span>
+                  ) : p.quoteCovered ? (
                     <span className="text-sm font-bold text-slate-800">{formatCurrency(p.partnerFee)}</span>
                   ) : (
-                    <span className="text-[12px] italic text-slate-400">Điền đủ Tỉnh/Quận/Phường</span>
+                    <span className="text-[12px] font-semibold text-amber-600">Không báo giá được</span>
                   )}
                 </div>
               </Row>
@@ -1803,22 +1855,17 @@ const InvoiceDeliveryScreen: React.FC<{
   onClose: () => void;
   pushToast: (kind: ToastKind, title: string, desc?: string) => void;
   onSend: (id: string) => void;
-  onDeliver: (id: string) => void;
-}> = ({order, connection, onClose, pushToast, onSend, onDeliver}) => {
-  const isSend = order.cukcukStatus === 'cho_gui_doi_tac';
+}> = ({order, connection, onClose, pushToast, onSend}) => {
   const [connFail, setConnFail] = useState(false);
   const total = order.subtotal + order.shippingFeeCustomer;
 
+  // BR-007 — màn này chỉ để Gửi đơn sang Grab Express; không có Giao hàng thủ công (auto-sync lo bước giao).
   const handlePrimary = () => {
-    if (isSend) {
-      if (!connection.isConnected) {
-        setConnFail(true);
-        return;
-      }
-      onSend(order.id);
-    } else {
-      onDeliver(order.id);
+    if (!connection.isConnected) {
+      setConnFail(true);
+      return;
     }
+    onSend(order.id);
   };
 
   return (
@@ -1829,7 +1876,7 @@ const InvoiceDeliveryScreen: React.FC<{
       width={560}
       title={
         <span className="flex items-center gap-2">
-          {isSend ? 'Gửi đơn hàng' : 'Hóa đơn giao hàng'} · {order.orderNo}
+          Gửi đơn hàng · {order.orderNo}
           <GrabExpressChip />
         </span>
       }
@@ -1838,8 +1885,8 @@ const InvoiceDeliveryScreen: React.FC<{
           <Button variant="secondary" onClick={onClose}>
             Đóng
           </Button>
-          <Button variant="grab" icon={isSend ? <Send className="h-4 w-4" /> : <Truck className="h-4 w-4" />} onClick={handlePrimary} className="min-w-[150px]">
-            {isSend ? 'Gửi đơn hàng' : 'Giao hàng'}
+          <Button variant="grab" icon={<Send className="h-4 w-4" />} onClick={handlePrimary} className="min-w-[150px]">
+            Gửi đơn hàng
           </Button>
         </>
       }

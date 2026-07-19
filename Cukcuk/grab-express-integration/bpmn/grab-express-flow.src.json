@@ -1,9 +1,15 @@
 {
   "actors": ["Quản lý nhà hàng", "Thu ngân (POS)", "Grab Express"],
   "branches": [
-    "Nếu hợp lệ và địa chỉ thuộc khu vực Grab Express hỗ trợ thì kết nối thành công, ngược lại báo lỗi",
-    "Nếu COD ≤ 2 triệu và địa chỉ trong khu vực Grab Express hỗ trợ thì cho gửi, ngược lại chọn đối tác giao hàng khác",
-    "Nếu kết nối Grab Express OK thì tạo vận đơn, ngược lại hiện popup lỗi kết nối"
+    "Nếu hợp lệ và địa chỉ thuộc khu vực Grab phục vụ thì kết nối thành công, ngược lại báo lỗi",
+    "Nếu COD trong hạn mức và địa chỉ được Grab phục vụ thì cho lưu, ngược lại chọn đối tác giao hàng khác",
+    "Nếu gửi đơn sang Grab thành công thì tạo vận đơn, ngược lại giữ đơn ở Chờ gửi đối tác để gửi lại",
+    "Kết quả giao hàng: giao thành công thì thu tiền; Grab hủy hoặc không có tài xế thì đơn quay lại Chờ gửi đối tác; hoàn hàng về quán thì nhắc thu ngân xử lý",
+    "Thu ngân xử lý đơn lỗi: gửi lại hoặc đổi đối tác thì quay lại gửi đơn, ngược lại hủy đơn"
   ],
-  "errors": ["Báo lỗi khi kết nối", "Cảnh báo COD hoặc ngoài khu vực Grab Express hỗ trợ", "Popup lỗi kết nối"]
+  "errors": [
+    "Báo lỗi khi kết nối",
+    "Chọn đối tác giao hàng khác khi COD vượt hạn mức hoặc ngoài khu vực phục vụ",
+    "Báo lỗi gửi đơn, giữ ở Chờ gửi đối tác để gửi lại"
+  ]
 }

@@ -6,9 +6,9 @@ import {
   Bike,
   CheckCircle2,
   ChevronDown,
+  ChevronLeft,
   CreditCard,
   Download,
-  ExternalLink,
   FileDown,
   FileText,
   FileUp,
@@ -17,8 +17,8 @@ import {
   HelpCircle,
   LayoutDashboard,
   LayoutGrid,
-  Link2,
   Link2Off,
+  Megaphone,
   MessageSquare,
   MoreVertical,
   Package,
@@ -31,6 +31,7 @@ import {
   TrendingUp,
   UtensilsCrossed,
   Wallet,
+  XCircle,
 } from 'lucide-react';
 import type {ConnectionState, DeliveryOrder, ToastKind} from '../types';
 import {
@@ -38,12 +39,13 @@ import {
   GE_TERMINAL,
   MSG,
   VAT_FORM_URL,
+  WARDS,
+  districtsOf,
   isEmail,
-  isSupportedProvince,
 } from '../constants';
 import {RESTAURANT_DEFAULT} from '../data';
 import {APPLICATIONS_DATA, SIDEBAR_ITEMS, type WebApp} from '../webData';
-import {AlertPopup, Button, ConfirmDialog, Field, GrabExpressLogo, inputCls} from '../components/ui';
+import {Button, ConfirmDialog, GrabExpressLogo, inputCls} from '../components/ui';
 
 interface Props {
   connection: ConnectionState;
@@ -310,6 +312,30 @@ const ApplicationsList: React.FC<{
 // ---------------------------------------------------------------------------
 type Errors = Partial<Record<'phone' | 'province' | 'district' | 'ward' | 'address' | 'vatEmail', string>>;
 
+// Hàng nhập liệu ngang: nhãn bên trái + ô nhập bên phải (theo layout UI cũ)
+const LABEL_W = 'w-[132px]';
+const FormRow: React.FC<{
+  label: string;
+  required?: boolean;
+  error?: string;
+  children: React.ReactNode;
+}> = ({label, required, error, children}) => (
+  <div className="flex items-start gap-4">
+    <label className={`${LABEL_W} shrink-0 pt-2.5 text-[13px] text-text-primary`}>
+      {label}
+      {required && <span className="text-danger"> *</span>}
+    </label>
+    <div className="min-w-0 flex-1">
+      {children}
+      {error && (
+        <div className="mt-1 flex items-center gap-1 text-[12px] font-medium text-danger">
+          <XCircle size={13} /> {error}
+        </div>
+      )}
+    </div>
+  </div>
+);
+
 const GrabExpressConnect: React.FC<{
   connection: ConnectionState;
   setConnection: React.Dispatch<React.SetStateAction<ConnectionState>>;
@@ -321,7 +347,6 @@ const GrabExpressConnect: React.FC<{
   const [requireVat, setRequireVat] = useState(connection.requireVatInvoice);
   const [vatEmail, setVatEmail] = useState(connection.vatEmail);
   const [errors, setErrors] = useState<Errors>({});
-  const [provinceAlert, setProvinceAlert] = useState(false);
   const [confirmUnlink, setConfirmUnlink] = useState(false);
 
   const editing = !connection.isConnected;
@@ -329,6 +354,12 @@ const GrabExpressConnect: React.FC<{
   const set = (k: keyof typeof form, v: string) => {
     setForm((f) => ({...f, [k]: v}));
     setErrors((e) => ({...e, [k]: undefined}));
+  };
+
+  // Đổi Tỉnh/TP thì reset Quận/Huyện & Phường/Xã cho khớp danh sách mới
+  const onProvince = (v: string) => {
+    setForm((f) => ({...f, province: v, district: '', ward: ''}));
+    setErrors((e) => ({...e, province: undefined, district: undefined, ward: undefined}));
   };
 
   const validate = (): boolean => {
@@ -342,10 +373,8 @@ const GrabExpressConnect: React.FC<{
     }
     setErrors(e);
     if (Object.keys(e).length > 0) return false;
-    if (!isSupportedProvince(form.province)) {
-      setProvinceAlert(true);
-      return false;
-    }
+    // BR-006 — KHÔNG hard-code danh sách tỉnh/TP. Vùng phục vụ được validate động
+    // qua Quote API lúc tạo đơn giao hàng (Grab báo giá được = phục vụ được).
     return true;
   };
 
@@ -383,136 +412,184 @@ const GrabExpressConnect: React.FC<{
   };
 
   return (
-    <div className="mx-auto max-w-[720px] p-6">
-      <button
-        onClick={onBack}
-        className="mb-4 inline-flex items-center gap-1.5 text-[13px] font-medium text-text-secondary hover:text-text-primary"
-      >
-        <ArrowLeft size={15} /> Ứng dụng
-      </button>
+    <div className="flex h-full flex-col bg-white">
+      {/* Thanh trên: Quay lại (trái) + Phản hồi (phải) — theo UI cũ */}
+      <div className="flex items-center justify-between px-6 pt-5">
+        <button
+          onClick={onBack}
+          className="inline-flex h-9 items-center gap-1 rounded-md bg-brand pl-2.5 pr-3.5 text-[13px] font-semibold text-white hover:bg-brand-hover"
+        >
+          <ChevronLeft size={16} /> Quay lại
+        </button>
+        <button
+          onClick={() => pushToast('info', 'Gửi phản hồi', 'Cảm ơn bạn đã đóng góp ý kiến cho MISA CukCuk.')}
+          className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border-neutral bg-white px-3 text-[13px] font-medium text-text-secondary hover:bg-gray-50 hover:text-brand"
+        >
+          <Megaphone size={15} /> Phản hồi
+        </button>
+      </div>
 
-      <div className="overflow-hidden rounded-2xl border border-border-neutral-light bg-white">
-        <div className="flex items-center justify-between border-b border-border-neutral-light bg-grab-light/60 px-5 py-4">
-          <div className="flex items-center gap-3">
-            <GrabExpressLogo size={44} withText={false} />
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[16px] font-bold text-text-primary">Grab Express</span>
-                {connection.isConnected ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-grab-light px-2 py-0.5 text-[11px] font-bold text-grab">
-                    <CheckCircle2 size={12} /> Đã kết nối
+      {/* Nội dung: form bên trái + minh hoạ bên phải */}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="mx-auto flex w-full max-w-[1200px] gap-8 px-6 py-8 md:px-10">
+          {/* CỘT TRÁI — Form */}
+          <div className="w-full max-w-[600px] shrink-0">
+            <div className="mb-2 flex items-center gap-2.5">
+              <h1 className="text-[26px] font-bold leading-tight text-text-primary">Kết nối Grab Express</h1>
+              {connection.isConnected ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-grab-light px-2 py-0.5 text-[11px] font-bold text-grab">
+                  <CheckCircle2 size={12} /> Đã kết nối
+                </span>
+              ) : (
+                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-text-secondary">
+                  Chưa kết nối
+                </span>
+              )}
+            </div>
+            <p className="max-w-[520px] text-[13.5px] leading-relaxed text-text-secondary">
+              Hỗ trợ kết nối đối tác giao hàng Grab Express, giúp giảm thiểu thao tác thủ công và quản
+              lý bằng tay khi giao hàng cho khách hàng.
+            </p>
+            <p className="mt-5 text-[13.5px] font-medium text-text-primary">
+              Vui lòng điền đầy đủ thông tin của gian hàng để kết nối.
+            </p>
+
+            <div className="mt-5 max-w-[560px] space-y-3.5">
+              <FormRow label="Số điện thoại" required error={errors.phone}>
+                <input
+                  value={form.phone}
+                  onChange={(e) => set('phone', e.target.value)}
+                  className={inputCls(!!errors.phone)}
+                  placeholder="Số điện thoại gian hàng"
+                />
+              </FormRow>
+
+              <FormRow label="Tỉnh/Thành phố" required error={errors.province}>
+                <select
+                  value={form.province}
+                  onChange={(e) => onProvince(e.target.value)}
+                  className={inputCls(!!errors.province)}
+                >
+                  <option value="">-- Chọn Tỉnh/TP --</option>
+                  {ALL_PROVINCES.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+              </FormRow>
+
+              <FormRow label="Quận/Huyện" required error={errors.district}>
+                <select
+                  value={form.district}
+                  onChange={(e) => set('district', e.target.value)}
+                  className={inputCls(!!errors.district)}
+                >
+                  <option value="">-- Chọn Quận/Huyện --</option>
+                  {districtsOf(form.province).map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+              </FormRow>
+
+              <FormRow label="Phường/Xã" required error={errors.ward}>
+                <select
+                  value={form.ward}
+                  onChange={(e) => set('ward', e.target.value)}
+                  className={inputCls(!!errors.ward)}
+                >
+                  <option value="">-- Chọn Phường/Xã --</option>
+                  {WARDS.map((w) => (
+                    <option key={w} value={w}>
+                      {w}
+                    </option>
+                  ))}
+                </select>
+              </FormRow>
+
+              <FormRow label="Địa chỉ" required error={errors.address}>
+                <input
+                  value={form.address}
+                  onChange={(e) => set('address', e.target.value)}
+                  className={inputCls(!!errors.address)}
+                  placeholder="Số nhà, tên đường"
+                />
+              </FormRow>
+
+              {/* Checkbox VAT — thẳng cột với ô nhập */}
+              <div className="flex gap-4 pt-1">
+                <div className={`${LABEL_W} shrink-0`} />
+                <label className="flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={requireVat}
+                    onChange={(e) => {
+                      setRequireVat(e.target.checked);
+                      if (!e.target.checked) setErrors((er) => ({...er, vatEmail: undefined}));
+                    }}
+                    className="h-4 w-4 accent-[var(--color-brand)]"
+                  />
+                  <span className="text-[13px] font-medium text-text-primary">
+                    Yêu cầu xuất hóa đơn phí vận chuyển (VAT)
                   </span>
-                ) : (
-                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-text-secondary">
-                    Chưa kết nối
-                  </span>
-                )}
+                </label>
               </div>
-              <div className="text-[12px] text-text-secondary">Đối tác giao hàng · Nhà hàng đơn & chi nhánh</div>
+
+              {requireVat && (
+                <div className="animate-slide-up space-y-2">
+                  <FormRow label="Email xuất hóa đơn" required error={errors.vatEmail}>
+                    <input
+                      value={vatEmail}
+                      onChange={(e) => {
+                        setVatEmail(e.target.value);
+                        setErrors((er) => ({...er, vatEmail: undefined}));
+                      }}
+                      className={inputCls(!!errors.vatEmail)}
+                      placeholder="vd: ketoan@nhahang.com"
+                    />
+                  </FormRow>
+                  <div className="flex gap-4">
+                    <div className={`${LABEL_W} shrink-0`} />
+                    <a
+                      href={VAT_FORM_URL}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[13px] font-medium text-brand hover:underline"
+                    >
+                      Đăng ký xuất hóa đơn tài chính (VAT) cho dịch vụ giao hàng - GrabExpress
+                    </a>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Nút hành động — thẳng cột với ô nhập */}
+            <div className="mt-8 flex gap-3 pl-[148px]">
+              {!connection.isConnected ? (
+                <Button variant="primary" onClick={handleConnect} className="min-w-[150px]">
+                  Kết nối
+                </Button>
+              ) : (
+                <>
+                  <Button variant="danger" icon={<Link2Off size={16} />} onClick={() => setConfirmUnlink(true)} className="min-w-[140px]">
+                    Hủy kết nối
+                  </Button>
+                  <Button variant="primary" icon={<Settings2 size={16} />} onClick={handleUpdate} className="min-w-[140px]">
+                    Cập nhật
+                  </Button>
+                </>
+              )}
             </div>
           </div>
-        </div>
 
-        <div className="p-5">
-          <p className="mb-4 rounded-lg bg-blue-50/60 px-3 py-2.5 text-[12.5px] leading-relaxed text-brand">
-            Vui lòng điền đầy đủ thông tin gian hàng để kết nối. Thông tin được lấy sẵn từ{' '}
-            <b>Thiết lập hệ thống › Thiết lập chung › Thông tin chung</b>, bạn có thể chỉnh sửa nếu cần.
-          </p>
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Field label="Số điện thoại" required error={errors.phone} className="md:col-span-2">
-              <input
-                value={form.phone}
-                onChange={(e) => set('phone', e.target.value)}
-                className={inputCls(!!errors.phone)}
-                placeholder="Số điện thoại gian hàng"
-              />
-            </Field>
-
-            <Field label="Tỉnh/Thành phố" required error={errors.province}>
-              <select value={form.province} onChange={(e) => set('province', e.target.value)} className={inputCls(!!errors.province)}>
-                <option value="">-- Chọn Tỉnh/TP --</option>
-                {ALL_PROVINCES.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Quận/Huyện" required error={errors.district}>
-              <input value={form.district} onChange={(e) => set('district', e.target.value)} className={inputCls(!!errors.district)} placeholder="Quận/Huyện" />
-            </Field>
-            <Field label="Phường/Xã" required error={errors.ward}>
-              <input value={form.ward} onChange={(e) => set('ward', e.target.value)} className={inputCls(!!errors.ward)} placeholder="Phường/Xã" />
-            </Field>
-            <Field label="Địa chỉ" required error={errors.address}>
-              <input value={form.address} onChange={(e) => set('address', e.target.value)} className={inputCls(!!errors.address)} placeholder="Số nhà, tên đường" />
-            </Field>
-          </div>
-
-          <div className="mt-5 rounded-xl border border-border-neutral-light p-4">
-            <label className="flex cursor-pointer items-start gap-3">
-              <input
-                type="checkbox"
-                checked={requireVat}
-                onChange={(e) => {
-                  setRequireVat(e.target.checked);
-                  if (!e.target.checked) setErrors((er) => ({...er, vatEmail: undefined}));
-                }}
-                className="mt-0.5 h-4 w-4 accent-[var(--color-brand)]"
-              />
-              <div>
-                <div className="text-[13px] font-semibold text-text-primary">Yêu cầu xuất hóa đơn Phí vận chuyển (VAT)</div>
-                <div className="text-[12px] text-text-hint">Mặc định không tích chọn.</div>
-              </div>
-            </label>
-
-            {requireVat && (
-              <div className="animate-slide-up mt-4 space-y-3 pl-7">
-                <Field label="Email phục vụ việc xuất hóa đơn" required error={errors.vatEmail}>
-                  <input
-                    value={vatEmail}
-                    onChange={(e) => {
-                      setVatEmail(e.target.value);
-                      setErrors((er) => ({...er, vatEmail: undefined}));
-                    }}
-                    className={inputCls(!!errors.vatEmail)}
-                    placeholder="vd: ketoan@nhahang.com"
-                  />
-                </Field>
-                <a href={VAT_FORM_URL} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-brand hover:underline">
-                  <ExternalLink size={14} />
-                  Đăng ký xuất hóa đơn tài chính (VAT) cho dịch vụ giao hàng - GrabExpress
-                </a>
-              </div>
-            )}
-          </div>
-
-          <div className="mt-6 flex items-center justify-end gap-3">
-            {!connection.isConnected ? (
-              <Button variant="grab" icon={<Link2 size={16} />} onClick={handleConnect} className="min-w-[140px]">
-                Kết nối
-              </Button>
-            ) : (
-              <>
-                <Button variant="danger" icon={<Link2Off size={16} />} onClick={() => setConfirmUnlink(true)} className="min-w-[140px]">
-                  Hủy kết nối
-                </Button>
-                <Button variant="grab" icon={<Settings2 size={16} />} onClick={handleUpdate} className="min-w-[140px]">
-                  Cập nhật
-                </Button>
-              </>
-            )}
+          {/* CỘT PHẢI — Minh hoạ giao hàng Grab */}
+          <div className="hidden flex-1 items-start justify-center pt-4 xl:flex">
+            <GrabDeliveryScene />
           </div>
         </div>
       </div>
-
-      <AlertPopup
-        open={provinceAlert}
-        title="Khu vực chưa được hỗ trợ"
-        message={MSG.provinceUnsupported}
-        onClose={() => setProvinceAlert(false)}
-      />
 
       <ConfirmDialog
         open={confirmUnlink}
@@ -525,3 +602,70 @@ const GrabExpressConnect: React.FC<{
     </div>
   );
 };
+
+// ---------------------------------------------------------------------------
+// Minh hoạ giao hàng Grab (SVG nội tuyến, xanh Grab) — thay ảnh minh hoạ UI cũ
+// ---------------------------------------------------------------------------
+const GrabDeliveryScene: React.FC = () => (
+  <svg viewBox="0 0 560 440" className="h-auto w-full max-w-[560px]" role="img" aria-label="Minh hoạ giao hàng Grab Express">
+    {/* Nền bo tròn xanh nhạt */}
+    <ellipse cx="300" cy="250" rx="270" ry="180" fill="#EAF9F0" />
+    <circle cx="470" cy="90" r="46" fill="#D6F2E1" />
+    <circle cx="90" cy="120" r="26" fill="#D6F2E1" />
+
+    {/* Thành phố (skyline) */}
+    <g>
+      <rect x="150" y="120" width="60" height="180" rx="6" fill="#B7E4C7" />
+      <rect x="215" y="80" width="70" height="220" rx="6" fill="#95D5B2" />
+      <rect x="290" y="140" width="52" height="160" rx="6" fill="#74C69D" />
+      <rect x="348" y="100" width="66" height="200" rx="6" fill="#B7E4C7" />
+      <rect x="420" y="160" width="46" height="140" rx="6" fill="#95D5B2" />
+      {/* cửa sổ */}
+      <g fill="#EAF9F0">
+        <rect x="162" y="140" width="12" height="12" rx="2" /><rect x="186" y="140" width="12" height="12" rx="2" />
+        <rect x="162" y="166" width="12" height="12" rx="2" /><rect x="186" y="166" width="12" height="12" rx="2" />
+        <rect x="162" y="192" width="12" height="12" rx="2" /><rect x="186" y="192" width="12" height="12" rx="2" />
+        <rect x="230" y="102" width="14" height="14" rx="2" /><rect x="256" y="102" width="14" height="14" rx="2" />
+        <rect x="230" y="132" width="14" height="14" rx="2" /><rect x="256" y="132" width="14" height="14" rx="2" />
+        <rect x="230" y="162" width="14" height="14" rx="2" /><rect x="256" y="162" width="14" height="14" rx="2" />
+        <rect x="364" y="122" width="12" height="12" rx="2" /><rect x="388" y="122" width="12" height="12" rx="2" />
+        <rect x="364" y="148" width="12" height="12" rx="2" /><rect x="388" y="148" width="12" height="12" rx="2" />
+      </g>
+    </g>
+
+    {/* Mặt đường */}
+    <rect x="70" y="300" width="420" height="10" rx="5" fill="#95D5B2" />
+
+    {/* Tài xế Grab trên xe máy */}
+    <g transform="translate(196 196)">
+      {/* thùng hàng phía sau */}
+      <rect x="-2" y="44" width="46" height="44" rx="6" fill="#00B14F" />
+      <rect x="6" y="52" width="30" height="16" rx="3" fill="#EAF9F0" />
+      <text x="21" y="65" textAnchor="middle" fontFamily="Inter, sans-serif" fontSize="10" fontWeight="800" fill="#00B14F">Grab</text>
+
+      {/* thân xe */}
+      <path d="M52 96 q28 -14 66 -2 l10 14 h-86 z" fill="#0E9F6E" />
+      <rect x="120" y="70" width="10" height="34" rx="4" fill="#0E9F6E" />
+      <rect x="120" y="66" width="26" height="8" rx="4" fill="#0E9F6E" />
+
+      {/* bánh xe */}
+      <circle cx="58" cy="112" r="20" fill="#1F2937" /><circle cx="58" cy="112" r="8" fill="#D1FADF" />
+      <circle cx="150" cy="112" r="20" fill="#1F2937" /><circle cx="150" cy="112" r="8" fill="#D1FADF" />
+
+      {/* tài xế */}
+      <path d="M78 96 q-6 -30 14 -44 l14 8 q-14 12 -8 36 z" fill="#00B14F" />
+      <circle cx="104" cy="40" r="15" fill="#2ECC71" />
+      <path d="M89 40 a15 15 0 0 1 30 0 z" fill="#00B14F" />
+      <rect x="92" y="40" width="24" height="6" rx="3" fill="#0E9F6E" />
+      <circle cx="120" cy="72" r="6" fill="#00B14F" />
+    </g>
+
+    {/* Người nhận hàng đứng bên phải */}
+    <g transform="translate(384 214)">
+      <circle cx="0" cy="0" r="13" fill="#F0A868" />
+      <path d="M-13 22 q13 -14 26 0 l4 62 h-34 z" fill="#F59E0B" />
+      <rect x="-14" y="84" width="12" height="20" rx="4" fill="#334155" />
+      <rect x="2" y="84" width="12" height="20" rx="4" fill="#334155" />
+    </g>
+  </svg>
+);

@@ -1,0 +1,8 @@
+{
+  "name": "Remix: [HT1.2] ĐK Dùng thử - Onboarding CukCuk 2.0 ",
+  "description": "Hệ thống quản lý nhà hàng MISA CukCuk với các tính năng quản lý thực đơn, hóa đơn, báo cáo doanh thu và hệ thống ứng dụng tích hợp.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

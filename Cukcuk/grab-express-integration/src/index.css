@@ -1,16 +1,16 @@
 @import "tailwindcss";
 
 /* ==========================================================================
-   Design tokens — mirror 2 prototype tham khảo
-   - Web quản lý  : brand #2563EB, body 13px  (theo [hangpt] shopeefood 2.0)
-   - POS bán hàng : brand #076EFF, body 13px  (theo [tbhung] onboarding pos v3)
+   Design tokens — 2 design system riêng cho 2 nền tảng
+   - Web quản lý  : brand #245FDF, body 13px  (Prompt DS CUKCUK v2 — enterprise SaaS)
+   - POS bán hàng : brand #076EFF, body 13px  (POS AGENTS.md — touch-optimized)
    Grab brand green #00B14F dùng cho nhận diện đối tác Grab Express.
    ========================================================================== */
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 
-  --color-brand: #2563eb;
-  --color-brand-hover: #1d4ed8;
+  --color-brand: #245fdf;
+  --color-brand-hover: #1d4fc4;
   --color-brand-light: #f0f6fe;
 
   --color-grab: #00b14f;

@@ -1,0 +1,8 @@
+{
+  "name": "MISA CukCuk Workspace",
+  "description": "Cổng kết nối các giải pháp MISA CukCuk: ShopeeFood, Onboarding POS, và Grab Express Integration.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

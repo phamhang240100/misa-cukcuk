@@ -1,0 +1,61 @@
+{
+  "process": { "id": "Process_grab_express", "title": "Dùng Grab Express trong MISA CukCuk" },
+  "lanes": [
+    { "id": "Lane_ql", "name": "Quản lý nhà hàng" },
+    { "id": "Lane_tn", "name": "Thu ngân (POS)" },
+    { "id": "Lane_ge", "name": "Grab Express" }
+  ],
+  "nodes": [
+    { "id": "Start_1",   "kind": "start",   "lane": "Lane_ql", "name": "Bắt đầu" },
+    { "id": "Task_kb",   "kind": "task",    "lane": "Lane_ql", "name": "Khai báo thông tin nhà hàng" },
+    { "id": "Task_kn",   "kind": "task",    "lane": "Lane_ql", "name": "Nhấn Kết nối" },
+    { "id": "GW_kn",     "kind": "gateway", "lane": "Lane_ql", "name": "Hợp lệ và địa chỉ thuộc khu vực Grab Express hỗ trợ?" },
+    { "id": "End_loi",   "kind": "end",     "lane": "Lane_ql", "name": "Báo lỗi, chưa kết nối" },
+    { "id": "Task_dakn", "kind": "task",    "lane": "Lane_ql", "name": "Đã kết nối" },
+
+    { "id": "Task_order","kind": "task",    "lane": "Lane_tn", "name": "Tạo order, chọn giao Grab Express" },
+    { "id": "Task_phi",  "kind": "task",    "lane": "Lane_tn", "name": "Nhập / sửa Phí GH thu khách" },
+    { "id": "Task_cod",  "kind": "task",    "lane": "Lane_tn", "name": "Bấm Lưu: đơn = thu hộ, COD tự tính = Còn phải thu" },
+    { "id": "GW_cod",    "kind": "gateway", "lane": "Lane_tn", "name": "COD ≤ 2 triệu và địa chỉ trong khu vực Grab Express hỗ trợ?" },
+    { "id": "End_khac",  "kind": "end",     "lane": "Lane_tn", "name": "Chọn đối tác giao hàng khác" },
+    { "id": "Task_cat",  "kind": "task",    "lane": "Lane_tn", "name": "Lưu đơn, chờ gửi đối tác" },
+    { "id": "Task_gui",  "kind": "task",    "lane": "Lane_tn", "name": "Gửi đơn hàng" },
+    { "id": "GW_kngui",  "kind": "gateway", "lane": "Lane_tn", "name": "Kết nối Grab Express OK?" },
+    { "id": "End_popup", "kind": "end",     "lane": "Lane_tn", "name": "Popup lỗi kết nối" },
+
+    { "id": "Task_vd",   "kind": "task",    "lane": "Lane_ge", "name": "Nhận đơn, tạo vận đơn" },
+    { "id": "Task_giao", "kind": "task",    "lane": "Lane_ge", "name": "Điều phối tài xế và giao hàng" },
+
+    { "id": "Task_theodoi","kind": "task",  "lane": "Lane_tn", "name": "Nhận thông báo, theo dõi ở Sổ giao hàng" },
+    { "id": "Task_gh",   "kind": "task",    "lane": "Lane_tn", "name": "Giao hàng" },
+    { "id": "Task_tt",   "kind": "task",    "lane": "Lane_tn", "name": "Thu tiền" },
+
+    { "id": "Task_rep1", "kind": "task",    "lane": "Lane_ql", "name": "Xem Bảng kê hóa đơn, cột Đối tác GH hiện Grab Express" },
+    { "id": "Task_rep2", "kind": "task",    "lane": "Lane_ql", "name": "Xem Doanh thu theo đối tác, dòng Grab Express và chi tiết" },
+    { "id": "End_ok",    "kind": "end",     "lane": "Lane_ql", "name": "Kết thúc" }
+  ],
+  "flows": [
+    { "id": "f1",  "src": "Start_1",   "tgt": "Task_kb" },
+    { "id": "f2",  "src": "Task_kb",   "tgt": "Task_kn" },
+    { "id": "f3",  "src": "Task_kn",   "tgt": "GW_kn" },
+    { "id": "f4",  "src": "GW_kn",     "tgt": "End_loi",   "name": "Không" },
+    { "id": "f5",  "src": "GW_kn",     "tgt": "Task_dakn", "name": "Có" },
+    { "id": "f6",  "src": "Task_dakn", "tgt": "Task_order" },
+    { "id": "f7",  "src": "Task_order","tgt": "Task_phi" },
+    { "id": "f8",  "src": "Task_phi",  "tgt": "Task_cod" },
+    { "id": "f8b", "src": "Task_cod",  "tgt": "GW_cod" },
+    { "id": "f9",  "src": "GW_cod",    "tgt": "End_khac",  "name": "Không" },
+    { "id": "f10", "src": "GW_cod",    "tgt": "Task_cat",  "name": "Có" },
+    { "id": "f11", "src": "Task_cat",  "tgt": "Task_gui" },
+    { "id": "f12", "src": "Task_gui",  "tgt": "GW_kngui" },
+    { "id": "f13", "src": "GW_kngui",  "tgt": "End_popup", "name": "Không" },
+    { "id": "f14", "src": "GW_kngui",  "tgt": "Task_vd",   "name": "Có" },
+    { "id": "f15", "src": "Task_vd",   "tgt": "Task_giao" },
+    { "id": "f16", "src": "Task_giao", "tgt": "Task_theodoi", "name": "Cập nhật trạng thái" },
+    { "id": "f17", "src": "Task_theodoi","tgt": "Task_gh" },
+    { "id": "f18", "src": "Task_gh",   "tgt": "Task_tt" },
+    { "id": "f19", "src": "Task_tt",   "tgt": "Task_rep1", "name": "Đơn lên báo cáo" },
+    { "id": "f20", "src": "Task_rep1", "tgt": "Task_rep2" },
+    { "id": "f21", "src": "Task_rep2", "tgt": "End_ok" }
+  ]
+}

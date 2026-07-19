@@ -43,6 +43,33 @@ export const WARDS = [
   'Phường Phạm Đình Hổ', 'Phường Dịch Vọng', 'Phường Bạch Đằng',
 ];
 
+// ---------------------------------------------------------------------------
+// BR-006 — Mô phỏng Quote API: Grab báo giá được = phục vụ được.
+// KHÔNG hard-code danh sách tỉnh; vùng phục vụ suy ra động từ kết quả báo giá:
+// đủ địa chỉ → có báo giá (covered). Đường demo lỗi "ngoài vùng" (E-005) do
+// toggle "Mô phỏng Grab không báo giá" trên form điều khiển, không gắn với phường cụ thể.
+// ---------------------------------------------------------------------------
+export interface DeliveryQuote {
+  covered: boolean; // Grab có báo giá được không (= có phục vụ không)
+  fee: number; // Phí GH trả đối tác (từ Quote)
+}
+
+export const quoteDelivery = (addr: {
+  province?: string;
+  district?: string;
+  ward?: string;
+}): DeliveryQuote => {
+  if (!addr.province || !addr.district || !addr.ward) return {covered: false, fee: 0};
+  const feeByProvince: Record<string, number> = {
+    'TP. Hà Nội': 18000,
+    'TP. Hồ Chí Minh': 22000,
+    'Đà Nẵng': 16000,
+    'Quảng Ninh': 25000,
+    'Cần Thơ': 20000,
+  };
+  return {covered: true, fee: feeByProvince[addr.province] ?? 20000};
+};
+
 // Ngưỡng COD Grab Express hỗ trợ
 export const MAX_COD = 2_000_000;
 
@@ -57,6 +84,11 @@ export const MSG = {
     'Grab Express chỉ hỗ trợ giao hàng khu vực TP Hà Nội, TP Hồ Chí Minh, Đà Nẵng, Quảng Ninh, Cần Thơ.',
   provinceUnsupportedPickOther:
     'Grab Express chỉ hỗ trợ giao hàng khu vực TP Hà Nội, TP Hồ Chí Minh, Đà Nẵng, Quảng Ninh, Cần Thơ. Vui lòng lựa chọn đối tác giao hàng khác.',
+  // E-005 (BR-006) — phát hiện ngoài vùng qua Quote API, không liệt kê danh sách tỉnh cứng.
+  areaNoQuote:
+    'Grab Express chưa hỗ trợ giao tới khu vực này (không lấy được báo giá). Vui lòng chọn đối tác giao hàng khác.',
+  // E-001 — Quote thất bại (Grab không báo giá / dịch vụ gián đoạn).
+  quoteFailed: 'Không lấy được phí giao hàng, vui lòng thử lại.',
   emptyField: 'Trường này không được để trống.',
   emailInvalid: 'Email chưa đúng định dạng, vui lòng kiểm tra lại.',
   codOverLimit:
@@ -133,8 +165,8 @@ export const GE_LIFECYCLE: GrabExpressStatus[] = [
   'COMPLETED',
 ];
 
-// GE status coi như "đã kết thúc giao vận" -> cho phép hủy kết nối
-export const GE_TERMINAL: GrabExpressStatus[] = ['COMPLETED', 'RETURNED'];
+// BR-018 — GE status "đã kết thúc giao vận" (hủy kết nối an toàn, không cảnh báo): đủ 4 trạng thái.
+export const GE_TERMINAL: GrabExpressStatus[] = ['COMPLETED', 'RETURNED', 'CANCELLED', 'FAILED'];
 
 export const formatCurrency = (n: number) =>
   new Intl.NumberFormat('vi-VN').format(Math.round(n)) + 'đ';

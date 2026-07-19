@@ -1,0 +1,284 @@
+﻿🚩 Biến:
+- BrandColor: #245FDF
+- BrandLightColor: #F0F6FE
+- BorderNeutralLight: #E9EAEB
+- IconNeutral: #717680
+🚩Yêu cầu chung:
+Responsive
+Sử dụng Auto Layout / Flex layout
+Thiết kế theo phong cách hiện đại, enterprise SaaS
+Khoảng cách rõ ràng, bo góc nhẹ, shadow nhẹ
+Header: cao 48px, Sidebar min-with:220px có thể co kéo độ rộng.
+- Font chữ:
+Import font từ: 
+h2: Inter Semibold, 20px -> Dùng cho tên app, tiêu đề phân hệ
+h3: Inter Semibold, 16px -> Dùng cho tên group, tiêu đề của dialog, popup, form group
+Body Regular: Inter Regular, 13px -> Dùng cho toàn bộ các font chữ thông thường trong ứng dụng bao gồm cả các chữ trong button, input...
+Body Small: Inter Regular, 12px -> Dùng cho một số trường hợp phân cấp nhỏ hơn không quan trọng.
+- Màu sắc:
+Text:
+Text Primary: #101828,
+Text Secondary: #717680,
+Text Hint: #A4A7AE,
+Text Brand: [BrandColor]
+Màu Icon: 
+Icon Neutral: #717680,
+Icon Brand: [BrandColor]
+Màu Background:
+Background Brand: [BrandColor]
+Background Hover: [BrandLightColor]
+🚩 Chi tiết các components:
+Toàn bộ các control cao 32px, bo góc 8px.
+- Primary button{ background: [BrandColor]}
+- Secondary button {Background: #fff, stroke:solid 1px #D5D7DA}
+Height{ 32px, Border-radius: 8px, min-width:84px;}
+💠Tabs:
+Tab active có text màu brand + underline 2px phía dưới màu [BrandColor]
+Tab inactive màu text [BrandColor]
+Khoảng cách giữa các tab rộng, dễ bấm
+Có hover state nhẹ màu [BrandLightColor]
+Nội dung bên dưới thay đổi theo tab được chọn
+Tab sử dụng flex layout, có animation underline trượt mượt khi chuyển tab, responsive và có thể scroll ngang khi nhiều tab.
+💠Segments: 
+Các segment nằm trên cùng một hàng
+Segment active có background trắng, bo góc 8px, shadow:box-shadow: 0 1px 4px 0 var(#000, rgba(0, 0, 0, 0.10));
+Text active màu [BrandColor]
+Segment inactive chỉ hiển thị text màu trung tính
+Khoảng cách giữa các segment đều nhau, có thể có số ở bên phải mỗi segment để tiện theo dõi số lượng các kết quả bên dưới. Có hover state nhẹ màu [BrandLightColor]
+💠Ô tìm kiếm: Luôn có icon kính lúp ở bên trái kích thước 16x16 và padding với placeholder 8px
+💠DataTable:
+Chiều cao luôn bằng chiều cao của màn hình trừ đi header và khoảng cách trên dưới. Style hiện đại, toàn bộ nội dung có style chi tiết như sau: [border-radius: 8px; box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.04); background-color:#fff;]
+- Thanh tìm kiếm & bộ lọc:
+Nằm dưới Title area
+Ô Search input dài, có icon kính lúp bên trái, ngoài cùng bên phải luôn có các
+ icon reload, gear(setting), filter (chỉ có icon không có chữ), padding giữa các icon là 8px
+Layout theo horizontal flex, wrap khi màn hình nhỏ
+Chiều cao của Thanh tìm kiếm & bộ lọc là: 56px
+ - Nội dung bảng:
+Table full width container
+Header table nền: #FAFAFA, text ở header font SemiBold và không Caps Lock, border trên dưới: solid 1px [BorderNeutralLight].
+Row:
+Hover row highlight nhẹ theo màu Background Hover, khi hover lên dòng mới hiển thị các chứng năng chi tiết của từng dòng: Hiển thị tối đa 3 icon chính ở ngoài, các chức năng phụ khác nằm trong icon 3 chấm bấm xổ ra mới hiện.
+Giữa các dòng có đường ngắn cách:  solid 1px [BorderNeutralLight].
+Có avatar / status badge (dạng outline nền nhạt, text màu, stroke màu đậm, bo góc 4px) / tag màu...
+Không cần mô tả chi tiết các cột, AI tự sinh theo ngữ cảnh
+Padding trái và phải của row là 16px.
+- Thanh phân trang (Pagination) luôn cố định ở phía dưới cùng của table container, không phụ thuộc số lượng dòng và không bị đẩy lên khi ít dòng.
+Bố cục chia 3 vùng:
+Bên trái:
+Text: “Tổng số: X”
+Bên phải:
+Dropdown chọn “Số dòng/trang” (10, 20, 50…)
+Hiển thị range: “1–10”
+Nút First page (|<)
+Nút Previous (<)
+Nút Next (>)
+Nút Last (>|)
+Các nút là icon button dạng ghost
+Pagination nằm trên nền xám nhạt tách khỏi table bằng border top nhẹ
+💠BulkActionBar:
+Bố cục bên trong sử dụng flexbox để căn chỉnh rõ ràng: bên trái hiển thị text “Đã chọn (font regular) [Số bản ghi đã chọn (font SemiBold)] bản ghi” màu text là primary,  và một link “Bỏ chọn” màu text là [BrandColor], khoảng cách với nhau 16px; ngay bên cạnh là nhóm các nút chức năng, bao gồm 5 action chính dạng button có icon trái hoặc không và các action phụ còn lại được gom trong một icon 3 chấm (More), style của button là secondary. Toàn bộ vùng này ko có màu nền tự lấy theo màu nền chung của app.
+Quy tắc hiển thị: Khi tick chọn 1 hoặc nhiều dòng trên danh sách sẽ hiển thị thanh Bulk Action Bar, vị trí hiển thị như sau:
+- Nếu 🚩Layout bố cục của màn hình danh sách:
+Thanh BulkActionBar sẽ hiển thị đè vào vị trí của Page Header, nếu bên dưới Page Header có các segments bộ lọc thì ẩn cả các segment này khi hiển thị Bulk Action bar.
+- 🚩Layout màn hình dạng danh sách nằm trong 1 tab:
+Bulk Action Bar sẽ thay thế vào vị trí Thanh tìm kiếm & bộ lọc của bảng: bên trái hiển thị 💠Ô tìm kiếm, bên cạnh phải là 💠BulkActionBar. Khi người dùng bỏ tick chọn dòng trên danh sách sẽ ẩn đi và hiển thị lại Thanh tìm kiếm & bộ lọc.
+🚩Bố cục chung của app:
+Trên cùng là một thanh Header full width, kéo dài toàn bộ chiều ngang màn hình.
+Header cố định (fixed top).
+Header chứa: Icon grid-dots có 9 chấm, logo/app name bên trái (liền dải không có đường ngăn cách với các thành phần bên cạnh), ô tìm kiếm bên phải, icon hành động (Icon bánh răng thiết lập, icon bell thông báo, icon ? help, icon three dot tính năng mở rộng khác) và avatar user (chỉ hiển thị ảnh) bên phải (bấm xổ ra có: Ảnh bên trên, bên dưới là Họ và tên đậm, email bên dưới tên căn giữa, tiếp đến là các Menu list: Đổi mật khẩu, Thiết lập tài khoản, Thiết lập bảo mật, Đổi ngôn ngữ, Đăng xuất).
+Bên dưới header, layout chia làm 2 phần:
+Bên trái là một Sidebar dọc cố định, chiếm chiều cao toàn màn hình (trừ header).
+Sidebar có danh sách menu dạng vertical. Khi active 1 item trên menu thì màu nền của item là: [BrandLightColor], text và icon màu [BrandColor], khi không active thì item có màu nền #fff và icon màu: [IconNeutral], text màu primary.
+Ở sidebar sẽ không có chức năng Thiết lập, thiết lập sẽ luôn bấm vào bánh răng trên Header Bar.
+Sidebar có thể collapse/expand.
+Nút toggle collapse nằm ở góc phải phía dưới của sidebar (icon mũi tên).
+Khi collapse: sidebar thu nhỏ chỉ còn icon.
+Khi expand: hiển thị icon + text.
+Sidebar chỉ có danh sách menu không gồm các thành phần khác.
+Phần bên phải là Main Content Area:
+- Không chứa tab: Main Content chiếm toàn bộ phần còn lại của màn hình có padding trái và phải là 16px, màu nền background: #F0F2F4. - Có chứa tab ở phía trên cùng: Tab navigation nằm phía trên cùng liền kề bên dưới của thanh Header của main content để chia rõ nhiều nội dung bên trong tab khác nhau. Thanh tab hiển thị theo hàng ngang full width container có nền màu trắng #fff, chiều cao của thanh này là 48px, padding trái phải là 16px, bên trong thanh này là các tab tuân theo style đã mô tả ở component: 💠Tabs. Mỗi tab đại diện cho một danh sách độc lập với cấu trúc cột, bộ lọc và hành động riêng. Khi chuyển tab, nội dung bảng thay đổi hoàn toàn nhưng giữ nguyên layout tổng thể (header và sidebar), có animation fade nhẹ. Bên dưới nội dung của từng tab có thể linh hoạt nhiều mỗi tab 1 nội dung cấu trúc khác nhau tùy theo ngữ cảnh.
+Toàn bộ các màn hình Thêm mới, nhập khẩu, chỉnh sửa...Các button chính luôn có thanh ghim ở dưới cùng của form
+🚩Layout màn hình Tổng quan: 
+Header fixed full width phía trên
+Sidebar bên trái có thể collapse
+Content bên phải có các card style như sau: 
+[border-radius: 12px; border: 2px solid #FFF; background: rgba(255, 255, 255, 0.80); box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.04);]
+Tiêu đề của các card font h3. Toàn bộ các card cách viền layout là 16px, các card trên toàn bộ màn hình cách nhau trên dưới, trái phải là 16px, padding từ viền card tới nội dung là: 20px.
+Các control biểu đồ trên toàn bộ chương trình dùng thư viện: https://echarts.apache.org/handbook/en/get-started/
+Các scorecard thông tin sẽ hiển thị theo bố cục sau: Phía trái: Dòng 1: Tiêu đề, Dòng 2: Số liệu chính, đơn vị tính (nếu có), Dòng 3: mũi tên trending số % tăng giảm so với kỳ trước. Phía phải: Icon minh họa dạng outline màu nền nhạt, phía dưới có thể có chart nhỏ minh họa (nếu có).
+Toàn bộ các chart dạng Pie sẽ thay thế bằng Donus chat, hiển thị tối đa 6 pie, nếu lớn hơn sẽ gom vào pie khác.
+Các chart sẽ bo góc phía trên bên trái và bên phải: 4px; màu sắc hài hòa với màu brand.
+🚩Layout bố cục của màn hình danh sách:
+Header fixed full width phía trên
+Sidebar bên trái có thể collapse
+Main content bên phải
+1️⃣ Khu vực tiêu đề & hành động (Page Header)
+Hiển thị Page Title lớn bên trái (ví dụ: “Danh sách khách hàng”)
+Bên phải title là nhóm button chức năng:
+Button phụ: “Nhập từ Excel”
+Button chính (primary): “Thêm mới”
+Icon button more (3 chấm)
+Bố cục nằm trên cùng của main content, căn trái phải 16px. Chiều cao của Page Header là 56px, không có màu nền.
+- Segments lọc dữ liệu trên danh sách (Tùy chọn không bắt buộc hiển thị): Khi có nhu cầu lọc nhanh trên bảng với bộ lọc sẵn có thể bổ sung thêm dạng Segment ở vị trí phía trên của thanh Tìm kiếm & bộ lọc với các trạng thái lọc ví dụ: Tất cả, Chờ xác nhận, Đã xác nhận, Hoàn thành, Đã hủy…
+- Bulk Action Bar: Tuân theo quy chuẩn 💠BulkActionBar.
+2️⃣ Khu vực bảng dữ liệu: Tuân theo mô tả control: 💠DataTable
+🚩Layout màn hình dạng danh sách nằm trong 1 tab:
+Bố cục chung của màn hình này là các tab ở phía trên cùng, mỗi tab load 1 cấu trúc nội dung khác nhau:
+- Nếu là Bảng dữ liệu: Tuân theo quy chuẩn 💠 DataTable
+ - Với các loại bố cục khác trong các tab thì tùy ngữ cảnh sẽ hiển thị cho phù hợp.
+🚩Layout màn hình thêm mới dạng page:
+Màn hình Thêm mới (Create Form Screen) trong layout dashboard có sẵn:
+Header fixed full width phía trên
+Sidebar bên trái có thể collapse
+Main content bên phải
+Phong cách modern enterprise SaaS
+1️⃣ Thanh tiêu đề trang (Page Header)
+Bên trái có icon mũi tên Back
+Kế bên là Page Title lớn
+Layout nằm trên cùng của main content
+Spacing rộng, rõ ràng, chiều cao của cả vùng Page header là 56px.
+2️⃣ Khu vực Form chính
+Form chia thành các Card Section riêng biệt
+🔹 Cấu trúc mỗi section
+Card nền trắng
+Bo góc 8px
+Shadow rất nhẹ
+Padding 16px
+Có Section Title ở trên cùng
+🔹 Bố cục Form bên trong
+Form chia 1 cột hoặc 2 cột cân đối
+Label nằm bên trái của input
+Khoảng cách dọc rõ ràng giữa các field
+Các loại input gồm:
+Textbox
+Combobox single
+Combobox split
+Date picker
+Number input...Tùy ngữ cảnh của bài toán
+Input full width theo cột
+Auto layout / Flex grid
+Responsive: khi màn hình nhỏ chuyển về 1 cột
+3️⃣ Footer Action Bar (Thanh hành động dưới cùng)
+Thanh action cố định phía dưới main content:
+Bên phải gồm 3 button:
+Button secondary: Hủy
+Button secondary: Lưu và thêm
+Button primary: Lưu
+Đặc điểm:
+Khoảng cách giữa button 8px
+Footer có border top rất nhẹ: solid 1px [BorderNeutralLight], màu nền của footer:  #FAFAFA
+Chiều cao footer: 56px
+Nền xám chung của toàn app tách khỏi form bằng border top nhẹ
+Khi sidebar collapse, layout tự giãn full width
+🚩Layout màn thêm mới dạng Popup:
+Modal Thêm mới (Create Popup Form) hiển thị ở trung tâm màn hình, nằm trên nền dashboard danh sách.
+Background phía sau bị làm mờ nhẹ (overlay tối mờ 40%).
+1️⃣ Cấu trúc tổng thể Modal
+Modal căn giữa màn hình
+Kích thước trung bình, không full screen
+Bo góc 12px
+Shadow lớn nhưng mềm
+Padding với nội dung 24px
+Animation fade + scale nhẹ khi xuất hiện
+2️⃣ Header Modal
+Bên trái: Modal Title (font h3)
+Bên phải: icon Close (X)
+Không có nền hay border của header
+3️⃣ Body Form
+Label nằm trên input padding giữa label và input 8px
+Spacing dọc rõ ràng 12px.
+Các loại input:
+Textbox
+Combobox single
+Combobox split
+Date picker
+Number input...Tùy vào ngữ cảnh bài toán cụ thể
+Input full width
+Có thể scroll nếu nội dung dài
+4️⃣ Footer Action
+Footer cố định dưới modal:
+Bên phải gồm:
+Button secondary: Hủy
+Button primary: Lưu
+Khoảng cách giữa button 8px
+Footer có border top rất nhẹ: solid 1px [BorderNeutralLight], màu nền của footer:  #FAFAFA
+Chiều cao footer: 56px
+5️⃣ Hành vi (Behavior)
+Click ngoài overlay → đóng modal
+Nhấn ESC → đóng modal
+Focus vào field đầu tiên khi mở
+Không reload trang khi submit
+Sau khi lưu thành công → đóng modal và cập nhật table phía sau
+6️⃣ Style yêu cầu
+Khi sidebar collapse, modal vẫn luôn căn giữa viewport
+🚩Layout màn hình thiết lập:
+Khi người dùng bấm icon bánh răng ở header, mở màn hình Thiết lập Tổng quan dạng card grid.
+Khi chọn một thiết lập bất kỳ → chuyển sang Layout chi tiết có sidebar thiết lập bên trái.
+Nút Back sẽ quay lại màn hình Tổng quan.
+ Màn hình Thiết lập Tổng quan (Overview dạng Card)
+✅ Cấu trúc
+Giữ nguyên header full width
+Bên dưới là khu vực main content
+Tiêu đề lớn: Thiết lập
+Bên cạnh có ô tìm kiếm thiết lập
+✅ Bố cục nội dung
+Hiển thị các nhóm thiết lập dạng card
+Layout dạng grid 3–4 cột
+Responsive tự wrap khi màn hình nhỏ
+✅ Cấu trúc mỗi Card
+Nền trắng
+Bo góc 8px, giống card ở ngoài màn hình Tổng quan.
+Padding 16px
+Có: Icon nhóm, Title nhóm thiết lập, Danh sách các mục con dạng text link
+Hover card: Nâng nhẹ, Border đổi màu primary, Cursor pointer
+Click card:
+→ Chuyển sang màn hình chi tiết
+2️⃣ Màn hình Chi tiết Thiết lập (Detail Layout có Sidebar)
+✅ Cấu trúc tổng thể
+Giữ nguyên header
+Bên dưới chia 2 vùng:
+🔹 Bên trái: Sidebar Thiết lập
+🔹 Bên phải: Nội dung chi tiết
+2.1 Sidebar Thiết lập
+Width cố định 240px
+Nền xám rất nhạt
+Có ô Tìm kiếm thiết lập
+Menu dạng vertical
+Nhóm cha in đậm
+Item con thụt nhẹ vào
+Active item:
+Background: [BrandColorLight]
+Text primary
+Có thanh indicator bên trái
+2.2 Nội dung chi tiết bên phải
+✅ Phần đầu
+Nút ← Back
+Title lớn của nhóm thiết lập
+Có thể có tab ngang phía trên nếu cần
+✅ Nội dung dạng Section Card
+Mỗi nhóm cấu hình hiển thị:
+Card nền trắng
+Bo góc 8px
+Shadow rất nhẹ
+Padding rộng
+Bên trong:
+Section title
+Mô tả ngắn
+Các field hiển thị theo 2 trạng thái:
+View mode (Label – Value)
+Edit mode (Input form)
+✅ Khi ở chế độ chỉnh sửa
+Field layout 1 hoặc 2 cột
+Label trên input
+Spacing rõ ràng
+Footer action nằm dưới cùng card:
+Hủy (secondary)
+Lưu (primary)
+3️⃣ Hành vi điều hướng
+Click icon bánh răng → mở Overview
+Click card → vào Detail
+Click Back → quay lại Overview
+Sidebar cho phép chuyển nhanh giữa các thiết lập khác
+Không reload trang, chỉ chuyển layout nội bộ
+- Toàn bộ các UI sinh ra có đầy đủ các chức năng như: Bấm nút thêm bật form thêm, bấm vào dòng trên danh sách hiển thị thông tin chi tiết…
