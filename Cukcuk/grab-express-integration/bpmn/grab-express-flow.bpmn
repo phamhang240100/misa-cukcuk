@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Def_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_1" name="Dùng Grab Express trong MISA CukCuk" processRef="Process_grab_express"/>
+  </bpmn:collaboration>
+  <bpmn:process id="Process_grab_express" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_ql" name="Quản lý nhà hàng"><bpmn:flowNodeRef>Start_1</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_kb</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_kn</bpmn:flowNodeRef><bpmn:flowNodeRef>GW_kn</bpmn:flowNodeRef><bpmn:flowNodeRef>End_loi</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_dakn</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_rep1</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_rep2</bpmn:flowNodeRef><bpmn:flowNodeRef>End_ok</bpmn:flowNodeRef></bpmn:lane>
+      <bpmn:lane id="Lane_tn" name="Thu ngân (POS)"><bpmn:flowNodeRef>Task_order</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_phi</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_cod</bpmn:flowNodeRef><bpmn:flowNodeRef>GW_cod</bpmn:flowNodeRef><bpmn:flowNodeRef>End_khac</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_cat</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_gui</bpmn:flowNodeRef><bpmn:flowNodeRef>GW_kngui</bpmn:flowNodeRef><bpmn:flowNodeRef>End_popup</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_theodoi</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_gh</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_tt</bpmn:flowNodeRef></bpmn:lane>
+      <bpmn:lane id="Lane_ge" name="Grab Express"><bpmn:flowNodeRef>Task_vd</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_giao</bpmn:flowNodeRef></bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="Start_1" name="Bắt đầu"><bpmn:outgoing>f1</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:task id="Task_kb" name="Khai báo thông tin nhà hàng"><bpmn:incoming>f1</bpmn:incoming><bpmn:outgoing>f2</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_kn" name="Nhấn Kết nối"><bpmn:incoming>f2</bpmn:incoming><bpmn:outgoing>f3</bpmn:outgoing></bpmn:task>
+    <bpmn:exclusiveGateway id="GW_kn" name="Hợp lệ và địa chỉ thuộc khu vực Grab Express hỗ trợ?"><bpmn:incoming>f3</bpmn:incoming><bpmn:outgoing>f4</bpmn:outgoing><bpmn:outgoing>f5</bpmn:outgoing></bpmn:exclusiveGateway>
+    <bpmn:endEvent id="End_loi" name="Báo lỗi, chưa kết nối"><bpmn:incoming>f4</bpmn:incoming></bpmn:endEvent>
+    <bpmn:task id="Task_dakn" name="Đã kết nối"><bpmn:incoming>f5</bpmn:incoming><bpmn:outgoing>f6</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_order" name="Tạo order, chọn giao Grab Express"><bpmn:incoming>f6</bpmn:incoming><bpmn:outgoing>f7</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_phi" name="Nhập / sửa Phí GH thu khách"><bpmn:incoming>f7</bpmn:incoming><bpmn:outgoing>f8</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_cod" name="Bấm Lưu: đơn = thu hộ, COD tự tính = Còn phải thu"><bpmn:incoming>f8</bpmn:incoming><bpmn:outgoing>f8b</bpmn:outgoing></bpmn:task>
+    <bpmn:exclusiveGateway id="GW_cod" name="COD ≤ 2 triệu và địa chỉ trong khu vực Grab Express hỗ trợ?"><bpmn:incoming>f8b</bpmn:incoming><bpmn:outgoing>f9</bpmn:outgoing><bpmn:outgoing>f10</bpmn:outgoing></bpmn:exclusiveGateway>
+    <bpmn:endEvent id="End_khac" name="Chọn đối tác giao hàng khác"><bpmn:incoming>f9</bpmn:incoming></bpmn:endEvent>
+    <bpmn:task id="Task_cat" name="Lưu đơn, chờ gửi đối tác"><bpmn:incoming>f10</bpmn:incoming><bpmn:outgoing>f11</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_gui" name="Gửi đơn hàng"><bpmn:incoming>f11</bpmn:incoming><bpmn:outgoing>f12</bpmn:outgoing></bpmn:task>
+    <bpmn:exclusiveGateway id="GW_kngui" name="Kết nối Grab Express OK?"><bpmn:incoming>f12</bpmn:incoming><bpmn:outgoing>f13</bpmn:outgoing><bpmn:outgoing>f14</bpmn:outgoing></bpmn:exclusiveGateway>
+    <bpmn:endEvent id="End_popup" name="Popup lỗi kết nối"><bpmn:incoming>f13</bpmn:incoming></bpmn:endEvent>
+    <bpmn:task id="Task_vd" name="Nhận đơn, tạo vận đơn"><bpmn:incoming>f14</bpmn:incoming><bpmn:outgoing>f15</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_giao" name="Điều phối tài xế và giao hàng"><bpmn:incoming>f15</bpmn:incoming><bpmn:outgoing>f16</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_theodoi" name="Nhận thông báo, theo dõi ở Sổ giao hàng"><bpmn:incoming>f16</bpmn:incoming><bpmn:outgoing>f17</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_gh" name="Giao hàng"><bpmn:incoming>f17</bpmn:incoming><bpmn:outgoing>f18</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_tt" name="Thu tiền"><bpmn:incoming>f18</bpmn:incoming><bpmn:outgoing>f19</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_rep1" name="Xem Bảng kê hóa đơn, cột Đối tác GH hiện Grab Express"><bpmn:incoming>f19</bpmn:incoming><bpmn:outgoing>f20</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_rep2" name="Xem Doanh thu theo đối tác, dòng Grab Express và chi tiết"><bpmn:incoming>f20</bpmn:incoming><bpmn:outgoing>f21</bpmn:outgoing></bpmn:task>
+    <bpmn:endEvent id="End_ok" name="Kết thúc"><bpmn:incoming>f21</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="f1" name="" sourceRef="Start_1" targetRef="Task_kb"/>
+    <bpmn:sequenceFlow id="f2" name="" sourceRef="Task_kb" targetRef="Task_kn"/>
+    <bpmn:sequenceFlow id="f3" name="" sourceRef="Task_kn" targetRef="GW_kn"/>
+    <bpmn:sequenceFlow id="f4" name="Không" sourceRef="GW_kn" targetRef="End_loi"/>
+    <bpmn:sequenceFlow id="f5" name="Có" sourceRef="GW_kn" targetRef="Task_dakn"/>
+    <bpmn:sequenceFlow id="f6" name="" sourceRef="Task_dakn" targetRef="Task_order"/>
+    <bpmn:sequenceFlow id="f7" name="" sourceRef="Task_order" targetRef="Task_phi"/>
+    <bpmn:sequenceFlow id="f8" name="" sourceRef="Task_phi" targetRef="Task_cod"/>
+    <bpmn:sequenceFlow id="f8b" name="" sourceRef="Task_cod" targetRef="GW_cod"/>
+    <bpmn:sequenceFlow id="f9" name="Không" sourceRef="GW_cod" targetRef="End_khac"/>
+    <bpmn:sequenceFlow id="f10" name="Có" sourceRef="GW_cod" targetRef="Task_cat"/>
+    <bpmn:sequenceFlow id="f11" name="" sourceRef="Task_cat" targetRef="Task_gui"/>
+    <bpmn:sequenceFlow id="f12" name="" sourceRef="Task_gui" targetRef="GW_kngui"/>
+    <bpmn:sequenceFlow id="f13" name="Không" sourceRef="GW_kngui" targetRef="End_popup"/>
+    <bpmn:sequenceFlow id="f14" name="Có" sourceRef="GW_kngui" targetRef="Task_vd"/>
+    <bpmn:sequenceFlow id="f15" name="" sourceRef="Task_vd" targetRef="Task_giao"/>
+    <bpmn:sequenceFlow id="f16" name="Cập nhật trạng thái" sourceRef="Task_giao" targetRef="Task_theodoi"/>
+    <bpmn:sequenceFlow id="f17" name="" sourceRef="Task_theodoi" targetRef="Task_gh"/>
+    <bpmn:sequenceFlow id="f18" name="" sourceRef="Task_gh" targetRef="Task_tt"/>
+    <bpmn:sequenceFlow id="f19" name="Đơn lên báo cáo" sourceRef="Task_tt" targetRef="Task_rep1"/>
+    <bpmn:sequenceFlow id="f20" name="" sourceRef="Task_rep1" targetRef="Task_rep2"/>
+    <bpmn:sequenceFlow id="f21" name="" sourceRef="Task_rep2" targetRef="End_ok"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_1">
+    <bpmndi:BPMNPlane id="Plane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape bpmnElement="Participant_1" isHorizontal="false"><dc:Bounds x="0" y="0" width="1130" height="2480"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Lane_ql" isHorizontal="false"><dc:Bounds x="0" y="30" width="440" height="2450"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Lane_tn" isHorizontal="false"><dc:Bounds x="440" y="30" width="440" height="2450"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Lane_ge" isHorizontal="false"><dc:Bounds x="880" y="30" width="250" height="2450"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Start_1"><dc:Bounds x="107" y="92" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="0" y="102" width="99" height="17"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_kb"><dc:Bounds x="60" y="195" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_kn"><dc:Bounds x="60" y="315" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="GW_kn"><dc:Bounds x="100" y="445" width="50" height="50"/><bpmndi:BPMNLabel><dc:Bounds x="0" y="442" width="92" height="56"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="End_loi"><dc:Bounds x="107" y="572" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="0" y="575" width="99" height="30"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_dakn"><dc:Bounds x="250" y="555" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_order"><dc:Bounds x="500" y="675" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_phi"><dc:Bounds x="500" y="795" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_cod"><dc:Bounds x="500" y="915" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="GW_cod"><dc:Bounds x="540" y="1045" width="50" height="50"/><bpmndi:BPMNLabel><dc:Bounds x="440" y="1036" width="92" height="69"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="End_khac"><dc:Bounds x="547" y="1172" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="440" y="1175" width="99" height="30"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_cat"><dc:Bounds x="690" y="1155" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_gui"><dc:Bounds x="500" y="1275" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="GW_kngui"><dc:Bounds x="540" y="1405" width="50" height="50"/><bpmndi:BPMNLabel><dc:Bounds x="440" y="1415" width="92" height="30"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="End_popup"><dc:Bounds x="547" y="1532" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="440" y="1535" width="99" height="30"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_vd"><dc:Bounds x="940" y="1515" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_giao"><dc:Bounds x="940" y="1635" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_theodoi"><dc:Bounds x="500" y="1755" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_gh"><dc:Bounds x="500" y="1875" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_tt"><dc:Bounds x="500" y="1995" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_rep1"><dc:Bounds x="60" y="2115" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_rep2"><dc:Bounds x="60" y="2235" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="End_ok"><dc:Bounds x="107" y="2372" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="0" y="2382" width="99" height="17"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge bpmnElement="f1"><di:waypoint x="125" y="128"/><di:waypoint x="125" y="195"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="f2"><di:waypoint x="125" y="265"/><di:waypoint x="125" y="315"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="f3"><di:waypoint x="125" y="385"/><di:waypoint x="125" y="445"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="f4"><di:waypoint x="125" y="495"/><di:waypoint x="125" y="572"/><bpmndi:BPMNLabel><dc:Bounds x="133" y="518" width="31" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="f5"><di:waypoint x="150" y="470"/><di:waypoint x="170" y="470"/><di:waypoint x="170" y="535"/><di:waypoint x="315" y="535"/><di:waypoint x="315" y="555"/><bpmndi:BPMNLabel><dc:Bounds x="178" y="463" width="24" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="f6"><di:waypoint x="315" y="625"/><di:waypoint x="315" y="650"/><di:waypoint x="565" y="650"/><di:waypoint x="565" y="675"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="f7"><di:waypoint x="565" y="745"/><di:waypoint x="565" y="795"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="f8"><di:waypoint x="565" y="865"/><di:waypoint x="565" y="915"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="f8b"><di:waypoint x="565" y="985"/><di:waypoint x="565" y="1045"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="f9"><di:waypoint x="565" y="1095"/><di:waypoint x="565" y="1172"/><bpmndi:BPMNLabel><dc:Bounds x="573" y="1118" width="31" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="f10"><di:waypoint x="590" y="1070"/><di:waypoint x="610" y="1070"/><di:waypoint x="610" y="1135"/><di:waypoint x="755" y="1135"/><di:waypoint x="755" y="1155"/><bpmndi:BPMNLabel><dc:Bounds x="618" y="1063" width="24" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="f11"><di:waypoint x="755" y="1225"/><di:waypoint x="755" y="1250"/><di:waypoint x="565" y="1250"/><di:waypoint x="565" y="1275"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="f12"><di:waypoint x="565" y="1345"/><di:waypoint x="565" y="1405"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="f13"><di:waypoint x="565" y="1455"/><di:waypoint x="565" y="1532"/><bpmndi:BPMNLabel><dc:Bounds x="573" y="1478" width="31" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="f14"><di:waypoint x="590" y="1430"/><di:waypoint x="610" y="1430"/><di:waypoint x="610" y="1495"/><di:waypoint x="1005" y="1495"/><di:waypoint x="1005" y="1515"/><bpmndi:BPMNLabel><dc:Bounds x="618" y="1423" width="24" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="f15"><di:waypoint x="1005" y="1585"/><di:waypoint x="1005" y="1635"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="f16"><di:waypoint x="1005" y="1705"/><di:waypoint x="1005" y="1730"/><di:waypoint x="565" y="1730"/><di:waypoint x="565" y="1755"/><bpmndi:BPMNLabel><dc:Bounds x="1013" y="1723" width="118" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="f17"><di:waypoint x="565" y="1825"/><di:waypoint x="565" y="1875"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="f18"><di:waypoint x="565" y="1945"/><di:waypoint x="565" y="1995"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="f19"><di:waypoint x="565" y="2065"/><di:waypoint x="565" y="2090"/><di:waypoint x="125" y="2090"/><di:waypoint x="125" y="2115"/><bpmndi:BPMNLabel><dc:Bounds x="573" y="2083" width="93" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="f20"><di:waypoint x="125" y="2185"/><di:waypoint x="125" y="2235"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="f21"><di:waypoint x="125" y="2305"/><di:waypoint x="125" y="2372"/></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

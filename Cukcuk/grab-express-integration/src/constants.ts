@@ -25,6 +25,24 @@ export const ALL_PROVINCES = [
 export const isSupportedProvince = (p?: string) =>
   !!p && SUPPORTED_PROVINCES.includes(p.trim());
 
+// Quận/Huyện theo Tỉnh/TP (mock)
+export const DISTRICTS: Record<string, string[]> = {
+  'TP. Hồ Chí Minh': ['Quận 1', 'Quận 3', 'Quận 5', 'Quận Bình Thạnh', 'Quận Phú Nhuận', 'TP. Thủ Đức'],
+  'TP. Hà Nội': ['Quận Hoàn Kiếm', 'Quận Hai Bà Trưng', 'Quận Đống Đa', 'Quận Ba Đình', 'Quận Cầu Giấy', 'Quận Thanh Xuân'],
+  'Đà Nẵng': ['Quận Hải Châu', 'Quận Thanh Khê', 'Quận Sơn Trà', 'Quận Ngũ Hành Sơn', 'Quận Liên Chiểu'],
+  'Quảng Ninh': ['TP. Hạ Long', 'TP. Cẩm Phả', 'TP. Uông Bí', 'TP. Móng Cái', 'Thị xã Quảng Yên'],
+  'Cần Thơ': ['Quận Ninh Kiều', 'Quận Bình Thủy', 'Quận Cái Răng', 'Quận Ô Môn', 'Quận Thốt Nốt'],
+};
+
+export const districtsOf = (province?: string): string[] =>
+  (province && DISTRICTS[province]) || ['Quận/Huyện 1', 'Quận/Huyện 2', 'Quận/Huyện 3'];
+
+// Phường/Xã (mock dùng chung)
+export const WARDS = [
+  'Phường 1', 'Phường 2', 'Phường 3', 'Phường Bến Nghé', 'Phường Nguyễn Du',
+  'Phường Phạm Đình Hổ', 'Phường Dịch Vọng', 'Phường Bạch Đằng',
+];
+
 // Ngưỡng COD Grab Express hỗ trợ
 export const MAX_COD = 2_000_000;
 

@@ -27,6 +27,32 @@ export const GrabExpressMark: React.FC<{size?: number; showText?: boolean}> = ({
   </div>
 );
 
+// Logo Grab Express — vòng tròn xanh + wordmark "GrabExpress"
+// (Grab: chữ rỗng viền trắng; Express: chữ đặc trắng). Luôn là logo thật, mọi kích cỡ.
+export const GrabExpressLogo: React.FC<{size?: number; withText?: boolean; className?: string}> = ({
+  size = 56,
+  className = '',
+}) => (
+  <svg viewBox="0 0 120 120" width={size} height={size} className={className} role="img" aria-label="Grab Express">
+    <circle cx="60" cy="60" r="60" fill="#00B14F" />
+    <text
+      x="60"
+      y="68"
+      textAnchor="middle"
+      fontFamily="Inter, ui-sans-serif, sans-serif"
+      fontSize="24"
+      fontWeight="800"
+      letterSpacing="-1"
+      textLength="104"
+      lengthAdjust="spacingAndGlyphs"
+      dominantBaseline="middle"
+    >
+      <tspan fill="none" stroke="#fff" strokeWidth="1.6">Grab</tspan>
+      <tspan fill="#fff">Express</tspan>
+    </text>
+  </svg>
+);
+
 export const GrabExpressChip: React.FC<{className?: string}> = ({className = ''}) => (
   <span
     className={`inline-flex items-center gap-1 rounded-md bg-grab-light px-1.5 py-0.5 text-[11px] font-semibold text-grab ${className}`}
@@ -79,7 +105,8 @@ export const Modal: React.FC<{
   children: React.ReactNode;
   footer?: React.ReactNode;
   closeOnBackdrop?: boolean;
-}> = ({open, onClose, title, width = 520, children, footer, closeOnBackdrop = true}) => {
+  contained?: boolean;
+}> = ({open, onClose, title, width = 520, children, footer, closeOnBackdrop = true, contained = false}) => {
   useEffect(() => {
     if (!open) return;
     const onEsc = (e: KeyboardEvent) => e.key === 'Escape' && onClose?.();
@@ -88,7 +115,7 @@ export const Modal: React.FC<{
   }, [open, onClose]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className={`${contained ? 'absolute' : 'fixed'} inset-0 z-50 flex items-center justify-center p-4`}>
       <div
         className="absolute inset-0 bg-black/40 animate-fade-in"
         onClick={() => closeOnBackdrop && onClose?.()}
@@ -133,6 +160,7 @@ export const ConfirmDialog: React.FC<{
   confirmText?: string;
   cancelText?: string;
   tone?: 'danger' | 'warning';
+  contained?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }> = ({
@@ -142,10 +170,11 @@ export const ConfirmDialog: React.FC<{
   confirmText = 'Có',
   cancelText = 'Không',
   tone = 'warning',
+  contained = false,
   onConfirm,
   onCancel,
 }) => (
-  <Modal open={open} onClose={onCancel} width={440} closeOnBackdrop={false}>
+  <Modal open={open} onClose={onCancel} width={440} closeOnBackdrop={false} contained={contained}>
     <div className="flex gap-3">
       <div
         className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
@@ -183,10 +212,11 @@ export const AlertPopup: React.FC<{
   message: React.ReactNode;
   primaryText?: string;
   secondaryText?: string;
+  contained?: boolean;
   onPrimary?: () => void;
   onClose: () => void;
-}> = ({open, title = 'Thông báo', message, primaryText, secondaryText = 'Đóng', onPrimary, onClose}) => (
-  <Modal open={open} onClose={onClose} width={460} closeOnBackdrop={false}>
+}> = ({open, title = 'Thông báo', message, primaryText, secondaryText = 'Đóng', contained = false, onPrimary, onClose}) => (
+  <Modal open={open} onClose={onClose} width={460} closeOnBackdrop={false} contained={contained}>
     <div className="flex gap-3">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-50 text-warning">
         <AlertTriangle size={20} />

@@ -1,0 +1,9 @@
+{
+  "actors": ["Quản lý nhà hàng", "Thu ngân (POS)", "Grab Express"],
+  "branches": [
+    "Nếu hợp lệ và địa chỉ thuộc khu vực Grab Express hỗ trợ thì kết nối thành công, ngược lại báo lỗi",
+    "Nếu COD ≤ 2 triệu và địa chỉ trong khu vực Grab Express hỗ trợ thì cho gửi, ngược lại chọn đối tác giao hàng khác",
+    "Nếu kết nối Grab Express OK thì tạo vận đơn, ngược lại hiện popup lỗi kết nối"
+  ],
+  "errors": ["Báo lỗi khi kết nối", "Cảnh báo COD hoặc ngoài khu vực Grab Express hỗ trợ", "Popup lỗi kết nối"]
+}

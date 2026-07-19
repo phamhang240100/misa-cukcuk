@@ -1,16 +1,36 @@
 import React, {useMemo, useState} from 'react';
 import {
   ArrowLeft,
+  BarChart3,
+  Bell,
   Bike,
   CheckCircle2,
+  ChevronDown,
+  CreditCard,
+  Download,
   ExternalLink,
+  FileDown,
+  FileText,
+  FileUp,
+  FileX,
+  Grid3x3,
+  HelpCircle,
+  LayoutDashboard,
   LayoutGrid,
   Link2,
   Link2Off,
+  MessageSquare,
+  MoreVertical,
+  Package,
+  Percent,
+  PiggyBank,
   Search,
+  Settings,
   Settings2,
-  ShoppingBag,
-  Store,
+  ShoppingCart,
+  TrendingUp,
+  UtensilsCrossed,
+  Wallet,
 } from 'lucide-react';
 import type {ConnectionState, DeliveryOrder, ToastKind} from '../types';
 import {
@@ -22,16 +42,8 @@ import {
   isSupportedProvince,
 } from '../constants';
 import {RESTAURANT_DEFAULT} from '../data';
-import {
-  AlertPopup,
-  Button,
-  ConfirmDialog,
-  Field,
-  GrabExpressChip,
-  GrabExpressMark,
-  InfoTip,
-  inputCls,
-} from '../components/ui';
+import {APPLICATIONS_DATA, SIDEBAR_ITEMS, type WebApp} from '../webData';
+import {AlertPopup, Button, ConfirmDialog, Field, GrabExpressLogo, inputCls} from '../components/ui';
 
 interface Props {
   connection: ConnectionState;
@@ -40,31 +52,39 @@ interface Props {
   pushToast: (kind: ToastKind, title: string, desc?: string) => void;
 }
 
-const APP_CATALOG = [
-  {id: 'ge', title: 'Grab Express', cat: 'Vận chuyển', isNew: true, kind: 'ge' as const,
-    desc: 'Hỗ trợ kết nối đối tác giao hàng Grab Express, giúp giảm thiểu thao tác thủ công và quản lý bằng tay khi giao hàng cho khách hàng.'},
-  {id: 'grabfood', title: 'Grab Food', cat: 'Vận chuyển', kind: 'grabfood' as const,
-    desc: 'Kết nối ngay Grab Food trên CUKCUK để chủ động kiểm soát đơn hàng, giờ đóng/mở cửa nhà hàng của bạn.'},
-  {id: 'ahamove', title: 'AhaMove', cat: 'Vận chuyển', kind: 'aha' as const,
-    desc: 'Hỗ trợ kết nối đối tác giao hàng AhaMove, giúp giảm thiểu thao tác thủ công khi giao hàng cho khách hàng.'},
-  {id: 'shopeefood', title: 'ShopeeFood', cat: 'Vận chuyển', kind: 'shopee' as const,
-    desc: 'Kết nối ShopeeFood trên CUKCUK để đồng bộ đơn hàng, trạng thái hoạt động và thông tin gian hàng.'},
-];
+const SIDEBAR_ICONS: Record<string, React.ComponentType<{size?: number}>> = {
+  LayoutDashboard, BarChart3, FileDown, FileUp, ShoppingCart, Package, Wallet,
+  CreditCard, PiggyBank, Percent, UtensilsCrossed, Grid3x3, TrendingUp, FileX,
+  FileText, LayoutGrid,
+};
 
-const SIDEBAR = [
-  'Bàn làm việc', 'Báo cáo', 'Hóa đơn bán hàng', 'Kho', 'Thực đơn',
-  'Khuyến mại', 'Thiết lập hệ thống', 'Ứng dụng',
-];
+const MISA_LOGO =
+  'https://misajsc.amis.vn/oneai/g1/api/file/v1/files/image?fileType=5003&fileId=2e0e75f9-784b-48d9-b545-ce17762135dc.png&isTemp=true&tenantCode=misa';
+const AVATAR = 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=120&h=120';
 
-function AppIcon({kind}: {kind: string}) {
-  if (kind === 'ge')
-    return <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-grab text-white"><Bike size={22} /></div>;
-  if (kind === 'grabfood')
-    return <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-grab text-white"><ShoppingBag size={22} /></div>;
-  if (kind === 'aha')
-    return <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-500 text-white"><Bike size={22} /></div>;
-  return <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-500 text-white"><Store size={22} /></div>;
-}
+// Logo ứng dụng có fallback gradient + chữ nếu URL lỗi
+const AppLogo: React.FC<{app: WebApp}> = ({app}) => {
+  const [err, setErr] = useState(false);
+  const radius = app.round ? 'rounded-full' : 'rounded-2xl';
+  if (app.isGrabExpress) return <GrabExpressLogo size={56} />;
+  if (err || !app.imageUrl)
+    return (
+      <div
+        className={`flex h-14 w-14 shrink-0 items-center justify-center bg-gradient-to-br ${app.tint ?? 'from-slate-400 to-slate-600'} text-[15px] font-black text-white ${radius}`}
+      >
+        {app.short ?? '?'}
+      </div>
+    );
+  return (
+    <img
+      src={app.imageUrl}
+      alt={app.title}
+      onError={() => setErr(true)}
+      referrerPolicy="no-referrer"
+      className={`h-14 w-14 shrink-0 object-cover ${radius}`}
+    />
+  );
+};
 
 export const WebConnectSurface: React.FC<Props> = ({
   connection,
@@ -73,141 +93,220 @@ export const WebConnectSurface: React.FC<Props> = ({
   pushToast,
 }) => {
   const [openGe, setOpenGe] = useState(false);
-  return (
-    <div className="flex h-full">
-      {/* Sidebar CukCuk web */}
-      <aside className="hidden w-56 shrink-0 flex-col border-r border-border-neutral-light bg-white lg:flex">
-        <div className="flex h-14 items-center gap-2 border-b border-border-neutral-light px-4">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand text-[15px] font-black text-white">C</div>
-          <span className="text-[15px] font-bold text-text-primary">CukCuk</span>
-        </div>
-        <nav className="flex-1 overflow-y-auto p-2">
-          {SIDEBAR.map((s) => (
-            <div
-              key={s}
-              className={`mb-0.5 flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] ${
-                s === 'Ứng dụng'
-                  ? 'bg-brand-light font-semibold text-brand'
-                  : 'text-text-secondary hover:bg-gray-50'
-              }`}
-            >
-              {s === 'Ứng dụng' ? <LayoutGrid size={16} /> : <span className="h-4 w-4 rounded bg-gray-200" />}
-              {s}
-            </div>
-          ))}
-        </nav>
-        <div className="border-t border-border-neutral-light p-3 text-[12px] text-text-hint">
-          {RESTAURANT_DEFAULT.name}
-        </div>
-      </aside>
+  const [restaurant, setRestaurant] = useState(RESTAURANT_DEFAULT.name);
+  const [restOpen, setRestOpen] = useState(false);
 
-      {/* Content */}
-      <section className="min-w-0 flex-1 overflow-y-auto">
-        {!openGe ? (
-          <ApplicationsList
-            connected={connection.isConnected}
-            onOpenGe={() => setOpenGe(true)}
-          />
-        ) : (
-          <GrabExpressConnect
-            connection={connection}
-            setConnection={setConnection}
-            orders={orders}
-            pushToast={pushToast}
-            onBack={() => setOpenGe(false)}
-          />
-        )}
-      </section>
+  return (
+    <div className="flex h-full flex-col bg-[#F0F2F4]">
+      {/* ===== Header xanh MISA CukCuk ===== */}
+      <header className="flex h-12 shrink-0 items-center justify-between border-b border-[#2563EB]/40 bg-[#1E62EC] px-3 text-white">
+        <div className="flex items-center gap-3">
+          <button className="rounded p-1 hover:bg-[#2563EB]" title="Dịch vụ MISA">
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+              <circle cx="5" cy="5" r="2" /><circle cx="12" cy="5" r="2" /><circle cx="19" cy="5" r="2" />
+              <circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" />
+              <circle cx="5" cy="19" r="2" /><circle cx="12" cy="19" r="2" /><circle cx="19" cy="19" r="2" />
+            </svg>
+          </button>
+          <div className="flex items-center gap-1.5">
+            <img src={MISA_LOGO} alt="MISA CukCuk" className="h-6 w-auto object-contain" referrerPolicy="no-referrer"
+              onError={(e) => ((e.currentTarget.style.display = 'none'))} />
+            <span className="text-base font-extrabold tracking-tight">MISA CukCuk</span>
+          </div>
+          <div className="relative ml-4">
+            <button
+              onClick={() => setRestOpen(!restOpen)}
+              className="flex h-8 items-center gap-1.5 rounded-md border border-[#1E62EC] bg-[#2563EB] pl-3 pr-2 text-xs font-semibold hover:bg-[#1D4ED8]"
+            >
+              <span className="max-w-[170px] truncate">{restaurant}</span>
+              <ChevronDown className="h-3.5 w-3.5 opacity-80" />
+            </button>
+            {restOpen && (
+              <div className="animate-fade-in absolute left-0 top-10 z-50 w-56 rounded-lg border border-gray-100 bg-white py-1 text-text-primary shadow-lg">
+                {[RESTAURANT_DEFAULT.name, 'Chi nhánh Cầu Giấy', 'Chi nhánh Hoàn Kiếm'].map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => {
+                      setRestaurant(r);
+                      setRestOpen(false);
+                    }}
+                    className={`w-full px-3 py-2 text-left text-xs hover:bg-gray-50 ${
+                      restaurant === r ? 'bg-[#F0F6FE] font-bold text-[#2563EB]' : ''
+                    }`}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button className="flex h-8 items-center gap-1 rounded px-2.5 text-xs font-medium hover:bg-[#2563EB]">
+            <span>Tiếng Việt</span>
+            <ChevronDown className="h-3.5 w-3.5 opacity-80" />
+          </button>
+          <button className="relative flex h-8 w-8 items-center justify-center rounded-lg hover:bg-[#2563EB]" title="Tải ứng dụng">
+            <Download className="h-[18px] w-[18px]" />
+            <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full border border-[#1E62EC] bg-red-500 text-[9px] font-bold">1</span>
+          </button>
+          <button className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-[#2563EB]" title="Thông báo"><Bell className="h-[18px] w-[18px]" /></button>
+          <button className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-[#2563EB]" title="Trợ giúp"><HelpCircle className="h-[18px] w-[18px]" /></button>
+          <button className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-[#2563EB]" title="Thiết lập"><Settings className="h-[18px] w-[18px]" /></button>
+          <button className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-[#2563EB]"><MoreVertical className="h-[18px] w-[18px]" /></button>
+          <button className="ml-1 h-8 w-8 overflow-hidden rounded-full border-2 border-white shadow">
+            <img src={AVATAR} alt="User" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+          </button>
+        </div>
+      </header>
+
+      {/* ===== Sidebar + Content ===== */}
+      <div className="flex min-h-0 flex-1">
+        <aside className="hidden w-[220px] shrink-0 flex-col justify-between overflow-y-auto border-r border-[#E9EAEB] bg-white lg:flex">
+          <div className="space-y-0.5 py-2">
+            {SIDEBAR_ITEMS.map((item) => {
+              const Icon = SIDEBAR_ICONS[item.icon] ?? LayoutGrid;
+              const active = item.id === 'ung-dung';
+              return (
+                <button
+                  key={item.id}
+                  className={`flex h-9 w-full items-center px-3 text-left text-xs transition-all ${
+                    active
+                      ? 'border-l-4 border-[#2563EB] bg-[#F0F6FE] font-semibold text-[#2563EB]'
+                      : 'font-medium text-[#101828] hover:bg-gray-50 hover:text-blue-600'
+                  }`}
+                >
+                  <span className={`mr-2.5 ${active ? 'text-[#2563EB]' : 'text-[#717680]'}`}>
+                    <Icon size={16} />
+                  </span>
+                  <span className="flex-1 truncate">{item.title}</span>
+                  {item.arrow && <ChevronDown className="h-3 w-3 text-[#717680] opacity-60" />}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex justify-end border-t border-[#E9EAEB] bg-white p-2">
+            <button className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#D5D7DA] text-[#717680] hover:border-[#2563EB] hover:bg-[#F0F6FE] hover:text-[#2563EB]">
+              <ArrowLeft size={16} />
+            </button>
+          </div>
+        </aside>
+
+        <section className="min-w-0 flex-1 overflow-y-auto">
+          {!openGe ? (
+            <ApplicationsList
+              connection={connection}
+              onOpenGe={() => setOpenGe(true)}
+              pushToast={pushToast}
+            />
+          ) : (
+            <GrabExpressConnect
+              connection={connection}
+              setConnection={setConnection}
+              orders={orders}
+              pushToast={pushToast}
+              onBack={() => setOpenGe(false)}
+            />
+          )}
+        </section>
+      </div>
     </div>
   );
 };
 
 // ---------------------------------------------------------------------------
-// Danh sách ứng dụng
+// Ứng dụng — lưới card logo thật + "Chi tiết"
 // ---------------------------------------------------------------------------
-const ApplicationsList: React.FC<{connected: boolean; onOpenGe: () => void}> = ({
-  connected,
-  onOpenGe,
-}) => (
-  <div className="mx-auto max-w-[980px] p-6">
-    <div className="mb-1 flex items-center gap-2 text-[12px] text-text-hint">
-      <span>Ứng dụng</span>
-    </div>
-    <h2 className="mb-1 text-text-primary">Ứng dụng</h2>
-    <p className="mb-5 text-[13px] text-text-secondary">
-      Kết nối CukCuk với các đối tác để mở rộng khả năng bán hàng và vận chuyển.
-    </p>
-
-    <div className="mb-4 flex items-center gap-3">
-      <div className="relative flex-1 max-w-sm">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-icon-neutral" />
-        <input placeholder="Tìm kiếm ứng dụng" className={inputCls() + ' pl-9'} />
-      </div>
-      <div className="flex gap-1 rounded-lg bg-white p-1 text-[13px]">
-        {['Tất cả', 'Vận chuyển', 'Hóa đơn & Kế toán'].map((c, i) => (
+const ApplicationsList: React.FC<{
+  connection: ConnectionState;
+  onOpenGe: () => void;
+  pushToast: (kind: ToastKind, title: string, desc?: string) => void;
+}> = ({connection, onOpenGe, pushToast}) => {
+  const [q, setQ] = useState('');
+  const apps = APPLICATIONS_DATA.filter((a) => a.title.toLowerCase().includes(q.trim().toLowerCase()));
+  return (
+    <div className="flex h-full flex-col">
+      {/* Page header */}
+      <div className="flex items-center justify-between border-b border-[#E9EAEB] bg-white px-6 py-4">
+        <h2 className="text-xl font-semibold text-[#101828]">Ứng dụng</h2>
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Tìm kiếm ứng dụng..."
+              className="h-8 w-52 rounded-lg border border-[#D5D7DA] pl-8 pr-3 text-[13px] outline-none placeholder:text-gray-400 focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]"
+            />
+          </div>
           <button
-            key={c}
-            className={`rounded-md px-3 py-1.5 font-medium ${
-              i === 1 ? 'bg-brand-light text-brand' : 'text-text-secondary hover:bg-gray-50'
-            }`}
+            onClick={() => pushToast('info', 'Gửi phản hồi', 'Cảm ơn bạn đã đóng góp ý kiến cho MISA CukCuk.')}
+            className="flex h-8 min-w-[84px] items-center justify-center gap-1.5 rounded-lg border border-[#D5D7DA] bg-white px-3 text-[13px] font-medium text-[#101828] hover:bg-[#F0F6FE] hover:text-[#2563EB]"
           >
-            {c}
+            <MessageSquare className="h-4 w-4 text-[#717680]" /> Phản hồi
           </button>
-        ))}
+        </div>
       </div>
-    </div>
 
-    <div className="mb-2 text-[13px] font-semibold text-text-secondary">Vận chuyển</div>
-    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-      {APP_CATALOG.map((app) => {
-        const isGe = app.kind === 'ge';
-        return (
-          <div
-            key={app.id}
-            className="group flex flex-col rounded-2xl border border-border-neutral-light bg-white p-4 transition-shadow hover:shadow-md"
-          >
-            <div className="mb-3 flex items-start gap-3">
-              <AppIcon kind={app.kind} />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-[14px] font-bold text-text-primary">{app.title}</span>
-                  {app.isNew && (
-                    <span className="rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-danger">
-                      MỚI
-                    </span>
-                  )}
-                  {isGe && connected && (
-                    <span className="inline-flex items-center gap-1 rounded bg-grab-light px-1.5 py-0.5 text-[10px] font-bold text-grab">
-                      <CheckCircle2 size={11} /> Đã kết nối
-                    </span>
-                  )}
+      {/* Grid */}
+      <div className="grid flex-1 grid-cols-1 gap-4 overflow-y-auto p-6 lg:grid-cols-2">
+        {apps.map((app) => {
+          const connected = app.isGrabExpress ? connection.isConnected : app.isConnected;
+          return (
+            <div
+              key={app.id}
+              onClick={() => (app.isGrabExpress ? onOpenGe() : pushToast('info', app.title, 'Ứng dụng minh hoạ trong prototype.'))}
+              className="group flex cursor-pointer gap-4 rounded-xl border-2 border-white bg-white/80 p-5 shadow-[0_4px_16px_0_rgba(0,0,0,0.04)] transition-all hover:scale-[1.01] hover:border-[#2563EB]/40"
+            >
+              <AppLogo app={app} />
+              <div className="flex min-w-0 flex-1 flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      <h3 className="truncate text-base font-semibold text-[#101828] group-hover:text-[#2563EB]">{app.title}</h3>
+                      {app.isNew && (
+                        <span className="inline-flex shrink-0 items-center rounded bg-red-500 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+                          New
+                        </span>
+                      )}
+                    </div>
+                    {connected && (
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                        <CheckCircle2 className="h-3 w-3" /> Đã kết nối
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-[#717680]">{app.description}</p>
                 </div>
-                <div className="text-[12px] text-text-hint">{app.cat}</div>
+                <div className="mt-3">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      app.isGrabExpress ? onOpenGe() : pushToast('info', app.title, 'Ứng dụng minh hoạ trong prototype.');
+                    }}
+                    className="text-[13px] font-semibold text-[#2563EB] transition-all hover:text-[#1D4ED8] hover:underline"
+                  >
+                    Chi tiết
+                  </button>
+                </div>
               </div>
             </div>
-            <p className="mb-4 line-clamp-3 flex-1 text-[12.5px] leading-relaxed text-text-secondary">
-              {app.desc}
-            </p>
-            <div className="flex justify-end">
-              {isGe ? (
-                <Button variant={connected ? 'secondary' : 'primary'} size="sm" onClick={onOpenGe}>
-                  {connected ? 'Xem kết nối' : 'Kết nối'}
-                </Button>
-              ) : (
-                <Button variant="secondary" size="sm" disabled>
-                  Kết nối
-                </Button>
-              )}
-            </div>
+          );
+        })}
+        {apps.length === 0 && (
+          <div className="col-span-full flex flex-col items-center justify-center py-16 text-gray-400">
+            <Search className="mb-2 h-12 w-12 text-gray-300" />
+            <p className="text-[13px]">Không tìm thấy ứng dụng nào phù hợp</p>
           </div>
-        );
-      })}
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ---------------------------------------------------------------------------
-// Màn hình Kết nối / Thông tin kết nối Grab Express
+// Màn Kết nối / Thông tin kết nối Grab Express
 // ---------------------------------------------------------------------------
 type Errors = Partial<Record<'phone' | 'province' | 'district' | 'ward' | 'address' | 'vatEmail', string>>;
 
@@ -225,7 +324,7 @@ const GrabExpressConnect: React.FC<{
   const [provinceAlert, setProvinceAlert] = useState(false);
   const [confirmUnlink, setConfirmUnlink] = useState(false);
 
-  const editing = !connection.isConnected; // chưa kết nối => nhập; đã kết nối => hiển thị + Cập nhật
+  const editing = !connection.isConnected;
 
   const set = (k: keyof typeof form, v: string) => {
     setForm((f) => ({...f, [k]: v}));
@@ -243,7 +342,6 @@ const GrabExpressConnect: React.FC<{
     }
     setErrors(e);
     if (Object.keys(e).length > 0) return false;
-    // Tỉnh/TP phải thuộc 5 tỉnh hỗ trợ
     if (!isSupportedProvince(form.province)) {
       setProvinceAlert(true);
       return false;
@@ -273,12 +371,8 @@ const GrabExpressConnect: React.FC<{
     pushToast('success', 'Cập nhật kết nối thành công');
   };
 
-  // Hủy kết nối — kiểm tra trạng thái đơn của GE
   const hasInProgress = useMemo(
-    () =>
-      orders.some(
-        (o) => o.trackingNo && o.geStatus && !GE_TERMINAL.includes(o.geStatus),
-      ),
+    () => orders.some((o) => o.trackingNo && o.geStatus && !GE_TERMINAL.includes(o.geStatus)),
     [orders],
   );
 
@@ -298,12 +392,9 @@ const GrabExpressConnect: React.FC<{
       </button>
 
       <div className="overflow-hidden rounded-2xl border border-border-neutral-light bg-white">
-        {/* Header */}
         <div className="flex items-center justify-between border-b border-border-neutral-light bg-grab-light/60 px-5 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-grab text-white">
-              <Bike size={22} />
-            </div>
+            <GrabExpressLogo size={44} withText={false} />
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[16px] font-bold text-text-primary">Grab Express</span>
@@ -333,18 +424,13 @@ const GrabExpressConnect: React.FC<{
               <input
                 value={form.phone}
                 onChange={(e) => set('phone', e.target.value)}
-                readOnly={!editing && connection.isConnected ? false : false}
                 className={inputCls(!!errors.phone)}
                 placeholder="Số điện thoại gian hàng"
               />
             </Field>
 
             <Field label="Tỉnh/Thành phố" required error={errors.province}>
-              <select
-                value={form.province}
-                onChange={(e) => set('province', e.target.value)}
-                className={inputCls(!!errors.province)}
-              >
+              <select value={form.province} onChange={(e) => set('province', e.target.value)} className={inputCls(!!errors.province)}>
                 <option value="">-- Chọn Tỉnh/TP --</option>
                 {ALL_PROVINCES.map((p) => (
                   <option key={p} value={p}>
@@ -354,32 +440,16 @@ const GrabExpressConnect: React.FC<{
               </select>
             </Field>
             <Field label="Quận/Huyện" required error={errors.district}>
-              <input
-                value={form.district}
-                onChange={(e) => set('district', e.target.value)}
-                className={inputCls(!!errors.district)}
-                placeholder="Quận/Huyện"
-              />
+              <input value={form.district} onChange={(e) => set('district', e.target.value)} className={inputCls(!!errors.district)} placeholder="Quận/Huyện" />
             </Field>
             <Field label="Phường/Xã" required error={errors.ward}>
-              <input
-                value={form.ward}
-                onChange={(e) => set('ward', e.target.value)}
-                className={inputCls(!!errors.ward)}
-                placeholder="Phường/Xã"
-              />
+              <input value={form.ward} onChange={(e) => set('ward', e.target.value)} className={inputCls(!!errors.ward)} placeholder="Phường/Xã" />
             </Field>
             <Field label="Địa chỉ" required error={errors.address}>
-              <input
-                value={form.address}
-                onChange={(e) => set('address', e.target.value)}
-                className={inputCls(!!errors.address)}
-                placeholder="Số nhà, tên đường"
-              />
+              <input value={form.address} onChange={(e) => set('address', e.target.value)} className={inputCls(!!errors.address)} placeholder="Số nhà, tên đường" />
             </Field>
           </div>
 
-          {/* Checkbox VAT */}
           <div className="mt-5 rounded-xl border border-border-neutral-light p-4">
             <label className="flex cursor-pointer items-start gap-3">
               <input
@@ -392,9 +462,7 @@ const GrabExpressConnect: React.FC<{
                 className="mt-0.5 h-4 w-4 accent-[var(--color-brand)]"
               />
               <div>
-                <div className="text-[13px] font-semibold text-text-primary">
-                  Yêu cầu xuất hóa đơn Phí vận chuyển (VAT)
-                </div>
+                <div className="text-[13px] font-semibold text-text-primary">Yêu cầu xuất hóa đơn Phí vận chuyển (VAT)</div>
                 <div className="text-[12px] text-text-hint">Mặc định không tích chọn.</div>
               </div>
             </label>
@@ -412,12 +480,7 @@ const GrabExpressConnect: React.FC<{
                     placeholder="vd: ketoan@nhahang.com"
                   />
                 </Field>
-                <a
-                  href={VAT_FORM_URL}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-brand hover:underline"
-                >
+                <a href={VAT_FORM_URL} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-brand hover:underline">
                   <ExternalLink size={14} />
                   Đăng ký xuất hóa đơn tài chính (VAT) cho dịch vụ giao hàng - GrabExpress
                 </a>
@@ -425,7 +488,6 @@ const GrabExpressConnect: React.FC<{
             )}
           </div>
 
-          {/* Actions */}
           <div className="mt-6 flex items-center justify-end gap-3">
             {!connection.isConnected ? (
               <Button variant="grab" icon={<Link2 size={16} />} onClick={handleConnect} className="min-w-[140px]">
@@ -433,12 +495,7 @@ const GrabExpressConnect: React.FC<{
               </Button>
             ) : (
               <>
-                <Button
-                  variant="danger"
-                  icon={<Link2Off size={16} />}
-                  onClick={() => setConfirmUnlink(true)}
-                  className="min-w-[140px]"
-                >
+                <Button variant="danger" icon={<Link2Off size={16} />} onClick={() => setConfirmUnlink(true)} className="min-w-[140px]">
                   Hủy kết nối
                 </Button>
                 <Button variant="grab" icon={<Settings2 size={16} />} onClick={handleUpdate} className="min-w-[140px]">
@@ -450,7 +507,6 @@ const GrabExpressConnect: React.FC<{
         </div>
       </div>
 
-      {/* Cảnh báo Tỉnh/TP không hỗ trợ */}
       <AlertPopup
         open={provinceAlert}
         title="Khu vực chưa được hỗ trợ"
@@ -458,7 +514,6 @@ const GrabExpressConnect: React.FC<{
         onClose={() => setProvinceAlert(false)}
       />
 
-      {/* Confirm Hủy kết nối — nội dung theo trạng thái đơn GE */}
       <ConfirmDialog
         open={confirmUnlink}
         title="Hủy kết nối Grab Express"
