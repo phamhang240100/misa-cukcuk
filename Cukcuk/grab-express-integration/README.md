@@ -19,10 +19,10 @@ npm install
 npm run dev            # http://localhost:3100
 ```
 
-Thanh trên cùng chuyển 3 bề mặt: **Web quản lý · POS bán hàng · Sổ giao hàng**.
-State kết nối / đơn hàng / thông báo dùng chung → luồng liền mạch (kết nối ở Web rồi tạo đơn ở POS, theo dõi ở Sổ GH).
+Thanh trên cùng chuyển **4 bề mặt**: **Web quản lý · POS bán hàng (tablet) · POS PC · Sổ giao hàng**.
+State kết nối / đơn hàng / thông báo dùng chung giữa cả 3 nền tảng POS → luồng liền mạch (kết nối ở Web, tạo đơn ở POS tablet hoặc PC, theo dõi chung ở Sổ giao hàng).
 
-## 3 bề mặt
+## 4 bề mặt
 
 ### 1. Web quản lý — `Ứng dụng › Grab Express` (`src/surfaces/WebConnectSurface.tsx`)
 - **Full shell MISA CukCuk**: header xanh (9-dot · logo MISA CukCuk · chọn nhà hàng/chi nhánh · ngôn ngữ/tải app/chuông/trợ giúp/thiết lập/avatar) + sidebar đầy đủ (Bàn làm việc … Ứng dụng) + lưới **ứng dụng logo thật**, mỗi card có badge *Đã kết nối*/**New** và link **Chi tiết**.
@@ -42,14 +42,38 @@ State kết nối / đơn hàng / thông báo dùng chung → luồng liền m�
 - **Gửi đơn hàng** (Chờ gửi đối tác) → màn Hóa đơn giao hàng hiển thị **thông tin gửi sang GE** → kiểm tra kết nối → chuyển **Chờ giao hàng** (sinh Mã vận đơn, GE = ALLOCATING).
 - **Giao hàng** (Chờ giao hàng) → **Đang giao hàng**.
 
-### 3. Sổ giao hàng — tab Grab Express (`src/surfaces/DeliveryBookSurface.tsx`)
-- Tab **Grab Express** (cạnh Nhà hàng tự giao / AhaMove).
-- Bộ lọc: khoảng ngày · Trạng thái CukCuk · **Trạng thái GE** (10 trạng thái) · tìm Mã vận đơn/Số HĐ/khách.
-- Lưới: Mã vận đơn/Số HĐ · Khách hàng (tên + địa chỉ gộp 4 cấp) · Giờ hẹn trả · Phí thu khách · Phí trả đối tác · Tổng tiền · Trạng thái GE.
-- Thao tác theo trạng thái: **Chờ gửi đối tác** → Gửi đơn/Hủy · **Chờ giao hàng** → Giao hàng/Hủy · **Đang giao hàng** → Thu tiền/Hủy · **Đã thanh toán** → icon.
-- **Mô phỏng GE cập nhật** → đẩy trạng thái GE + sinh **thông báo** đúng format:
+### 3. Sổ giao hàng — tab Grab Express (`src/surfaces/DeliveryBookSurface.tsx` bản tablet · `src/surfaces/pc/PosPcDeliveryBook.tsx` bản PC)
+- Tab **Grab Express** (cạnh Nhà hàng tự giao / AhaMove / Loship).
+- Bộ lọc: khoảng ngày · **Trạng thái Grab Express** (10 trạng thái, viết đầy đủ không viết tắt) · tìm Mã vận đơn/Số hóa đơn/khách.
+- Lưới (đã áp update yêu cầu mới nhất — xem mục *Update Google Doc* bên dưới): **Mã vận đơn / hóa đơn** · **Order/Hóa đơn** (cột riêng) · Khách hàng (tên + địa chỉ gộp 4 cấp) · **SĐT tài xế** · Giờ hẹn trả · Phí thu khách · Phí trả đối tác · Tổng tiền · **Trạng thái Grab Express** (đã ẩn cột Trạng thái CukCuk) · **Thời gian** cập nhật.
+- Thao tác theo trạng thái: **Chờ gửi đối tác** → **Giao hàng**/Hủy (đổi tên từ "Gửi đơn hàng") · **Chờ/Đang giao hàng** → tự đồng bộ, chỉ còn Hủy · **Chờ thu tiền (GE=COMPLETED)** → Thu tiền/Hủy · **Đã thanh toán** → icon.
+- **Nhấp đúp vào đơn đang giao vận** (đã gửi đối tác) → mở **bản đồ lộ trình giao hàng** (`src/components/DriverMapMock.tsx`): tuyến đường quán→khách, vị trí tài xế theo % tiến trình trạng thái GE, tên/SĐT tài xế, ETA.
+- **Mô phỏng Grab Express cập nhật** → đẩy trạng thái GE + sinh **thông báo** đúng format:
   *"Đơn hàng ‹Số HĐ/Order› (Mã vận đơn) của khách hàng ‹tên› đã được Grab Express cập nhật trạng thái ‹trạng thái›"* → click mở đúng dòng.
 - Lưu ý: đơn đã chuyển đối tác → hệ thống **chỉ nhận** trạng thái GE, **không tự map/chuyển** trạng thái CukCuk.
+
+### 4. POS PC — Order & Sổ giao hàng (`src/surfaces/pc/`)
+- **Full UI POS PC** dựng theo ảnh chụp thật (Omnissa VDI) + design system enterprise SaaS tham khảo (`Docs/Design system`): header xanh full-width, tab **Order / Sơ đồ / Order Online**, `+ORDER` dropdown (Tại bàn/Mang về/**Giao hàng**), menu **Nghiệp vụ** (hamburger) có mục **Sổ giao hàng**.
+- **Order (gọi món)**: lưới món 5 cột trái + giỏ hàng phải (Tên món/SL/Thành tiền), footer **Hủy bỏ / Gửi bếp/bar / Cất / Cất & Thêm / Tính tiền**.
+- **`+ORDER › Thêm order Giao hàng`** → mở popup **Thông tin giao hàng** (`PosPcDeliveryInfoModal.tsx`, radio Ngồi tại bàn/Gói mang về/**Giao hàng tận nơi**, trái = thông tin khách hàng, phải = Hình thức giao hàng/đối tác) — tái dùng đúng nghiệp vụ COD/quote/validate của bản tablet (`constants.ts` dùng chung).
+- **Danh sách order** (`PosPcOrderListScreen.tsx`): tab Chờ thanh toán/Mang về/**Chờ giao hàng**/Đặt trước dạng card, icon Giao hàng để gửi đối tác.
+- **Thu tiền khách hàng** (`PosPcCollectModal.tsx`): Khách hàng/Tổng tiền/Tiền đặt cọc-Voucher-chiết khấu ĐTGH/Còn phải thu (tự tính)/Hình thức thanh toán.
+- **Sổ giao hàng PC** (`PosPcDeliveryBook.tsx`): bảng full-window (không khung tablet), đủ cột theo update mới nhất, double-click mở bản đồ lộ trình.
+- Dùng **chung state** `orders`/`connection`/`notifications` với bản tablet qua `App.tsx` → 2 bề mặt luôn đồng bộ dữ liệu theo thời gian thực.
+
+## Update Google Doc (áp dụng cả bản tablet + PC)
+
+| # | Yêu cầu | Trạng thái |
+|---|---|---|
+| 1 | "Mã vận đơn / Số HĐ" → "Mã vận đơn / hóa đơn" | ✅ |
+| 2 | Thêm cột Order/Hóa đơn (tách riêng khỏi Mã vận đơn) | ✅ |
+| 3 | Thêm cột SĐT tài xế | ✅ |
+| 4 | Thêm cột Thời gian cạnh Trạng thái Grab Express | ✅ |
+| 5 | Ẩn cột Trạng thái đơn (CukCuk), chỉ giữ Trạng thái Grab Express | ✅ |
+| 6 | Không viết tắt (GE→Grab Express, HĐ→Hóa đơn, GH khác→giao hàng) | ✅ |
+| 7 | Đổi nút "Gửi đơn hàng" → "Giao hàng" | ✅ |
+| 8 | Nhấp đúp đơn đang giao → bản đồ lộ trình + vị trí tài xế | ✅ (mock tĩnh) |
+| 9 | Đơn Grab đã lấy hàng có cho hủy không? / Báo cáo bỏ cột "nhà hàng tự giao" | 📋 để lại — chưa chốt phạm vi màn Báo cáo |
 
 ## Sơ đồ luồng
 
@@ -107,12 +131,22 @@ flowchart LR
 
 ```
 src/
-├── App.tsx                       # shell + chuyển 3 bề mặt + state dùng chung
+├── App.tsx                       # shell + chuyển 4 bề mặt + state dùng chung
 ├── constants.ts                  # khu vực GE hỗ trợ, COD 2tr, message chuẩn, nhãn trạng thái, state machine
-├── types.ts · data.ts            # domain types + mock (kết nối, khách, đơn nhiều trạng thái)
-├── components/ui.tsx             # Modal, ConfirmDialog, AlertPopup, Field, Toast, GE pill, Grab mark
+├── types.ts · data.ts            # domain types + mock (kết nối, khách, đơn nhiều trạng thái, tài xế)
+├── components/
+│   ├── ui.tsx                    # Modal, ConfirmDialog, AlertPopup, Field, Toast, GE pill, Grab mark
+│   └── DriverMapMock.tsx         # bản đồ lộ trình + vị trí tài xế (dùng chung tablet + PC)
 └── surfaces/
-    ├── WebConnectSurface.tsx     # bề mặt 1
-    ├── PosOrderSurface.tsx       # bề mặt 2
-    └── DeliveryBookSurface.tsx   # bề mặt 3
+    ├── WebConnectSurface.tsx     # bề mặt 1 — Web quản lý
+    ├── PosOrderSurface.tsx       # bề mặt 2 — POS bán hàng (tablet)
+    ├── DeliveryBookSurface.tsx   # bề mặt 2 — Sổ giao hàng (tablet)
+    └── pc/                       # bề mặt 3 — POS PC
+        ├── PosPcApp.tsx              # container: điều hướng + state soạn đơn
+        ├── PosPcShell.tsx            # header xanh + Nghiệp vụ + ORDER dropdown
+        ├── PosPcOrderScreen.tsx      # gọi món + giỏ hàng
+        ├── PosPcDeliveryInfoModal.tsx# popup Thông tin giao hàng
+        ├── PosPcOrderListScreen.tsx  # danh sách order dạng card
+        ├── PosPcCollectModal.tsx     # popup Thu tiền khách hàng
+        └── PosPcDeliveryBook.tsx     # Sổ giao hàng full-window
 ```

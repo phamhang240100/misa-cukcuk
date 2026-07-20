@@ -81,6 +81,9 @@ export interface DeliveryOrder {
   serviceType: string; // Loại dịch vụ (Siêu tốc - Thực phẩm)
   cukcukStatus: CukcukStatus;
   geStatus?: GrabExpressStatus;
+  geStatusUpdatedAt?: string; // Thời gian Grab Express cập nhật trạng thái gần nhất
+  driverName?: string; // Người giao (tài xế Grab Express)
+  driverPhone?: string; // SĐT tài xế
   scheduledTime: string; // Giờ hẹn trả
   createdAt: string;
 }

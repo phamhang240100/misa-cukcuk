@@ -27,28 +27,41 @@ export const GrabExpressMark: React.FC<{size?: number; showText?: boolean}> = ({
   </div>
 );
 
-// Logo Grab Express — vòng tròn xanh + wordmark "GrabExpress"
-// (Grab: chữ rỗng viền trắng; Express: chữ đặc trắng). Luôn là logo thật, mọi kích cỡ.
+// Logo Grab Express — icon vuông bo góc xanh (không phải hình tròn), 2 dòng chữ
+// xếp chồng: "Grab" (rỗng viền trắng) / "Express" (đặc trắng). Khớp logo thật.
 export const GrabExpressLogo: React.FC<{size?: number; withText?: boolean; className?: string}> = ({
   size = 56,
   className = '',
 }) => (
   <svg viewBox="0 0 120 120" width={size} height={size} className={className} role="img" aria-label="Grab Express">
-    <circle cx="60" cy="60" r="60" fill="#00B14F" />
+    <rect x="0" y="0" width="120" height="120" rx="26" fill="#00B14F" />
     <text
       x="60"
-      y="68"
+      y="54"
       textAnchor="middle"
       fontFamily="Inter, ui-sans-serif, sans-serif"
-      fontSize="24"
+      fontSize="30"
       fontWeight="800"
-      letterSpacing="-1"
-      textLength="104"
-      lengthAdjust="spacingAndGlyphs"
+      letterSpacing="-0.5"
       dominantBaseline="middle"
+      fill="none"
+      stroke="#fff"
+      strokeWidth="2"
     >
-      <tspan fill="none" stroke="#fff" strokeWidth="1.6">Grab</tspan>
-      <tspan fill="#fff">Express</tspan>
+      Grab
+    </text>
+    <text
+      x="60"
+      y="84"
+      textAnchor="middle"
+      fontFamily="Inter, ui-sans-serif, sans-serif"
+      fontSize="22"
+      fontWeight="800"
+      letterSpacing="-0.5"
+      dominantBaseline="middle"
+      fill="#fff"
+    >
+      Express
     </text>
   </svg>
 );
@@ -300,7 +313,7 @@ export const GeStatusPill: React.FC<{status?: GrabExpressStatus; className?: str
   }[s.tone];
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-semibold ${tone} ${className}`}
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[12px] font-semibold ${tone} ${className}`}
     >
       <span
         className={`h-1.5 w-1.5 rounded-full ${

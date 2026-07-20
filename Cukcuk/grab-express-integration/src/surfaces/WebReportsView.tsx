@@ -30,8 +30,10 @@ interface PartnerRow {
   discount: number;
   sct: number;
 }
+// FR — update Google Doc: báo cáo "Doanh thu theo đối tác giao hàng" chỉ liệt kê
+// đối tác giao vận thật sự (Grab Express, ShopeeFood...), bỏ "Nhà hàng tự giao"
+// (không phải đối tác bên ngoài).
 const PARTNER_ROWS: PartnerRow[] = [
-  {partner: 'Nhà hàng tự giao', count: 4, total: 686800, goods: 599111, fee: 30000, vat: 57689, promo: 0, discount: 0, sct: 0},
   {partner: 'Grab Express', count: 3, total: 468000, goods: 405000, fee: 63000, vat: 40500, promo: 0, discount: 0, sct: 0},
   {partner: 'ShopeeFood', count: 2, total: 250000, goods: 220000, fee: 20000, vat: 22000, promo: 10000, discount: 0, sct: 0},
 ];

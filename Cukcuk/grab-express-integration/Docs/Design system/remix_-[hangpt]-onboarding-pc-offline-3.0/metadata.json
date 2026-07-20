@@ -1,0 +1,8 @@
+{
+  "name": "Remix: [hangpt] Onboarding PC Offline 3.0",
+  "description": "Giao diện đăng nhập máy chủ nội bộ CUKCUK Server",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

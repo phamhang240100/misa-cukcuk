@@ -27,6 +27,14 @@ import type {
 } from '../types';
 import {CUKCUK_STATUS, GE_LIFECYCLE, GE_STATUS, formatCurrency} from '../constants';
 import {Button, ConfirmDialog, GeStatusPill, Modal} from '../components/ui';
+import {DriverMapMock} from '../components/DriverMapMock';
+
+// Tài xế demo — gán khi đơn chuyển PICKING_UP trở đi (mô phỏng GE trả về).
+const DEMO_DRIVERS = [
+  {driverName: 'Nguyễn Văn Hùng', driverPhone: '0977 234 561'},
+  {driverName: 'Trần Quốc Bảo', driverPhone: '0983 456 789'},
+  {driverName: 'Lê Minh Đức', driverPhone: '0912 678 345'},
+];
 
 // Ô lọc (không ép w-full để nằm gọn 1 hàng ngang)
 const FINPUT =
@@ -73,6 +81,7 @@ export const DeliveryBookSurface: React.FC<Props> = ({
   const [cancelOrder, setCancelOrder] = useState<DeliveryOrder | null>(null);
   const [returnOrder, setReturnOrder] = useState<DeliveryOrder | null>(null);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [mapOrder, setMapOrder] = useState<DeliveryOrder | null>(null);
 
   const filtered = useMemo(
     () =>
@@ -122,7 +131,17 @@ export const DeliveryBookSurface: React.FC<Props> = ({
       target.cukcukStatus === 'cho_giao_hang'
         ? {cukcukStatus: 'dang_giao_hang'}
         : {};
-    patch(target.id, {geStatus: next, ...autoSync});
+    // Gán tài xế demo khi tài xế bắt đầu tới lấy hàng trở đi (nếu đơn chưa có).
+    const driverAssign: Partial<DeliveryOrder> =
+      next !== 'ALLOCATING' && next !== 'PENDING_PICKUP' && !target.driverName
+        ? DEMO_DRIVERS[Math.floor(Math.random() * DEMO_DRIVERS.length)]
+        : {};
+    patch(target.id, {
+      geStatus: next,
+      geStatusUpdatedAt: 'vừa xong',
+      ...autoSync,
+      ...driverAssign,
+    });
     const refNo = target.invoiceNo ?? target.orderNo;
     const notif: AppNotification = {
       id: 'n' + Date.now(),
@@ -237,7 +256,7 @@ export const DeliveryBookSurface: React.FC<Props> = ({
               onChange={(e) => setGeF(e.target.value as GrabExpressStatus | 'all')}
               className={FINPUT + ' w-52 shrink-0'}
             >
-              <option value="all">Tất cả TT Grab Express</option>
+              <option value="all">Tất cả trạng thái Grab Express</option>
               {(Object.keys(GE_STATUS) as GrabExpressStatus[]).map((k) => (
                 <option key={k} value={k}>
                   {GE_STATUS[k].label}
@@ -249,13 +268,13 @@ export const DeliveryBookSurface: React.FC<Props> = ({
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Tìm Mã vận đơn, Số HĐ, khách hàng…"
+                placeholder="Tìm Mã vận đơn, Số hóa đơn, khách hàng…"
                 className={FINPUT + ' w-full pl-9'}
               />
             </div>
             {/* Affordance demo (không thuộc UI thật) */}
             <Button variant="secondary" size="sm" icon={<RefreshCw size={15} />} onClick={simulateGeUpdate}>
-              Mô phỏng GE
+              Mô phỏng Grab Express
             </Button>
             <div className="relative">
               <Button variant="secondary" size="sm" icon={<Bell size={15} />} onClick={() => setNotifOpen((v) => !v)}>
@@ -277,21 +296,23 @@ export const DeliveryBookSurface: React.FC<Props> = ({
             <table className="w-full text-left text-[13px]">
               <thead className="sticky top-0 z-10 bg-[#FAFAFA] text-[12px] font-semibold text-slate-600 shadow-[0_1px_0_#E9EAEB]">
                 <tr>
-                  <th className="px-4 py-3">Mã vận đơn / Số HĐ</th>
+                  <th className="px-4 py-3">Mã vận đơn / hóa đơn</th>
+                  <th className="px-4 py-3">Order/Hóa đơn</th>
                   <th className="px-4 py-3">Tên khách hàng</th>
+                  <th className="whitespace-nowrap px-4 py-3">SĐT tài xế</th>
                   <th className="whitespace-nowrap px-4 py-3">Giờ hẹn trả</th>
                   <th className="whitespace-nowrap px-4 py-3 text-right">Phí GH thu khách</th>
                   <th className="whitespace-nowrap px-4 py-3 text-right">Phí GH trả đối tác</th>
                   <th className="whitespace-nowrap px-4 py-3 text-right">Tổng tiền</th>
-                  <th className="px-3 py-3">Trạng thái đơn</th>
                   <th className="px-3 py-3">Trạng thái Grab Express</th>
+                  <th className="whitespace-nowrap px-3 py-3">Thời gian</th>
                   <th className="px-4 py-3 text-right">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="px-4 py-20 text-center">
+                    <td colSpan={11} className="px-4 py-20 text-center">
                       <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
                         <Truck size={22} />
                       </div>
@@ -301,25 +322,31 @@ export const DeliveryBookSurface: React.FC<Props> = ({
                   </tr>
                 )}
                 {filtered.map((o) => {
-                  const st = CUKCUK_STATUS[o.cukcukStatus];
                   const selected = selectedId === o.id;
                   return (
                     <tr
                       key={o.id}
                       id={'row-' + o.id}
                       onClick={() => setSelectedId(o.id)}
+                      onDoubleClick={() => o.geStatus && setMapOrder(o)}
+                      title={o.geStatus ? 'Nhấp đúp để xem lộ trình vận chuyển' : undefined}
                       className={`align-top transition-colors ${
                         selected ? 'bg-brand-light' : 'hover:bg-slate-50'
-                      }`}
+                      } ${o.geStatus ? 'cursor-pointer' : ''}`}
                     >
                       <td className="px-4 py-3">
                         <div className="font-bold text-slate-800">{o.trackingNo ?? '—'}</div>
-                        <div className="text-[11px] text-slate-400">{o.invoiceNo ?? o.orderNo}</div>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="font-semibold text-slate-800">{o.customerName}</div>
-                        <div className="max-w-[240px] text-[11.5px] leading-snug text-slate-500">{fullAddress(o)}</div>
+                      <td className="px-4 py-3 text-slate-600">{o.invoiceNo ?? o.orderNo}</td>
+                      <td className="max-w-[220px] px-4 py-3">
+                        <div className="truncate font-semibold text-slate-800" title={o.customerName}>
+                          {o.customerName}
+                        </div>
+                        <div className="line-clamp-2 text-[11.5px] leading-snug text-slate-500" title={fullAddress(o)}>
+                          {fullAddress(o)}
+                        </div>
                       </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-slate-600">{o.driverPhone ?? '—'}</td>
                       <td className="whitespace-nowrap px-4 py-3 text-slate-600">{o.scheduledTime}</td>
                       <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-slate-800">
                         {formatCurrency(o.shippingFeeCustomer)}
@@ -330,22 +357,16 @@ export const DeliveryBookSurface: React.FC<Props> = ({
                       <td className="whitespace-nowrap px-4 py-3 text-right font-black text-slate-800">
                         {formatCurrency(o.subtotal + o.shippingFeeCustomer)}
                       </td>
-                      {/* Trạng thái đơn (CukCuk) — 1 trạng thái duy nhất, tách với GE (NT-01) */}
-                      <td className="px-3 py-3">
-                        <span
-                          className="w-fit rounded-full px-2 py-0.5 text-[11px] font-semibold"
-                          style={{color: st.color, background: st.bg}}
-                        >
-                          {st.label}
-                        </span>
-                      </td>
-                      {/* Trạng thái Grab Express (GE) */}
+                      {/* Trạng thái Grab Express — chỉ giữ trạng thái này, ẩn trạng thái CukCuk (update Google Doc) */}
                       <td className="px-3 py-3">
                         {o.geStatus ? (
                           <GeStatusPill status={o.geStatus} />
                         ) : (
                           <span className="text-[12px] text-slate-400">Chưa gửi đối tác</span>
                         )}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-3 text-[12px] text-slate-500">
+                        {o.geStatusUpdatedAt ?? '—'}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3">
                         <RowActions
@@ -354,6 +375,7 @@ export const DeliveryBookSurface: React.FC<Props> = ({
                             patch(o.id, {
                               cukcukStatus: 'cho_giao_hang',
                               geStatus: 'ALLOCATING',
+                              geStatusUpdatedAt: 'vừa xong',
                               trackingNo:
                                 o.trackingNo ?? 'GE-' + Math.floor(8_800_000_000 + Math.abs(o.id.length * 918_271)),
                             });
@@ -372,9 +394,10 @@ export const DeliveryBookSurface: React.FC<Props> = ({
               {filtered.length > 0 && (
                 <tfoot className="sticky bottom-0 bg-[#FAFAFA] text-[13px] font-bold text-slate-800 shadow-[0_-1px_0_#E9EAEB]">
                   <tr>
-                    <td className="px-4 py-2.5" colSpan={3}>
+                    <td className="px-4 py-2.5" colSpan={4}>
                       Tổng: {filtered.length} đơn
                     </td>
+                    <td className="px-4 py-2.5" />
                     <td className="px-4 py-2.5 text-right">{formatCurrency(sum((o) => o.shippingFeeCustomer))}</td>
                     <td className="px-4 py-2.5 text-right">{formatCurrency(sum((o) => o.shippingFeePartner))}</td>
                     <td className="px-4 py-2.5 text-right">
@@ -470,6 +493,9 @@ export const DeliveryBookSurface: React.FC<Props> = ({
               </p>
             </Modal>
           )}
+
+          {/* FR — Google Doc update: click đúp đơn đang giao → bản đồ lộ trình + vị trí tài xế */}
+          {mapOrder && <DriverMapMock order={mapOrder} onClose={() => setMapOrder(null)} contained />}
         </div>
       </div>
     </div>
@@ -509,8 +535,8 @@ const RowActions: React.FC<{
           Xử lý hoàn
         </Button>
       ) : order.cukcukStatus === 'cho_gui_doi_tac' ? (
-        <Button variant="primary" size="sm" icon={<Send size={14} />} onClick={stop(onSend)}>
-          Gửi đơn hàng
+        <Button variant="primary" size="sm" icon={<Truck size={14} />} onClick={stop(onSend)}>
+          Giao hàng
         </Button>
       ) : readyCollect ? (
         // FR-pos-040 — Thu tiền chỉ mở khi COMPLETED.
@@ -598,7 +624,7 @@ const NotifPanel: React.FC<{
       <div className="max-h-[420px] overflow-y-auto">
         {notifications.length === 0 ? (
           <div className="px-4 py-10 text-center text-[12px] text-slate-400">
-            Chưa có thông báo. Nhấn <b>Mô phỏng GE</b> để xem.
+            Chưa có thông báo. Nhấn <b>Mô phỏng Grab Express</b> để xem.
           </div>
         ) : (
           notifications.map((n) => (

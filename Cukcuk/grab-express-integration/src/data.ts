@@ -17,8 +17,8 @@ export const RESTAURANT_DEFAULT = {
 };
 
 export const INITIAL_CONNECTION: ConnectionState = {
-  // Mặc định đã kết nối để luồng gửi đơn chạy thông ngay; test Hủy kết nối ở Web quản lý.
-  isConnected: true,
+  // Mặc định CHƯA kết nối — đúng luồng thật: phải vào Web quản lý › Ứng dụng để Kết nối trước.
+  isConnected: false,
   info: {
     phone: RESTAURANT_DEFAULT.phone,
     province: RESTAURANT_DEFAULT.province,
@@ -137,6 +137,7 @@ export const INITIAL_ORDERS: DeliveryOrder[] = [
     serviceType: SERVICE_TYPE_DEFAULT,
     cukcukStatus: 'cho_giao_hang',
     geStatus: 'ALLOCATING',
+    geStatusUpdatedAt: '11:36 ' + now,
     scheduledTime: '12:10 ' + now,
     createdAt: '11:35 ' + now,
   },
@@ -167,6 +168,9 @@ export const INITIAL_ORDERS: DeliveryOrder[] = [
     serviceType: SERVICE_TYPE_DEFAULT,
     cukcukStatus: 'dang_giao_hang',
     geStatus: 'IN_DELIVERY',
+    geStatusUpdatedAt: '12:02 ' + now,
+    driverName: 'Nguyễn Văn Hùng',
+    driverPhone: '0977 234 561',
     scheduledTime: '12:30 ' + now,
     createdAt: '11:50 ' + now,
   },
@@ -194,6 +198,9 @@ export const INITIAL_ORDERS: DeliveryOrder[] = [
     serviceType: SERVICE_TYPE_DEFAULT,
     cukcukStatus: 'da_thanh_toan',
     geStatus: 'COMPLETED',
+    geStatusUpdatedAt: '10:41 ' + now,
+    driverName: 'Trần Quốc Bảo',
+    driverPhone: '0983 456 789',
     scheduledTime: '10:15 ' + now,
     createdAt: '09:40 ' + now,
   },

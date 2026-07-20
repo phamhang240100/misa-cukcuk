@@ -30,8 +30,8 @@ const PAY_TABS: {id: PayMethod; label: string; icon: React.ReactNode}[] = [
 ];
 
 /**
- * Màn tính tiền (UI mới) — mở khi bấm "Gửi đơn hàng" / "Tính tiền".
- * Đơn Grab đang Chờ gửi đối tác: nút xanh = "Gửi đơn hàng" (thay cho Thanh toán/Giao hàng).
+ * Màn tính tiền (UI mới) — mở khi bấm "Giao hàng" / "Tính tiền".
+ * Đơn Grab đang Chờ gửi đối tác: nút xanh = "Giao hàng" (thay cho Thanh toán).
  */
 export const PosCheckoutScreen: React.FC<{
   order: DeliveryOrder;
@@ -54,7 +54,7 @@ export const PosCheckoutScreen: React.FC<{
   const remaining = order.isCod ? order.codAmount : total;
 
   const canSend = isGrab && order.cukcukStatus === 'cho_gui_doi_tac';
-  const primaryLabel = canSend ? 'Gửi đơn hàng' : 'Thanh toán';
+  const primaryLabel = canSend ? 'Giao hàng' : 'Thanh toán';
   const onPrimary = () => {
     if (canSend) {
       // FR-pos-021 — chống double-send (đơn đã ≥ Chờ giao hàng thì từ chối gửi lần 2).

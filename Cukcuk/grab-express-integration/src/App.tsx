@@ -1,5 +1,5 @@
 import React, {useMemo, useState} from 'react';
-import {Bell, Globe, Monitor, NotebookText, ShoppingBag} from 'lucide-react';
+import {Bell, Globe, Monitor, MonitorSmartphone, NotebookText, ShoppingBag} from 'lucide-react';
 import type {
   AppNotification,
   ConnectionState,
@@ -10,15 +10,17 @@ import {GrabExpressMark, ToastHost, useToasts} from './components/ui';
 import {WebConnectSurface} from './surfaces/WebConnectSurface';
 import {PosOrderSurface} from './surfaces/PosOrderSurface';
 import {DeliveryBookSurface} from './surfaces/DeliveryBookSurface';
+import {PosPcApp} from './surfaces/pc/PosPcApp';
 
-/** 2 nền tảng — mỗi nền tảng có design system riêng (data-surface điều khiển brand token). */
-type Platform = 'web' | 'pos';
-/** Các màn con trong nền tảng POS. */
+/** 3 nền tảng — mỗi nền tảng có design system riêng (data-surface điều khiển brand token). */
+type Platform = 'web' | 'pos' | 'pospc';
+/** Các màn con trong nền tảng POS (tablet). */
 type PosTab = 'order' | 'book';
 
 const PLATFORMS: {id: Platform; label: string; sub: string; icon: React.ReactNode}[] = [
   {id: 'web', label: 'Web quản lý', sub: 'Ứng dụng › Grab Express', icon: <Globe size={16} />},
-  {id: 'pos', label: 'POS bán hàng', sub: 'Order & Giao hàng', icon: <Monitor size={16} />},
+  {id: 'pos', label: 'POS bán hàng (tablet)', sub: 'Order & Giao hàng', icon: <Monitor size={16} />},
+  {id: 'pospc', label: 'POS PC', sub: 'Order & Sổ giao hàng', icon: <MonitorSmartphone size={16} />},
 ];
 
 const POS_TABS: {id: PosTab; label: string; icon: React.ReactNode}[] = [
@@ -37,7 +39,7 @@ export default function App() {
   const unread = useMemo(() => notifications.filter((n) => !n.read).length, [notifications]);
 
   return (
-    <div data-surface={platform} className="flex h-screen flex-col overflow-hidden bg-[#f0f2f4]">
+    <div data-surface={platform === 'pospc' ? 'pos' : platform} className="flex h-screen flex-col overflow-hidden bg-[#f0f2f4]">
       {/* Prototype top bar — chuyển nền tảng */}
       <header className="flex h-14 shrink-0 items-center justify-between border-b border-border-neutral-light bg-white px-4">
         <div className="flex items-center gap-4">
@@ -50,7 +52,7 @@ export default function App() {
               <div className="text-[11px] text-text-hint">Prototype luồng tích hợp · C86574</div>
             </div>
           </div>
-          {/* Bộ chuyển 2 nền tảng */}
+          {/* Bộ chuyển 3 nền tảng */}
           <nav className="flex items-center gap-1 rounded-xl bg-[#f0f2f4] p-1">
             {PLATFORMS.map((p) => (
               <button
@@ -152,6 +154,16 @@ export default function App() {
             setNotifications={setNotifications}
             pushToast={push}
             goToOrder={() => setPosTab('order')}
+          />
+        )}
+        {platform === 'pospc' && (
+          <PosPcApp
+            connection={connection}
+            orders={orders}
+            setOrders={setOrders}
+            notifications={notifications}
+            setNotifications={setNotifications}
+            pushToast={push}
           />
         )}
       </main>

@@ -541,7 +541,7 @@ export const PosOrderSurface: React.FC<Props> = ({
                       geStatus: 'ALLOCATING',
                       trackingNo: 'GE-' + Math.floor(8_800_000_000 + Math.abs(id.length * 918_271)),
                     });
-                    pushToast('success', 'Đã gửi đơn sang Grab Express', 'Chuyển sang Chờ giao hàng · GE đang tìm tài xế.');
+                    pushToast('success', 'Đã gửi đơn sang Grab Express', 'Chuyển sang Chờ giao hàng · Grab Express đang tìm tài xế.');
                     setScreen('orderList');
                     goToBook();
                   }}
@@ -626,7 +626,7 @@ export const PosOrderSurface: React.FC<Props> = ({
         open={provinceAlert}
         title="Khu vực chưa được hỗ trợ"
         message={MSG.areaNoQuote}
-        primaryText="Chọn đối tác GH khác"
+        primaryText="Chọn đối tác giao hàng khác"
         onPrimary={resetToOtherPartner}
         onClose={() => setProvinceAlert(false)}
       />
@@ -635,7 +635,7 @@ export const PosOrderSurface: React.FC<Props> = ({
         open={codAlert}
         title="Vượt hạn mức thu hộ"
         message={MSG.codOverLimit}
-        primaryText="Chọn đối tác GH khác"
+        primaryText="Chọn đối tác giao hàng khác"
         onPrimary={resetToOtherPartner}
         onClose={() => setCodAlert(false)}
       />
@@ -644,7 +644,7 @@ export const PosOrderSurface: React.FC<Props> = ({
         open={connFailAlert}
         title="Không kết nối được đối tác"
         message={MSG.connectFailed}
-        primaryText="Chọn đối tác GH khác"
+        primaryText="Chọn đối tác giao hàng khác"
         onPrimary={resetToOtherPartner}
         onClose={() => setConnFailAlert(false)}
       />
@@ -863,9 +863,10 @@ const DanhSachOrder: React.FC<{
   const [onlineList, setOnlineList] = useState<OnlineOrder[]>(ONLINE_ORDERS);
   const [panelOrder, setPanelOrder] = useState<OnlineOrder | null>(null);
 
-  // Đơn Grab Express hiển thị ở Danh sách order: Chờ gửi đối tác + Chờ giao hàng
+  // Đơn Grab Express hiển thị ở Danh sách order CHỈ khi còn Chờ gửi đối tác — gửi
+  // (Giao hàng) xong là rời khỏi Order ngay, theo dõi tiếp ở Sổ giao hàng (không trùng 2 nơi).
   const geRows: ListRow[] = orders
-    .filter((o) => o.cukcukStatus === 'cho_gui_doi_tac' || o.cukcukStatus === 'cho_giao_hang')
+    .filter((o) => o.cukcukStatus === 'cho_gui_doi_tac')
     .map((o) => ({
       key: o.id,
       channel: 'delivery',
@@ -878,7 +879,7 @@ const DanhSachOrder: React.FC<{
       dishes: o.items.length,
       address: `${o.address.district}, ${o.address.province}`,
       statusLabel: CUKCUK_STATUS[o.cukcukStatus].label,
-      statusTone: o.cukcukStatus === 'cho_gui_doi_tac' ? 'orange' : 'blue',
+      statusTone: 'orange',
       ge: o,
     }));
 
@@ -1132,7 +1133,7 @@ const OrderCard: React.FC<{
               onClick={() => onInvoice(row.ge!)}
               className="flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-brand text-sm font-semibold text-white hover:bg-brand-hover"
             >
-              <Send className="h-4 w-4" /> Gửi đơn hàng
+              <Truck className="h-4 w-4" /> Giao hàng
             </button>
           ) : null
         ) : (
@@ -1220,8 +1221,8 @@ const OrderListTable: React.FC<{
                     <>
                       {/* FR-pos-062 — Chờ gửi đối tác → Gửi đơn; Chờ/Đang giao → chỉ Hủy (không nút Giao hàng thủ công). */}
                       {isSend && (
-                        <Button variant="primary" size="sm" icon={<Send className="h-4 w-4" />} onClick={() => onInvoice(r.ge!)}>
-                          Gửi đơn
+                        <Button variant="primary" size="sm" icon={<Truck className="h-4 w-4" />} onClick={() => onInvoice(r.ge!)}>
+                          Giao hàng
                         </Button>
                       )}
                       <button onClick={() => onCancel(r.ge!)} className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-danger">
@@ -1887,7 +1888,7 @@ const InvoiceDeliveryScreen: React.FC<{
       width={560}
       title={
         <span className="flex items-center gap-2">
-          Gửi đơn hàng · {order.orderNo}
+          Giao hàng · {order.orderNo}
           <GrabExpressChip />
         </span>
       }
@@ -1897,7 +1898,7 @@ const InvoiceDeliveryScreen: React.FC<{
             Đóng
           </Button>
           <Button variant="grab" icon={<Send className="h-4 w-4" />} onClick={handlePrimary} className="min-w-[150px]">
-            Gửi đơn hàng
+            Giao hàng
           </Button>
         </>
       }
@@ -1913,7 +1914,7 @@ const InvoiceDeliveryScreen: React.FC<{
           <Info2 label="SĐT gửi" value={connection.info.phone} />
           <Info2 label="Người nhận" value={`${order.customerName} · ${order.customerPhone}`} />
           <Info2 label="Địa chỉ giao" value={`${order.address.freetext}, ${order.address.ward}, ${order.address.district}, ${order.address.province}`} />
-          {connection.requireVatInvoice && <Info2 label="Email xuất HĐ" value={connection.vatEmail || '—'} />}
+          {connection.requireVatInvoice && <Info2 label="Email xuất hóa đơn" value={connection.vatEmail || '—'} />}
           <Info2 label="Thu hộ (COD)" value={order.isCod ? formatCurrency(order.codAmount) : 'Không'} />
         </div>
       </div>
@@ -1944,7 +1945,7 @@ const InvoiceDeliveryScreen: React.FC<{
         open={connFail}
         title="Không kết nối được đối tác"
         message={MSG.connectFailed}
-        primaryText="Chọn đối tác GH khác"
+        primaryText="Chọn đối tác giao hàng khác"
         onPrimary={() => {
           setConnFail(false);
           pushToast('info', 'Chuyển sang Nhà hàng tự giao');
