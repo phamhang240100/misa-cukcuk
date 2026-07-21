@@ -36,14 +36,15 @@ Thay thế/bổ sung bảng mapping ở `../grab-express-brd.md` §2 và `../seq
 |---|---|---|---|---|
 | `ALLOCATING` | Chờ giao hàng | — | Hủy | ✅ Có |
 | `PENDING_PICKUP` | Chờ giao hàng | — | Hủy | ✅ Có |
-| `PICKING_UP` | **Tự động** → Đang giao hàng | — | Hủy | ✅ Có (giới hạn cuối cùng còn hủy được) |
-| `PENDING_DROP_OFF` | Đang giao hàng | — | — (không nút) | ❌ Không |
+| `PICKING_UP` | **(giữ) Chờ giao hàng** *(sửa 2026-07-22: KHÔNG còn auto ở đây)* | — | Hủy | ✅ Có (giới hạn cuối cùng còn hủy được) |
+| `PENDING_DROP_OFF` | **Tự động** → Đang giao hàng *(mốc auto-sync mới)* | — | — (không nút) | ❌ Không |
 | `IN_DELIVERY` | Đang giao hàng | — | — (không nút) | ❌ Không |
-| `IN_RETURN` 🆕 | **Đang giao hàng** (giữ nguyên) | **"Đang hoàn hàng"** (chữ nhỏ phụ) | — (không nút, kể cả Hủy) | ❌ Không — quyết định phiên 2026-07-20: hàng đang trên xe tài xế trên đường về, quán chưa cầm lại được để kiểm tra nên chưa cho thao tác gì; chờ tới `RETURNED` mới hỏi Gửi lại/Hủy |
-| `COMPLETED` | Banner "Chờ thu tiền" (không tự đóng) | — | **Thu tiền** | ❌ Không (đã hoàn tất) |
-| `CANCELED`/`CANCELLED` | Tự mở lại → Chờ gửi đối tác + cờ đỏ | — | Gửi lại / Đổi đối tác / Hủy | ❌ Không (đã kết thúc) |
-| `FAILED` | Tự mở lại → Chờ gửi đối tác + cờ đỏ | **Hiển thị lý do cụ thể** (xem §4 — quyết định phiên 2026-07-20) | Gửi lại / Đổi đối tác / Hủy | ❌ Không (đã kết thúc) |
-| `RETURNED` | Nhắc thu ngân chọn | — | Gửi lại / Hủy | ❌ Không (đã kết thúc) |
+| `IN_RETURN` 🆕 | **Chờ giao hàng** *(sửa 2026-07-22: chuyển từ Đang giao hàng)* | **"Đang hoàn hàng"** (chữ nhỏ phụ) | **Giao hàng (DISABLED), không Hủy** | ❌ Không — hàng đang trên xe tài xế trên đường về, quán chưa cầm lại được để kiểm tra nên nút Giao hàng bị khóa; chờ tới `RETURNED` mới Gửi lại/Hủy |
+| `COMPLETED` (chưa thu) | Đang giao hàng — nhãn "Chờ thu tiền" (không tự đóng) | — | **Thu tiền** | ❌ Không (đã hoàn tất) |
+| `COMPLETED` (đã thu) | Đã thanh toán | — | — | ❌ Không |
+| `CANCELED`/`CANCELLED` | Tự mở lại → **Chờ giao hàng** (sub-status *chưa gửi*) + cờ đỏ | — | **Giao hàng (gửi lại)** / Đổi đối tác / Hủy | ❌ Không (đã kết thúc) |
+| `FAILED` | Tự mở lại → **Chờ giao hàng** (sub-status *chưa gửi*) + cờ đỏ | **Hiển thị lý do cụ thể** (xem §4) | **Giao hàng (gửi lại)** / Đổi đối tác / Hủy | ❌ Không (đã kết thúc) |
+| `RETURNED` | (giữ) **Chờ giao hàng** — nhắc thu ngân chọn | — | **Giao hàng (gửi lại)** / Hủy | ❌ Không (đã kết thúc) |
 
 **Vì sao `IN_RETURN` khác `FAILED`/`CANCELED`:** `FAILED`/`CANCELED` xảy ra **trước khi hàng rời quán** (không tìm được tài xế, hoặc hủy trước lúc lấy hàng) → món ăn vẫn còn nguyên tại quán, mở lại đơn ngay lập tức là hợp lý. `IN_RETURN` xảy ra **sau khi hàng đã rời quán và giao thất bại** — tài xế đang vật lý mang hàng quay về, quán chưa cầm lại được để kiểm tra tình trạng món ăn, nên chưa thao tác gì cho tới khi trạng thái chuyển hẳn sang `RETURNED` (tài xế đã về tới, quán đã cầm hàng).
 

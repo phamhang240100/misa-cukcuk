@@ -17,7 +17,7 @@ Trước đây hệ thống chạy **2 luồng trạng thái độc lập**: tr�
 
 | Nguyên tắc | Chốt |
 |---|---|
-| Auto-sync bước giao hàng | GE `PICKING_UP` → **tự** đẩy đơn CukCuk *Chờ giao hàng* → *Đang giao hàng*. **Bỏ nút "Giao hàng" thủ công** cho đơn Grab Express. |
+| Auto-sync bước giao hàng | GE `PENDING_DROP_OFF` (đã lấy hàng) → **tự** đẩy đơn CukCuk *Chờ giao hàng* → *Đang giao hàng*. **Bỏ nút "Giao hàng" thủ công** khi đã lấy hàng. *(Sửa 2026-07-22: trước đây mốc auto ở `PICKING_UP` — sai, vì PICKING_UP là tài xế đang tới lấy, chưa lấy.)* |
 | Gate bước tiền | Nút *Thu tiền* **luôn thủ công**, **chặn cứng**: chỉ mở khi GE = `COMPLETED`. |
 | Không tự đóng đơn | **Không bao giờ** tự đóng sang *Đã thanh toán* (kể cả đơn COD = 0) — luôn cần thu ngân bấm *Thu tiền*. |
 | Manual tối thượng | Khi thu ngân đã thao tác tay, tắt auto cho bước đó; auto-sync **chỉ tiến, không lùi**, không ghi đè trạng thái tay. |
@@ -38,7 +38,7 @@ Trước đây hệ thống chạy **2 luồng trạng thái độc lập**: tr�
 ```
 Lập đơn → [quote OK] → Lưu (Chờ gửi đối tác)
         → Gửi đơn hàng (tay) → [POST /deliveries OK] → Chờ giao hàng (GE=ALLOCATING)
-        → [webhook PICKING_UP: AUTO] → Đang giao hàng
+        → [webhook PENDING_DROP_OFF: AUTO] → Đang giao hàng
         → [webhook COMPLETED: banner "Chờ thu tiền"]
         → Thu tiền (tay, chỉ mở khi COMPLETED) → Đã thanh toán
 ```
@@ -49,13 +49,13 @@ Bảng map trạng thái **GE → CukCuk**:
 |---|---|---|
 | `ALLOCATING` | (giữ) Chờ giao hàng | Hủy |
 | `PENDING_PICKUP` | (giữ) Chờ giao hàng | Hủy |
-| `PICKING_UP` | **AUTO** → Đang giao hàng | Hủy (chỉ khi ≤ PICKING_UP) |
-| `PENDING_DROP_OFF` | (giữ) Đang giao hàng | — |
+| `PICKING_UP` | (giữ) Chờ giao hàng *(sửa 2026-07-22: KHÔNG còn auto ở đây)* | Hủy |
+| `PENDING_DROP_OFF` | **AUTO** → Đang giao hàng *(mốc auto-sync mới)* | — |
 | `IN_DELIVERY` | (giữ) Đang giao hàng | — |
-| `IN_RETURN` | (giữ) Đang giao hàng + nhãn phụ "Đang hoàn hàng" | — (không nút, kể cả Hủy — hàng đang trên xe tài xế, quán chưa cầm lại được để kiểm tra) |
-| `COMPLETED` | Banner "Chờ thu tiền" (KHÔNG tự đóng) | **Thu tiền** |
-| `CANCELED` / `FAILED` | Tự mở lại → Chờ gửi đối tác + cờ đỏ (FAILED kèm hiển thị lý do cụ thể — mã 2/5/6, xem `../api/grab-express-status-mapping.md` §4) | Gửi lại / Đổi đối tác / Hủy |
-| `RETURNED` | Nhắc thu ngân chọn | Gửi lại / Hủy |
+| `IN_RETURN` | (giữ) **Chờ giao hàng** + nhãn phụ "Đang hoàn hàng" *(sửa 2026-07-22: chuyển từ Đang giao hàng)* | **Giao hàng (disabled), không Hủy** (hàng đang trên xe tài xế về, quán chưa cầm lại được để kiểm tra) |
+| `COMPLETED` | Nhãn "Chờ thu tiền" (KHÔNG tự đóng) | **Thu tiền** |
+| `CANCELED` / `FAILED` | Tự mở lại → **Chờ giao hàng** (sub-status *chưa gửi*) + cờ đỏ (FAILED kèm lý do — mã 2/5/6, xem `../api/grab-express-status-mapping.md` §4) | **Giao hàng (gửi lại)** / Đổi đối tác / Hủy |
+| `RETURNED` | (giữ) Chờ giao hàng — nhắc thu ngân chọn | **Giao hàng (gửi lại)** / Hủy |
 
 > Bảng mapping đầy đủ 11 trạng thái + lý do khác biệt IN_RETURN vs FAILED: `../api/grab-express-status-mapping.md`.
 
@@ -69,11 +69,11 @@ Bảng map trạng thái **GE → CukCuk**:
 | BR-grab-express-004 | Phí trả đối tác (khóa, từ Quote); Phí thu khách (sửa được, mặc định = phí trả đối tác). Phí thu khách < phí trả đối tác → cảnh báo mềm (không chặn). |
 | BR-grab-express-005 | Grab **không có API** trả hạn mức COD theo merchant (xác nhận 2026-07-20). `MAX_COD` là **hằng số cấu hình cố định, mặc định 2.000.000đ** (không lookup động). Re-check cả lúc Lưu và lúc Gửi đơn. |
 | BR-grab-express-006 | Vùng phục vụ **validate động qua Quote API** — Grab báo giá được = phục vụ được. KHÔNG hard-code danh sách 5 tỉnh. |
-| BR-grab-express-007 | Auto-sync Hybrid: GE `PICKING_UP` tự đẩy *Chờ giao hàng* → *Đang giao hàng*. Bỏ nút *Giao hàng* thủ công cho đơn Grab Express. |
+| BR-grab-express-007 | Auto-sync Hybrid: GE `PENDING_DROP_OFF` (đã lấy hàng) tự đẩy *Chờ giao hàng* → *Đang giao hàng*. Bỏ nút *Giao hàng* thủ công khi đã lấy hàng. *(Sửa 2026-07-22: mốc auto chuyển từ `PICKING_UP` sang `PENDING_DROP_OFF`.)* |
 | BR-grab-express-008 | Nút *Thu tiền* luôn thủ công, chặn cứng: chỉ mở khi GE = `COMPLETED`. Không bao giờ tự đóng *Đã thanh toán*. |
 | BR-grab-express-009 | Manual tối thượng: thao tác tay của thu ngân tắt auto cho bước đó; auto-sync chỉ tiến, không lùi, không ghi đè trạng thái tay. |
 | BR-grab-express-010 | Webhook: xác thực bằng header `Authorization` + `Authorization-Id` (Grab **không có** cơ chế HMAC/chữ ký body — xác nhận 2026-07-20, cách so khớp cụ thể cần hỏi Grab trước go-live); trả `200` ngay + xử lý bất đồng bộ qua queue idempotent; bỏ qua event out-of-order theo `timestamp`; idempotency key = `deliveryID + status + timestamp` (Grab **không có** field event ID riêng trong payload webhook — xác nhận 2026-07-20, đây là cách duy nhất, không có nhánh dự phòng khác). |
-| BR-grab-express-011 | Polling `GET /deliveries/{id}` định kỳ làm dự phòng khi webhook mất/trễ, đồng bộ như webhook. |
+| BR-grab-express-011 | Polling `GET /deliveries/{id}` dự phòng khi webhook mất/trễ, đồng bộ như webhook. **Cadence (Doc API 2026-07-22):** bắt đầu nếu sau **60s** không nhận webhook cho bước chuyển đang chờ → poll mỗi **30s** → sau **~5 phút (~10 lần)** không có cập nhật thì dừng tự động, chuyển nút **"Làm mới thủ công"**. |
 | BR-grab-express-012 | Trạng thái đơn + thông báo đồng bộ cho mọi thiết bị cùng chi nhánh; thông báo vẫn ưu tiên máy tạo đơn. |
 | BR-grab-express-013 | GE `FAILED`/`CANCELED` (món còn ở quán) → tự mở lại đơn về *Chờ gửi đối tác* (xóa Mã vận đơn/GE cũ) + cờ đỏ; cho Gửi lại / Đổi đối tác (AhaMove, tự giao) / Hủy — dùng lại đơn cũ, không tạo hóa đơn trùng. |
 | BR-grab-express-014 | GE `RETURNED` (món đã ra rồi quay về) → nhắc thu ngân chọn *Gửi lại* (nếu còn tốt) hay *Hủy*; KHÔNG tự mở lại. |
@@ -81,7 +81,7 @@ Bảng map trạng thái **GE → CukCuk**:
 | BR-grab-express-016 | Gửi đơn: khóa nút ngay khi bấm (chống double-click); server chặn gửi lần 2 nếu đơn đã ≥ *Chờ giao hàng* ("Đơn đã được gửi"); `Idempotency-Key` chống double-create. |
 | BR-grab-express-017 | Hủy sang Grab (`DELETE /deliveries/{id}`) chỉ khi GE ∈ {`ALLOCATING`, `PENDING_PICKUP`, `PICKING_UP`}. Quá trạng thái này thì Hủy phía CukCuk xử lý riêng (không gọi Grab). |
 | BR-grab-express-018 | Hủy kết nối an toàn (không cảnh báo giao vận) khi mọi đơn đã ở trạng thái kết thúc: {`COMPLETED`, `RETURNED`, `CANCELED`, `FAILED`}. |
-| BR-grab-express-019 🆕 | GE `IN_RETURN` (đã lấy hàng, giao lỗi, đang trên đường mang về — CHƯA về tới) → giữ CukCuk status *Đang giao hàng* + nhãn phụ "Đang hoàn hàng"; KHÔNG có nút thao tác nào (kể cả Hủy); chỉ tới khi chuyển hẳn sang `RETURNED` (đã về tới quán) mới nhắc thu ngân Gửi lại/Hủy (BR-014). *(Quyết định 2026-07-20 — trước đây bảng mapping thiếu hẳn trạng thái này.)* |
+| BR-grab-express-019 🆕 | GE `IN_RETURN` (đã lấy hàng, giao lỗi, đang trên đường mang về — CHƯA về tới) → CukCuk status **Chờ giao hàng** + nhãn phụ "Đang hoàn hàng"; nút **Giao hàng bị DISABLED**, **không có Hủy** (hàng đang trên xe tài xế, quán chưa cầm lại được để kiểm tra); chỉ tới khi chuyển hẳn sang `RETURNED` (đã về tới quán) mới cho Gửi lại (=Giao hàng)/Hủy (BR-014). *(Sửa 2026-07-22: chuyển từ *Đang giao hàng* sang *Chờ giao hàng*, nút Giao hàng hiện-nhưng-disabled thay vì ẩn hẳn — theo Doc 4 mapping + chỉ đạo BA.)* |
 | BR-grab-express-020 🆕 | `codType` gửi trong `POST /deliveries`: luôn `ADVANCED` cho mọi đơn COD (khớp giả định Mô hình A). **Grab không định nghĩa rõ REGULAR/ADVANCED khác nhau thế nào** — đây là giả định rủi ro, cần verify với Grab trước go-live (OQ-07). |
 | BR-grab-express-021 🆕 | `merchantOrderID` gửi cho Grab = `orderNo` của CukCuk, **cố định không đổi** qua các lần gửi lại cùng 1 đơn — dùng làm khóa idempotency. Khi Gửi đơn timeout/không rõ kết quả, trước khi cho phép Gửi lại phải kiểm tra lại trạng thái (GET theo `deliveryID` đã lưu nếu có); nếu phát hiện tạo trùng vận đơn, dùng `DELETE /merchant/deliveries/{merchantOrderID}` để dọn dẹp toàn bộ rồi tạo lại sạch. |
 | BR-grab-express-022 🆕 | GE `FAILED` kèm `failedReason` (mã 2/5/6) → hiển thị lý do cụ thể cho thu ngân thay vì chỉ ghi chung "Thất bại"; mã 2 (nghi đơn ảo/sai thông tin) → nhắc kiểm tra lại thông tin người nhận trước khi Gửi lại. Xem bảng đầy đủ `../api/grab-express-status-mapping.md` §4. |
@@ -133,7 +133,7 @@ Bảng map trạng thái **GE → CukCuk**:
 | 3 | `IN_RETURN` đến từ `PICKING_UP` / `PENDING_DROP_OFF`, KHÔNG từ `IN_DELIVERY` | `grab-express-states.md` |
 | 4 | Hủy kết nối an toàn xét đủ 4 trạng thái kết thúc | `grab-express-states.md` |
 | 5 | Vùng phủ validate động (Quote API), không hard-code 5 tỉnh | domain research |
-| 6 🆕 | `IN_RETURN` **thiếu hoàn toàn** khỏi bảng mapping GE→CukCuk ở §3 (chỉ được nhắc tới ở mục #3 trên về nguồn gốc chuyển trạng thái, chưa từng định nghĩa nó map sang đâu) — đã bổ sung: giữ "Đang giao hàng" + nhãn phụ "Đang hoàn hàng", không nút Hủy | Phân tích 2026-07-20 |
+| 6 🆕 | `IN_RETURN` **thiếu hoàn toàn** khỏi bảng mapping GE→CukCuk ở §3 — đã bổ sung. **Sửa lại 2026-07-22:** map sang **Chờ giao hàng** (không phải Đang giao hàng) + nhãn phụ "Đang hoàn hàng"; nút **Giao hàng disabled**, không Hủy (theo Doc 4 + chỉ đạo BA). | Phân tích 2026-07-20, sửa 2026-07-22 |
 | 7 🆕 | BR-grab-express-005 (hạn mức COD): bỏ nhánh "đọc từ Grab nếu có API" — xác nhận Grab không có API này, `MAX_COD` là hằng số cấu hình cố định | docs API Grab chính thức (fetch 2026-07-20) |
 | 8 🆕 | BR-grab-express-010 (idempotency key): bỏ nhánh "event ID nếu có" — webhook Grab không có field ID sự kiện, key luôn là `deliveryID+status+timestamp` | docs API Grab chính thức (fetch 2026-07-20) |
 | 9 🆕 | BR-grab-express-010 (xác thực webhook): xác nhận không có HMAC/chữ ký body, chỉ có header `Authorization`+`Authorization-Id` — cách so khớp cụ thể vẫn cần hỏi Grab | docs API Grab chính thức (fetch 2026-07-20) |

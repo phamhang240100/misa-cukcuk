@@ -62,9 +62,9 @@ sequenceDiagram
         CUK-->>ND: Chặn Lưu đơn Grab Express, báo E-grab-express-001
     end
 
-    Note over CUK: COD bằng tiền món cộng phí thu khách trừ đặt cọc. Cảnh báo nếu COD vượt hạn mức (đọc từ Grab, mặc định 2tr), E-grab-express-006
+    Note over CUK: COD bằng tiền món cộng phí thu khách trừ đặt cọc. Cảnh báo nếu COD vượt hạn mức (hằng số cố định 2.000.000đ — Grab không có API trả hạn mức), E-grab-express-006
 
-    ND->>CUK: Lưu (Chờ gửi đối tác) rồi Gửi đơn hàng
+    ND->>CUK: Lưu (Chờ giao hàng — chưa gửi) rồi nhấn Giao hàng
     Note over CUK: Khóa nút Gửi ngay khi bấm (chống double-click), re-validate COD và vùng phủ
     CUK->>GE: POST /deliveries [Idempotency-Key] (sender, recipient, packages, cashOnDelivery)
 

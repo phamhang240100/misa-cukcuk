@@ -60,15 +60,20 @@ Nhà hàng dùng MISA CukCuk cần giao món cho khách qua đối tác vận ch
 
 Bảng ánh xạ trạng thái **GE → CukCuk**:
 
-| GE (từ Grab) | CukCuk (tự động) | Nút hiển thị |
+| GE (từ Grab) | CukCuk (3 nhóm) | Nút hiển thị |
 |---|---|---|
+| chưa gửi đối tác (trống) | Chờ giao hàng | **Giao hàng** / Hủy |
 | ALLOCATING / PENDING_PICKUP | (giữ) Chờ giao hàng | Hủy |
-| PICKING_UP | **Tự động** → Đang giao hàng | Hủy (khi còn hủy được) |
-| PENDING_DROP_OFF / IN_DELIVERY | (giữ) Đang giao hàng | — |
-| IN_RETURN | (giữ) Đang giao hàng + nhãn phụ "Đang hoàn hàng" | — (không nút, kể cả Hủy) |
-| COMPLETED | Banner "Chờ thu tiền" (không tự đóng) | **Thu tiền** |
-| CANCELED / FAILED | Tự mở lại → Chờ gửi đối tác + cờ đỏ (FAILED kèm hiển thị lý do cụ thể) | Gửi lại / Đổi đối tác / Hủy |
-| RETURNED | Nhắc thu ngân chọn | Gửi lại / Hủy |
+| PICKING_UP | (giữ) Chờ giao hàng | Hủy |
+| **PENDING_DROP_OFF** | **Tự động** → Đang giao hàng | — |
+| IN_DELIVERY | (giữ) Đang giao hàng | — |
+| IN_RETURN | (giữ) **Chờ giao hàng** + nhãn phụ "Đang hoàn hàng" | **Giao hàng (disabled), không Hủy** |
+| COMPLETED (chưa thu) | Đang giao hàng — nhãn "Chờ thu tiền" (không tự đóng) | **Thu tiền** |
+| COMPLETED (đã thu) | Đã thanh toán | — |
+| CANCELED / FAILED | Tự mở lại → Chờ giao hàng (sub-status *chưa gửi*) + cờ đỏ (FAILED kèm lý do cụ thể) | **Giao hàng (gửi lại)** / Đổi đối tác / Hủy |
+| RETURNED | (giữ) Chờ giao hàng — nhắc thu ngân chọn | **Giao hàng (gửi lại)** / Hủy |
+
+> Chỉ **3 trạng thái CukCuk**: Chờ giao hàng / Đang giao hàng / Đã thanh toán. "Chưa gửi đối tác" là **sub-status GE** trong nhóm *Chờ giao hàng* (không phải trạng thái CukCuk riêng). Xem `luong-moi-change-2026-07-22.md`.
 
 > Bảng mapping đầy đủ (11 trạng thái Grab, ràng buộc hủy, mã lý do FAILED) xem `api/grab-express-status-mapping.md`. Danh sách API + field chi tiết xem `api/grab-express-api-catalog.md`.
 
@@ -130,7 +135,7 @@ Người dùng: Thu ngân. Bao gồm: lập & gửi đơn, đồng bộ trạng 
 | BR-pos-01 | Loại dịch vụ khóa ở "Siêu tốc - Thực phẩm" — không cho chọn gói khác. |
 | BR-pos-02 | **COD (tiền tài xế thu hộ) = Còn phải thu = (tiền món + Phí GH thu khách) − Đặt cọc trước**, tự tính khi Lưu, không nhập tay. |
 | BR-pos-03 | Phí GH thu khách mặc định = Phí GH trả đối tác, sửa được. Nếu đặt **thấp hơn** phí trả đối tác → cảnh báo mềm (không chặn). |
-| BR-pos-04 | Hạn mức COD lấy theo merchant từ Grab; nếu không có → mặc định **2.000.000đ**. COD vượt hạn mức → E-grab-express-006 "Chọn đối tác giao hàng khác". |
+| BR-pos-04 | Hạn mức COD = **2.000.000đ — hằng số cấu hình cố định** (Grab **không có** API trả hạn mức COD theo merchant, xác nhận 2026-07-20 & BA xác nhận lại 2026-07-22). COD vượt hạn mức → E-grab-express-006 "Chọn đối tác giao hàng khác". Re-check cả lúc Lưu và lúc Giao hàng. |
 
 ### 4.2 Lưu đơn — validate
 | ID | Yêu cầu |
@@ -153,7 +158,7 @@ Người dùng: Thu ngân. Bao gồm: lập & gửi đơn, đồng bộ trạng 
 | ID | Yêu cầu |
 |---|---|
 | FR-pos-030 | Hệ thống nhận cập nhật trạng thái từ Grab và **tự đồng bộ** trạng thái giao của đơn CukCuk (NT-02). |
-| FR-pos-031 | Khi tài xế **đã lấy hàng** (GE = PICKING_UP) → đơn **tự chuyển** Chờ giao hàng → **Đang giao hàng**. **Không còn nút "Giao hàng" thủ công** cho đơn Grab Express. |
+| FR-pos-031 | Khi tài xế **đã lấy hàng** (GE = **PENDING_DROP_OFF**) → đơn **tự chuyển** Chờ giao hàng → **Đang giao hàng**, bỏ nút "Giao hàng" thủ công. *(PICKING_UP = tài xế đang tới lấy, CHƯA lấy → vẫn ở Chờ giao hàng.)* |
 | FR-pos-032 | Khi Grab **giao xong** (GE = COMPLETED) → hiện banner **"Chờ thu tiền"**; đơn **không tự đóng**. |
 | FR-pos-033 | Mọi thay đổi trạng thái sinh **thông báo** và **đồng bộ trên mọi thiết bị cùng chi nhánh** (NT-06). Thông báo ưu tiên thiết bị tạo đơn. |
 | FR-pos-034 | **Dự phòng**: nếu không nhận được cập nhật từ Grab, hệ thống tự hỏi lại Grab định kỳ để không kẹt trạng thái (NT-05). |
