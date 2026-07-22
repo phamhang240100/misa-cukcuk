@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BPMN — specs</title>
+<!-- MODELER (không phải viewer) → kéo-thả sửa như bpmn.io. Nút Tải/Lưu để giữ thay đổi. -->
+<link rel="stylesheet" href="https://unpkg.com/bpmn-js@17.11.1/dist/assets/diagram-js.css">
+<link rel="stylesheet" href="https://unpkg.com/bpmn-js@17.11.1/dist/assets/bpmn-js.css">
+<link rel="stylesheet" href="https://unpkg.com/bpmn-js@17.11.1/dist/assets/bpmn-font/css/bpmn.css">
+<style>
+  html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  #toolbar { position: fixed; top: 0; left: 0; right: 0; height: 46px; background: #1a1a2e; color: #fff;
+             display: flex; align-items: center; gap: 10px; padding: 0 16px; z-index: 10; font-size: 14px; }
+  #toolbar b { font-weight: 600; }
+  #toolbar select { background: #16213e; color: #fff; border: 1px solid #0f3460; border-radius: 6px;
+                    padding: 5px 10px; font-size: 13px; }
+  #toolbar .sp { flex: 1; }
+  #toolbar button { background: #16213e; color: #fff; border: 1px solid #0f3460; border-radius: 6px;
+                    padding: 5px 12px; cursor: pointer; font-size: 13px; }
+  #toolbar button:hover { background: #0f3460; }
+  #toolbar button.primary { background: #2d6a4f; border-color: #40916c; }
+  #toolbar button.primary:hover { background: #40916c; }
+  #dirty { color: #ffd166; font-size: 12px; display: none; }
+  #canvas { position: absolute; top: 46px; left: 0; right: 0; bottom: 0; background: #fafafa; }
+  #err { position: fixed; top: 60px; left: 16px; right: 16px; background: #fee; color: #900;
+         padding: 12px; border-radius: 8px; font-family: monospace; font-size: 12px; white-space: pre-wrap;
+         display: none; z-index: 20; }
+  .bjs-powered-by { display: none; }
+</style>
+<script src="https://unpkg.com/bpmn-js@17.11.1/dist/bpmn-modeler.production.min.js"></script>
+</head>
+<body>
+<div id="toolbar">
+  <b>✏️ BPMN Editor</b>
+  <select id="picker"></select>
+  <span id="dirty">● có thay đổi chưa lưu</span>
+  <span class="sp"></span>
+  <button onclick="zoomFit()">Fit</button>
+  <button onclick="zoomIn()">+</button>
+  <button onclick="zoomOut()">−</button>
+  <button class="primary" onclick="download()">⬇ Tải .bpmn</button>
+  <button class="primary" id="saveBtn" onclick="saveToFile()" title="Ghi đè file (cần chạy qua server hoặc trình duyệt hỗ trợ File System Access)">💾 Lưu</button>
+</div>
+<div id="canvas"></div>
+<div id="err"></div>
+
+<script>
+  // Mỗi process {slug, title, xml}. Modeler cho phép sửa; nhớ Tải/Lưu trước khi đổi process.
+  var PROCESSES = [
+  { slug: "tong-quan-tich-hop", title: "Tổng quan tích hợp CukCuk ↔ ShopeeFood — từ kết nối đến xử lý đơn tại POS", xml: `<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Def_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_1" name="Tổng quan tích hợp CukCuk ↔ ShopeeFood — từ kết nối đến xử lý đơn tại POS" processRef="Process_tong_quan_tich_hop"/>
+  </bpmn:collaboration>
+  <bpmn:process id="Process_tong_quan_tich_hop" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_owner" name="Chủ quán"><bpmn:flowNodeRef>Start_1</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_connect</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_scan</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_map</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_hours</bpmn:flowNodeRef></bpmn:lane>
+      <bpmn:lane id="Lane_pos" name="Nhân viên POS"><bpmn:flowNodeRef>Task_poshow</bpmn:flowNodeRef><bpmn:flowNodeRef>GW_handle</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_reject</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_confirm</bpmn:flowNodeRef><bpmn:flowNodeRef>End_done</bpmn:flowNodeRef></bpmn:lane>
+      <bpmn:lane id="Lane_cukcuk" name="Hệ thống CukCuk"><bpmn:flowNodeRef>Task_qr</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_savetoken</bpmn:flowNodeRef><bpmn:flowNodeRef>GW_conn</bpmn:flowNodeRef><bpmn:flowNodeRef>End_connfail</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_sync</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_getdetail</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_sendcancel</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_sendconfirm</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_settle</bpmn:flowNodeRef></bpmn:lane>
+      <bpmn:lane id="Lane_spf" name="ShopeeFood"><bpmn:flowNodeRef>Task_token</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_spfmenu</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_webhook</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_driver</bpmn:flowNodeRef></bpmn:lane>
+      <bpmn:lane id="Lane_customer" name="Khách hàng &amp; Tài xế"><bpmn:flowNodeRef>Task_order</bpmn:flowNodeRef><bpmn:flowNodeRef>End_cancel</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_deliver</bpmn:flowNodeRef></bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="Start_1" name="Chủ quán muốn bán trên ShopeeFood"><bpmn:outgoing>Flow_start</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:task id="Task_connect" name="Bấm Kết nối ShopeeFood trên CukCuk"><bpmn:incoming>Flow_start</bpmn:incoming><bpmn:outgoing>Flow_c1</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_qr" name="Sinh mã QR (device-code)"><bpmn:incoming>Flow_c1</bpmn:incoming><bpmn:outgoing>Flow_c2</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_scan" name="Quét QR &amp; xác nhận trên Shopee Partner App"><bpmn:incoming>Flow_c2</bpmn:incoming><bpmn:outgoing>Flow_c3</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_token" name="Xác thực chủ quán &amp; trả token"><bpmn:incoming>Flow_c3</bpmn:incoming><bpmn:outgoing>Flow_c4</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_savetoken" name="Lưu token theo cửa hàng (mapping 1:1)"><bpmn:incoming>Flow_c4</bpmn:incoming><bpmn:outgoing>Flow_c5</bpmn:outgoing></bpmn:task>
+    <bpmn:exclusiveGateway id="GW_conn" name="Kết nối thành công?"><bpmn:incoming>Flow_c5</bpmn:incoming><bpmn:outgoing>Flow_conn_no</bpmn:outgoing><bpmn:outgoing>Flow_conn_yes</bpmn:outgoing></bpmn:exclusiveGateway>
+    <bpmn:endEvent id="End_connfail" name="Kết nối thất bại (thử lại)"><bpmn:incoming>Flow_conn_no</bpmn:incoming></bpmn:endEvent>
+    <bpmn:task id="Task_map" name="Mapping món/nhóm/topping (gợi ý tự động)"><bpmn:incoming>Flow_conn_yes</bpmn:incoming><bpmn:outgoing>Flow_m1</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_sync" name="Đồng bộ menu 1 chiều lên ShopeeFood"><bpmn:incoming>Flow_m1</bpmn:incoming><bpmn:outgoing>Flow_m2</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_spfmenu" name="Cập nhật thực đơn gian hàng"><bpmn:incoming>Flow_m2</bpmn:incoming><bpmn:outgoing>Flow_m3</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_hours" name="Thiết lập giờ hoạt động &amp; giá bán"><bpmn:incoming>Flow_m3</bpmn:incoming><bpmn:outgoing>Flow_m4</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_order" name="Khách đặt món &amp; thanh toán trên ShopeeFood"><bpmn:incoming>Flow_m4</bpmn:incoming><bpmn:outgoing>Flow_o1</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_webhook" name="Gửi webhook báo đơn mới"><bpmn:incoming>Flow_o1</bpmn:incoming><bpmn:outgoing>Flow_o2</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_getdetail" name="Ack 200 &amp; lấy chi tiết đơn (get_details)"><bpmn:incoming>Flow_o2</bpmn:incoming><bpmn:outgoing>Flow_o3</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_poshow" name="Đơn vào tab Chưa xác nhận + thông báo"><bpmn:incoming>Flow_o3</bpmn:incoming><bpmn:outgoing>Flow_o4</bpmn:outgoing></bpmn:task>
+    <bpmn:exclusiveGateway id="GW_handle" name="Nhân viên xử lý đơn?"><bpmn:incoming>Flow_o4</bpmn:incoming><bpmn:outgoing>Flow_h_no</bpmn:outgoing><bpmn:outgoing>Flow_h_yes</bpmn:outgoing></bpmn:exclusiveGateway>
+    <bpmn:task id="Task_reject" name="Từ chối kèm lý do"><bpmn:incoming>Flow_h_no</bpmn:incoming><bpmn:outgoing>Flow_r1</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_sendcancel" name="Báo hủy đơn lên ShopeeFood"><bpmn:incoming>Flow_r1</bpmn:incoming><bpmn:outgoing>Flow_r2</bpmn:outgoing></bpmn:task>
+    <bpmn:endEvent id="End_cancel" name="Đơn bị hủy (dừng)"><bpmn:incoming>Flow_r2</bpmn:incoming></bpmn:endEvent>
+    <bpmn:task id="Task_confirm" name="Xác nhận đơn → gửi bếp &amp; in tem"><bpmn:incoming>Flow_h_yes</bpmn:incoming><bpmn:outgoing>Flow_p1</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_sendconfirm" name="Cập nhật trạng thái xác nhận lên ShopeeFood"><bpmn:incoming>Flow_p1</bpmn:incoming><bpmn:outgoing>Flow_p2</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_driver" name="Điều phối tài xế"><bpmn:incoming>Flow_p2</bpmn:incoming><bpmn:outgoing>Flow_p3</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_deliver" name="Tài xế lấy hàng &amp; giao cho khách"><bpmn:incoming>Flow_p3</bpmn:incoming><bpmn:outgoing>Flow_p4</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_settle" name="Ghi nhận doanh thu &amp; đối soát (commission, thuế, KM)"><bpmn:incoming>Flow_p4</bpmn:incoming><bpmn:outgoing>Flow_p5</bpmn:outgoing></bpmn:task>
+    <bpmn:endEvent id="End_done" name="Đơn hoàn thành"><bpmn:incoming>Flow_p5</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_start" name="" sourceRef="Start_1" targetRef="Task_connect"/>
+    <bpmn:sequenceFlow id="Flow_c1" name="" sourceRef="Task_connect" targetRef="Task_qr"/>
+    <bpmn:sequenceFlow id="Flow_c2" name="" sourceRef="Task_qr" targetRef="Task_scan"/>
+    <bpmn:sequenceFlow id="Flow_c3" name="" sourceRef="Task_scan" targetRef="Task_token"/>
+    <bpmn:sequenceFlow id="Flow_c4" name="" sourceRef="Task_token" targetRef="Task_savetoken"/>
+    <bpmn:sequenceFlow id="Flow_c5" name="" sourceRef="Task_savetoken" targetRef="GW_conn"/>
+    <bpmn:sequenceFlow id="Flow_conn_no" name="Thất bại" sourceRef="GW_conn" targetRef="End_connfail"/>
+    <bpmn:sequenceFlow id="Flow_conn_yes" name="Thành công" sourceRef="GW_conn" targetRef="Task_map"/>
+    <bpmn:sequenceFlow id="Flow_m1" name="" sourceRef="Task_map" targetRef="Task_sync"/>
+    <bpmn:sequenceFlow id="Flow_m2" name="" sourceRef="Task_sync" targetRef="Task_spfmenu"/>
+    <bpmn:sequenceFlow id="Flow_m3" name="" sourceRef="Task_spfmenu" targetRef="Task_hours"/>
+    <bpmn:sequenceFlow id="Flow_m4" name="" sourceRef="Task_hours" targetRef="Task_order"/>
+    <bpmn:sequenceFlow id="Flow_o1" name="" sourceRef="Task_order" targetRef="Task_webhook"/>
+    <bpmn:sequenceFlow id="Flow_o2" name="" sourceRef="Task_webhook" targetRef="Task_getdetail"/>
+    <bpmn:sequenceFlow id="Flow_o3" name="" sourceRef="Task_getdetail" targetRef="Task_poshow"/>
+    <bpmn:sequenceFlow id="Flow_o4" name="" sourceRef="Task_poshow" targetRef="GW_handle"/>
+    <bpmn:sequenceFlow id="Flow_h_no" name="Từ chối" sourceRef="GW_handle" targetRef="Task_reject"/>
+    <bpmn:sequenceFlow id="Flow_r1" name="" sourceRef="Task_reject" targetRef="Task_sendcancel"/>
+    <bpmn:sequenceFlow id="Flow_r2" name="" sourceRef="Task_sendcancel" targetRef="End_cancel"/>
+    <bpmn:sequenceFlow id="Flow_h_yes" name="Xác nhận" sourceRef="GW_handle" targetRef="Task_confirm"/>
+    <bpmn:sequenceFlow id="Flow_p1" name="" sourceRef="Task_confirm" targetRef="Task_sendconfirm"/>
+    <bpmn:sequenceFlow id="Flow_p2" name="" sourceRef="Task_sendconfirm" targetRef="Task_driver"/>
+    <bpmn:sequenceFlow id="Flow_p3" name="" sourceRef="Task_driver" targetRef="Task_deliver"/>
+    <bpmn:sequenceFlow id="Flow_p4" name="" sourceRef="Task_deliver" targetRef="Task_settle"/>
+    <bpmn:sequenceFlow id="Flow_p5" name="" sourceRef="Task_settle" targetRef="End_done"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_1">
+    <bpmndi:BPMNPlane id="Plane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape bpmnElement="Participant_1" isHorizontal="false"><dc:Bounds x="0" y="0" width="1630" height="2720"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Lane_owner" isHorizontal="false"><dc:Bounds x="0" y="30" width="250" height="2690"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Lane_pos" isHorizontal="false"><dc:Bounds x="250" y="30" width="440" height="2690"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Lane_cukcuk" isHorizontal="false"><dc:Bounds x="690" y="30" width="440" height="2690"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Lane_spf" isHorizontal="false"><dc:Bounds x="1130" y="30" width="250" height="2690"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Lane_customer" isHorizontal="false"><dc:Bounds x="1380" y="30" width="250" height="2690"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Start_1"><dc:Bounds x="107" y="92" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="0" y="89" width="99" height="43"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_connect"><dc:Bounds x="60" y="195" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_qr"><dc:Bounds x="750" y="315" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_scan"><dc:Bounds x="60" y="435" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_token"><dc:Bounds x="1190" y="555" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_savetoken"><dc:Bounds x="750" y="675" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="GW_conn"><dc:Bounds x="790" y="805" width="50" height="50"/><bpmndi:BPMNLabel><dc:Bounds x="690" y="815" width="92" height="30"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="End_connfail"><dc:Bounds x="797" y="932" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="690" y="935" width="99" height="30"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_map"><dc:Bounds x="60" y="915" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_sync"><dc:Bounds x="750" y="1035" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_spfmenu"><dc:Bounds x="1190" y="1155" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_hours"><dc:Bounds x="60" y="1275" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_order"><dc:Bounds x="1440" y="1395" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_webhook"><dc:Bounds x="1190" y="1515" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_getdetail"><dc:Bounds x="750" y="1635" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_poshow"><dc:Bounds x="310" y="1755" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="GW_handle"><dc:Bounds x="350" y="1885" width="50" height="50"/><bpmndi:BPMNLabel><dc:Bounds x="250" y="1895" width="92" height="30"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_reject"><dc:Bounds x="310" y="1995" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_sendcancel"><dc:Bounds x="750" y="2115" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="End_cancel"><dc:Bounds x="1487" y="2252" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="1380" y="2255" width="99" height="30"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_confirm"><dc:Bounds x="500" y="1995" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_sendconfirm"><dc:Bounds x="940" y="2115" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_driver"><dc:Bounds x="1190" y="2235" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_deliver"><dc:Bounds x="1440" y="2355" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_settle"><dc:Bounds x="750" y="2475" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="End_done"><dc:Bounds x="357" y="2612" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="250" y="2622" width="99" height="17"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge bpmnElement="Flow_start"><di:waypoint x="125" y="128"/><di:waypoint x="125" y="195"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_c1"><di:waypoint x="125" y="265"/><di:waypoint x="125" y="290"/><di:waypoint x="815" y="290"/><di:waypoint x="815" y="315"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_c2"><di:waypoint x="815" y="385"/><di:waypoint x="815" y="410"/><di:waypoint x="125" y="410"/><di:waypoint x="125" y="435"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_c3"><di:waypoint x="125" y="505"/><di:waypoint x="125" y="530"/><di:waypoint x="1255" y="530"/><di:waypoint x="1255" y="555"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_c4"><di:waypoint x="1255" y="625"/><di:waypoint x="1255" y="650"/><di:waypoint x="815" y="650"/><di:waypoint x="815" y="675"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_c5"><di:waypoint x="815" y="745"/><di:waypoint x="815" y="805"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_conn_no"><di:waypoint x="815" y="855"/><di:waypoint x="815" y="932"/><bpmndi:BPMNLabel><dc:Bounds x="823" y="878" width="50" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_conn_yes"><di:waypoint x="790" y="830"/><di:waypoint x="770" y="830"/><di:waypoint x="770" y="895"/><di:waypoint x="125" y="895"/><di:waypoint x="125" y="915"/><bpmndi:BPMNLabel><dc:Bounds x="739" y="808" width="62" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_m1"><di:waypoint x="125" y="985"/><di:waypoint x="125" y="1010"/><di:waypoint x="815" y="1010"/><di:waypoint x="815" y="1035"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_m2"><di:waypoint x="815" y="1105"/><di:waypoint x="815" y="1130"/><di:waypoint x="1255" y="1130"/><di:waypoint x="1255" y="1155"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_m3"><di:waypoint x="1255" y="1225"/><di:waypoint x="1255" y="1250"/><di:waypoint x="125" y="1250"/><di:waypoint x="125" y="1275"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_m4"><di:waypoint x="125" y="1345"/><di:waypoint x="125" y="1370"/><di:waypoint x="1505" y="1370"/><di:waypoint x="1505" y="1395"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_o1"><di:waypoint x="1505" y="1465"/><di:waypoint x="1505" y="1490"/><di:waypoint x="1255" y="1490"/><di:waypoint x="1255" y="1515"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_o2"><di:waypoint x="1255" y="1585"/><di:waypoint x="1255" y="1610"/><di:waypoint x="815" y="1610"/><di:waypoint x="815" y="1635"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_o3"><di:waypoint x="815" y="1705"/><di:waypoint x="815" y="1730"/><di:waypoint x="375" y="1730"/><di:waypoint x="375" y="1755"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_o4"><di:waypoint x="375" y="1825"/><di:waypoint x="375" y="1885"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_h_no"><di:waypoint x="375" y="1935"/><di:waypoint x="375" y="1995"/><bpmndi:BPMNLabel><dc:Bounds x="383" y="1958" width="43" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_r1"><di:waypoint x="375" y="2065"/><di:waypoint x="375" y="2090"/><di:waypoint x="815" y="2090"/><di:waypoint x="815" y="2115"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_r2"><di:waypoint x="815" y="2185"/><di:waypoint x="815" y="2219"/><di:waypoint x="1505" y="2219"/><di:waypoint x="1505" y="2252"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_h_yes"><di:waypoint x="400" y="1910"/><di:waypoint x="420" y="1910"/><di:waypoint x="420" y="1975"/><di:waypoint x="565" y="1975"/><di:waypoint x="565" y="1995"/><bpmndi:BPMNLabel><dc:Bounds x="428" y="1903" width="50" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_p1"><di:waypoint x="565" y="2065"/><di:waypoint x="565" y="2076"/><di:waypoint x="1005" y="2076"/><di:waypoint x="1005" y="2115"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_p2"><di:waypoint x="1005" y="2185"/><di:waypoint x="1005" y="2210"/><di:waypoint x="1255" y="2210"/><di:waypoint x="1255" y="2235"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_p3"><di:waypoint x="1255" y="2305"/><di:waypoint x="1255" y="2330"/><di:waypoint x="1505" y="2330"/><di:waypoint x="1505" y="2355"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_p4"><di:waypoint x="1505" y="2425"/><di:waypoint x="1505" y="2450"/><di:waypoint x="815" y="2450"/><di:waypoint x="815" y="2475"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_p5"><di:waypoint x="815" y="2545"/><di:waypoint x="815" y="2579"/><di:waypoint x="375" y="2579"/><di:waypoint x="375" y="2612"/></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>` }
+];
+
+  var modeler = new BpmnJS({ container: '#canvas' });
+  var current = null;           // process đang mở
+  var dirty = false;            // có sửa chưa lưu
+  var fileHandles = {};         // slug → FileSystemFileHandle (nếu đã chọn/mở qua FS API)
+
+  var picker = document.getElementById('picker');
+  PROCESSES.forEach(function (p) {
+    var o = document.createElement('option');
+    o.value = p.slug; o.textContent = p.title;
+    picker.appendChild(o);
+  });
+  picker.addEventListener('change', function () {
+    if (dirty && !confirm('Process này có thay đổi chưa lưu. Đổi sẽ mất. Tiếp tục?')) {
+      picker.value = current.slug; return;
+    }
+    location.hash = picker.value;
+  });
+
+  function setDirty(v) { dirty = v; document.getElementById('dirty').style.display = v ? 'inline' : 'none'; }
+
+  function show(slug) {
+    var p = PROCESSES.filter(function (x) { return x.slug === slug; })[0] || PROCESSES[0];
+    if (!p) return;
+    current = p; picker.value = p.slug;
+    document.title = 'BPMN — ' + p.title;
+    document.getElementById('err').style.display = 'none';
+    modeler.importXML(p.xml).then(function () {
+      zoomFit(); setDirty(false);
+      // đánh dấu dirty khi user sửa
+      modeler.on('commandStack.changed', function () { setDirty(true); });
+    }).catch(function (e) {
+      var el = document.getElementById('err');
+      el.style.display = 'block';
+      el.textContent = 'Lỗi render "' + p.title + '":\n' + (e && e.message ? e.message : e) +
+        (e && e.warnings ? '\n\nWarnings:\n' + JSON.stringify(e.warnings, null, 2) : '');
+      console.error(e);
+    });
+  }
+
+  // Lấy XML hiện tại (đã sửa) từ modeler
+  function currentXml() {
+    return modeler.saveXML({ format: true }).then(function (r) { return r.xml; });
+  }
+
+  // Tải file .bpmn về máy (chế độ đơn giản — không cần server)
+  window.download = function () {
+    currentXml().then(function (xml) {
+      var blob = new Blob([xml], { type: 'application/xml' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = current.slug + '.bpmn';
+      a.click(); URL.revokeObjectURL(a.href);
+      setDirty(false);
+    });
+  };
+
+  // Lưu ghi đè file gốc (cần File System Access API — Chrome/Edge, chạy qua http(s) hoặc file mở qua picker)
+  window.saveToFile = function () {
+    currentXml().then(function (xml) {
+      if (!window.showSaveFilePicker) {
+        alert('Trình duyệt không hỗ trợ ghi file trực tiếp.\nDùng nút "⬇ Tải .bpmn" rồi chép đè vào repo,\nhoặc chạy qua server (xem hướng dẫn cuối file HTML).');
+        return;
+      }
+      var h = fileHandles[current.slug];
+      var chain = h ? Promise.resolve(h) : window.showSaveFilePicker({
+        suggestedName: current.slug + '.bpmn',
+        types: [{ description: 'BPMN', accept: { 'application/xml': ['.bpmn'] } }]
+      }).then(function (handle) { fileHandles[current.slug] = handle; return handle; });
+      chain.then(function (handle) {
+        return handle.createWritable().then(function (w) {
+          return w.write(xml).then(function () { return w.close(); });
+        });
+      }).then(function () { setDirty(false); }).catch(function (e) { if (e.name !== 'AbortError') alert('Lưu lỗi: ' + e.message); });
+    });
+  };
+
+  window.zoomFit = function () { modeler.get('canvas').zoom('fit-viewport', 'auto'); };
+  window.zoomIn  = function () { modeler.get('zoomScroll').stepZoom(1); };
+  window.zoomOut = function () { modeler.get('zoomScroll').stepZoom(-1); };
+  window.addEventListener('hashchange', function () { show(location.hash.slice(1)); });
+  window.addEventListener('beforeunload', function (e) { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+  show(location.hash.slice(1) || (PROCESSES[0] && PROCESSES[0].slug));
+</script>
+<!--
+  ═══ CÁCH DÙNG ═══
+  1. Double-click file này → mở trình duyệt → KÉO-THẢ sửa như bpmn.io (thêm/xóa node, đổi nhãn, vẽ mũi tên).
+  2. Giữ thay đổi:
+     • "⬇ Tải .bpmn"  → tải file đã sửa về máy, chép đè vào docs/{feature}/bpmn/{slug}.bpmn (LUÔN dùng được).
+     • "💾 Lưu"        → ghi đè trực tiếp (Chrome/Edge, lần đầu chọn đúng file gốc). Cần chạy qua server:
+         cd docs/{feature}/bpmn && npx serve   (rồi mở http://localhost:3000/_viewer.html)
+  3. Sau khi sửa tay + lưu .bpmn: KHÔNG chạy lại `node bpmn-build.mjs` (sẽ regen đè mất sửa tay).
+     Muốn giữ cả 2: sửa IR .ir.json rồi build lại, hoặc chỉ sửa tay trên .bpmn.
+-->
+</body>
+</html>

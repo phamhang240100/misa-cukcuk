@@ -1,0 +1,19 @@
+{
+  "project": "Tích hợp MISA CukCuk ↔ ShopeeFood (ISV Partner)",
+  "current_version": 2,
+  "clarity_score": 91,
+  "phase": "refine",
+  "updated_at": "2026-07-23",
+  "scope": {
+    "flows": ["Kết nối+Menu", "Nhận đơn POS", "Đối soát+Báo cáo", "Nâng cao UX"],
+    "channels": ["ShopeeFood"],
+    "grab": "out-of-scope (khung UI đa kênh giữ cho tương lai)"
+  },
+  "answered_ids": [
+    "SCOPE-01", "SCOPE-02", "SCOPE-03", "SCOPE-04",
+    "DEC-MAP-01", "DEC-CONFIRM-01", "DEC-PAUSE-01"
+  ],
+  "pending_ids": ["SPF-Q1-shipper", "SPF-Q2-token", "SPF-Q3-uat"],
+  "todo_ids": ["SPF-Q1-shipper"],
+  "note": "Đã rà kỹ 4 sheet Q&A + API §3.4/§3.5. Phần lớn câu hỏi trước đã có lời đáp → chuyển thành business rule. Chỉ còn 3 mục mở (1 High: thời điểm shipper). Tài nguyên cần lấy: JSON menu template dpaste.com/BZT43338J."
+}
