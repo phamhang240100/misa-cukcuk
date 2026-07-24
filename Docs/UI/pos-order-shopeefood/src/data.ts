@@ -175,6 +175,9 @@ export const INITIAL_ORDERS: Order[] = [
     deliveryFee: 20000,
     platformFee: 5000,
     driverTip: 5000,
+    merchantNetAmount: 232000,
+    settlementStatus: 'pending',
+    orderType: 'delivery',
     items: [
       {
         id: 'si-1-1',
@@ -212,6 +215,9 @@ export const INITIAL_ORDERS: Order[] = [
     deliveryFee: 15000,
     platformFee: 5000,
     driverTip: 5000,
+    merchantNetAmount: 80000,
+    settlementStatus: 'pending',
+    orderType: 'delivery',
     items: [
       {
         id: 'si-2-1',
@@ -241,6 +247,9 @@ export const INITIAL_ORDERS: Order[] = [
     deliveryFee: 25000,
     platformFee: 10000,
     driverTip: 10000,
+    merchantNetAmount: 336000,
+    settlementStatus: 'pending',
+    orderType: 'delivery',
     items: [
       {
         id: 'si-3-1',
@@ -286,6 +295,9 @@ export const INITIAL_ORDERS: Order[] = [
     deliveryFee: 10000,
     platformFee: 3000,
     driverTip: 2000,
+    merchantNetAmount: 64000,
+    settlementStatus: 'pending',
+    orderType: 'delivery',
     items: [
       {
         id: 'si-4-1',
@@ -302,6 +314,45 @@ export const INITIAL_ORDERS: Order[] = [
         qty: 1,
         totalPrice: 40000,
         note: 'Thêm trân châu đường đen'
+      }
+    ]
+  },
+  {
+    // Đơn ShopeeFood khách TỰ ĐẾN LẤY (CUSTOMER_PICKUP) — không có tài xế, không địa chỉ giao
+    id: 's-5',
+    code: 'SPF-668',
+    channel: 'ShopeeFood',
+    itemsCount: 2,
+    totalPrice: 145000,
+    orderTime: '02:10 CH - 18/06/2026',
+    status: 'unconfirmed',
+    customerPhone: '0917 246 810',
+    note: 'Khách sẽ đến lấy trong 20 phút, gói mang đi.',
+    subtotalDiscounted: 140000,
+    billDiscount: 5000,
+    deliveryFee: 0,
+    platformFee: 5000,
+    driverTip: 0,
+    merchantNetAmount: 112000,
+    settlementStatus: 'pending',
+    orderType: 'customer_pickup',
+    pickupCode: 'P-4381',
+    items: [
+      {
+        id: 'si-5-1',
+        name: 'Cơm gà xối mỡ đùi góc tư',
+        originalPrice: 75000,
+        qty: 1,
+        totalPrice: 75000,
+        note: 'Lấy thêm đồ chua'
+      },
+      {
+        id: 'si-5-2',
+        name: 'Canh khổ qua nhồi thịt',
+        originalPrice: 70000,
+        qty: 1,
+        totalPrice: 70000,
+        note: 'Đóng hộp riêng, kèm muỗng'
       }
     ]
   }

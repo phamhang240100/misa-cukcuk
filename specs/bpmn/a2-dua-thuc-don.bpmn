@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Def_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_1" name="A2 · Đưa thực đơn lên ShopeeFood (ghép món)" processRef="Process_a2"/>
+  </bpmn:collaboration>
+  <bpmn:process id="Process_a2" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_owner" name="Chủ quán"><bpmn:flowNodeRef>GW_has</bpmn:flowNodeRef><bpmn:flowNodeRef>GW_case</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_pair</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_addnew</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_create</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_group</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_pick</bpmn:flowNodeRef></bpmn:lane>
+      <bpmn:lane id="Lane_cc" name="Phần mềm CukCuk"><bpmn:flowNodeRef>Start_1</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_pull</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_suggest</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_push</bpmn:flowNodeRef><bpmn:flowNodeRef>End_ok</bpmn:flowNodeRef></bpmn:lane>
+      <bpmn:lane id="Lane_spf" name="ShopeeFood"><bpmn:flowNodeRef>Task_apply</bpmn:flowNodeRef></bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="Start_1" name="Kết nối thành công"><bpmn:outgoing>F1</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:exclusiveGateway id="GW_has" name="Quán đã có thực đơn trên ShopeeFood chưa?"><bpmn:incoming>F1</bpmn:incoming><bpmn:outgoing>F2</bpmn:outgoing><bpmn:outgoing>F12</bpmn:outgoing></bpmn:exclusiveGateway>
+    <bpmn:task id="Task_pull" name="Lấy danh sách món trên ShopeeFood về để đối chiếu"><bpmn:incoming>F2</bpmn:incoming><bpmn:outgoing>F3</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_suggest" name="Tự gợi ý ghép các món trùng tên"><bpmn:incoming>F3</bpmn:incoming><bpmn:outgoing>F4</bpmn:outgoing></bpmn:task>
+    <bpmn:exclusiveGateway id="GW_case" name="Món thuộc trường hợp nào?"><bpmn:incoming>F4</bpmn:incoming><bpmn:outgoing>F5</bpmn:outgoing><bpmn:outgoing>F6</bpmn:outgoing><bpmn:outgoing>F7</bpmn:outgoing></bpmn:exclusiveGateway>
+    <bpmn:task id="Task_pair" name="Có ở cả hai bên → xác nhận ghép cặp"><bpmn:incoming>F5</bpmn:incoming><bpmn:outgoing>F8</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_addnew" name="Chỉ có ở quán → chọn đẩy lên (tạo mới)"><bpmn:incoming>F6</bpmn:incoming><bpmn:outgoing>F9</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_create" name="Chỉ có trên ShopeeFood → tạo món ở thực đơn quán rồi ghép"><bpmn:incoming>F7</bpmn:incoming><bpmn:outgoing>F10</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_group" name="Ghép cả nhóm món &amp; nhóm tùy chọn (topping)"><bpmn:incoming>F8</bpmn:incoming><bpmn:incoming>F9</bpmn:incoming><bpmn:incoming>F10</bpmn:incoming><bpmn:outgoing>F11</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_pick" name="Chọn món từ thực đơn quán để bán trên ShopeeFood"><bpmn:incoming>F12</bpmn:incoming><bpmn:outgoing>F13</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_push" name="Đẩy thực đơn lên ShopeeFood"><bpmn:incoming>F11</bpmn:incoming><bpmn:incoming>F13</bpmn:incoming><bpmn:outgoing>F14</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_apply" name="Cập nhật gian hàng"><bpmn:incoming>F14</bpmn:incoming><bpmn:outgoing>F15</bpmn:outgoing></bpmn:task>
+    <bpmn:endEvent id="End_ok" name="Thực đơn đã lên ShopeeFood (báo số món thành công / lỗi)"><bpmn:incoming>F15</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="F1" name="" sourceRef="Start_1" targetRef="GW_has"/>
+    <bpmn:sequenceFlow id="F2" name="Đã có" sourceRef="GW_has" targetRef="Task_pull"/>
+    <bpmn:sequenceFlow id="F3" name="" sourceRef="Task_pull" targetRef="Task_suggest"/>
+    <bpmn:sequenceFlow id="F4" name="" sourceRef="Task_suggest" targetRef="GW_case"/>
+    <bpmn:sequenceFlow id="F5" name="Có ở cả hai bên" sourceRef="GW_case" targetRef="Task_pair"/>
+    <bpmn:sequenceFlow id="F6" name="Chỉ có ở quán" sourceRef="GW_case" targetRef="Task_addnew"/>
+    <bpmn:sequenceFlow id="F7" name="Chỉ có trên ShopeeFood" sourceRef="GW_case" targetRef="Task_create"/>
+    <bpmn:sequenceFlow id="F8" name="" sourceRef="Task_pair" targetRef="Task_group"/>
+    <bpmn:sequenceFlow id="F9" name="" sourceRef="Task_addnew" targetRef="Task_group"/>
+    <bpmn:sequenceFlow id="F10" name="" sourceRef="Task_create" targetRef="Task_group"/>
+    <bpmn:sequenceFlow id="F11" name="" sourceRef="Task_group" targetRef="Task_push"/>
+    <bpmn:sequenceFlow id="F12" name="Chưa có" sourceRef="GW_has" targetRef="Task_pick"/>
+    <bpmn:sequenceFlow id="F13" name="" sourceRef="Task_pick" targetRef="Task_push"/>
+    <bpmn:sequenceFlow id="F14" name="" sourceRef="Task_push" targetRef="Task_apply"/>
+    <bpmn:sequenceFlow id="F15" name="" sourceRef="Task_apply" targetRef="End_ok"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_1">
+    <bpmndi:BPMNPlane id="Plane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape bpmnElement="Participant_1" isHorizontal="false"><dc:Bounds x="0" y="0" width="1130" height="1280"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Lane_owner" isHorizontal="false"><dc:Bounds x="0" y="30" width="630" height="1250"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Lane_cc" isHorizontal="false"><dc:Bounds x="630" y="30" width="250" height="1250"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Lane_spf" isHorizontal="false"><dc:Bounds x="880" y="30" width="250" height="1250"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Start_1"><dc:Bounds x="737" y="92" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="630" y="95" width="99" height="30"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="GW_has"><dc:Bounds x="100" y="205" width="50" height="50"/><bpmndi:BPMNLabel><dc:Bounds x="0" y="209" width="92" height="43"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_pull"><dc:Bounds x="690" y="315" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_suggest"><dc:Bounds x="690" y="435" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="GW_case"><dc:Bounds x="100" y="565" width="50" height="50"/><bpmndi:BPMNLabel><dc:Bounds x="0" y="575" width="92" height="30"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_pair"><dc:Bounds x="60" y="675" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_addnew"><dc:Bounds x="250" y="675" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_create"><dc:Bounds x="440" y="675" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_group"><dc:Bounds x="60" y="795" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_pick"><dc:Bounds x="60" y="315" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_push"><dc:Bounds x="690" y="915" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_apply"><dc:Bounds x="940" y="1035" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="End_ok"><dc:Bounds x="737" y="1172" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="630" y="1162" width="99" height="56"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge bpmnElement="F1"><di:waypoint x="755" y="128"/><di:waypoint x="755" y="167"/><di:waypoint x="125" y="167"/><di:waypoint x="125" y="205"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="F2"><di:waypoint x="150" y="230"/><di:waypoint x="170" y="230"/><di:waypoint x="170" y="295"/><di:waypoint x="755" y="295"/><di:waypoint x="755" y="315"/><bpmndi:BPMNLabel><dc:Bounds x="178" y="223" width="31" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="F3"><di:waypoint x="755" y="385"/><di:waypoint x="755" y="435"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="F4"><di:waypoint x="755" y="505"/><di:waypoint x="755" y="535"/><di:waypoint x="111" y="535"/><di:waypoint x="111" y="555"/><di:waypoint x="125" y="555"/><di:waypoint x="125" y="565"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="F5"><di:waypoint x="125" y="615"/><di:waypoint x="125" y="625"/><di:waypoint x="139" y="625"/><di:waypoint x="139" y="675"/><bpmndi:BPMNLabel><dc:Bounds x="133" y="618" width="93" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="F6"><di:waypoint x="150" y="590"/><di:waypoint x="170" y="590"/><di:waypoint x="170" y="655"/><di:waypoint x="315" y="655"/><di:waypoint x="315" y="675"/><bpmndi:BPMNLabel><dc:Bounds x="178" y="583" width="81" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="F7"><di:waypoint x="150" y="590"/><di:waypoint x="154" y="590"/><di:waypoint x="154" y="576"/><di:waypoint x="156" y="576"/><di:waypoint x="156" y="641"/><di:waypoint x="505" y="641"/><di:waypoint x="505" y="675"/><bpmndi:BPMNLabel><dc:Bounds x="162" y="570" width="136" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="F8"><di:waypoint x="125" y="745"/><di:waypoint x="125" y="770"/><di:waypoint x="109" y="770"/><di:waypoint x="109" y="795"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="F9"><di:waypoint x="315" y="745"/><di:waypoint x="315" y="770"/><di:waypoint x="125" y="770"/><di:waypoint x="125" y="795"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="F10"><di:waypoint x="505" y="745"/><di:waypoint x="505" y="756"/><di:waypoint x="141" y="756"/><di:waypoint x="141" y="795"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="F11"><di:waypoint x="125" y="865"/><di:waypoint x="125" y="890"/><di:waypoint x="747" y="890"/><di:waypoint x="747" y="915"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="F12"><di:waypoint x="125" y="255"/><di:waypoint x="125" y="315"/><bpmndi:BPMNLabel><dc:Bounds x="133" y="278" width="43" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="F13"><di:waypoint x="125" y="385"/><di:waypoint x="125" y="650"/><di:waypoint x="763" y="650"/><di:waypoint x="763" y="915"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="F14"><di:waypoint x="755" y="985"/><di:waypoint x="755" y="1010"/><di:waypoint x="1005" y="1010"/><di:waypoint x="1005" y="1035"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="F15"><di:waypoint x="1005" y="1105"/><di:waypoint x="1005" y="1139"/><di:waypoint x="755" y="1139"/><di:waypoint x="755" y="1172"/></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

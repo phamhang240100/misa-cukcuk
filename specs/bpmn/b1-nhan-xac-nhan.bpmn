@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Def_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_1" name="B1 · Nhận &amp; xác nhận đơn" processRef="Process_b1"/>
+  </bpmn:collaboration>
+  <bpmn:process id="Process_b1" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_spf" name="ShopeeFood"><bpmn:flowNodeRef>Start_1</bpmn:flowNodeRef><bpmn:flowNodeRef>End_timeout</bpmn:flowNodeRef></bpmn:lane>
+      <bpmn:lane id="Lane_cc" name="Phần mềm CukCuk"><bpmn:flowNodeRef>Task_notify</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_bill</bpmn:flowNodeRef><bpmn:flowNodeRef>End_rejected</bpmn:flowNodeRef></bpmn:lane>
+      <bpmn:lane id="Lane_staff" name="Nhân viên"><bpmn:flowNodeRef>Task_open</bpmn:flowNodeRef><bpmn:flowNodeRef>GW_action</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_confirm</bpmn:flowNodeRef><bpmn:flowNodeRef>End_confirmed</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_reject</bpmn:flowNodeRef></bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="Start_1" name="Có đơn mới từ ShopeeFood"><bpmn:outgoing>F1</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:task id="Task_notify" name="Báo đơn về — chuông + nhấp nháy đến khi xử lý"><bpmn:incoming>F1</bpmn:incoming><bpmn:outgoing>F2</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_open" name="Mở đơn, xem món"><bpmn:incoming>F2</bpmn:incoming><bpmn:outgoing>F3</bpmn:outgoing></bpmn:task>
+    <bpmn:exclusiveGateway id="GW_action" name="Xử lý đơn thế nào? (hoặc tự động sau 2 phút)"><bpmn:incoming>F3</bpmn:incoming><bpmn:outgoing>F4</bpmn:outgoing><bpmn:outgoing>F7</bpmn:outgoing><bpmn:outgoing>F9</bpmn:outgoing></bpmn:exclusiveGateway>
+    <bpmn:task id="Task_confirm" name="Xác nhận đơn"><bpmn:incoming>F4</bpmn:incoming><bpmn:outgoing>F5</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_bill" name="In tạm tính (nếu đã bật)"><bpmn:incoming>F5</bpmn:incoming><bpmn:outgoing>F6</bpmn:outgoing></bpmn:task>
+    <bpmn:endEvent id="End_confirmed" name="Đã xác nhận — chuyển làm món"><bpmn:incoming>F6</bpmn:incoming></bpmn:endEvent>
+    <bpmn:task id="Task_reject" name="Từ chối, chọn lý do (hết món / quá tải / đóng cửa)"><bpmn:incoming>F7</bpmn:incoming><bpmn:outgoing>F8</bpmn:outgoing></bpmn:task>
+    <bpmn:endEvent id="End_rejected" name="Đơn bị từ chối"><bpmn:incoming>F8</bpmn:incoming></bpmn:endEvent>
+    <bpmn:endEvent id="End_timeout" name="Để quá lâu → ShopeeFood tự hủy đơn"><bpmn:incoming>F9</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="F1" name="" sourceRef="Start_1" targetRef="Task_notify"/>
+    <bpmn:sequenceFlow id="F2" name="" sourceRef="Task_notify" targetRef="Task_open"/>
+    <bpmn:sequenceFlow id="F3" name="" sourceRef="Task_open" targetRef="GW_action"/>
+    <bpmn:sequenceFlow id="F4" name="Xác nhận" sourceRef="GW_action" targetRef="Task_confirm"/>
+    <bpmn:sequenceFlow id="F5" name="" sourceRef="Task_confirm" targetRef="Task_bill"/>
+    <bpmn:sequenceFlow id="F6" name="" sourceRef="Task_bill" targetRef="End_confirmed"/>
+    <bpmn:sequenceFlow id="F7" name="Từ chối" sourceRef="GW_action" targetRef="Task_reject"/>
+    <bpmn:sequenceFlow id="F8" name="" sourceRef="Task_reject" targetRef="End_rejected"/>
+    <bpmn:sequenceFlow id="F9" name="Để quá lâu" sourceRef="GW_action" targetRef="End_timeout"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_1">
+    <bpmndi:BPMNPlane id="Plane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape bpmnElement="Participant_1" isHorizontal="false"><dc:Bounds x="0" y="0" width="1130" height="920"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Lane_spf" isHorizontal="false"><dc:Bounds x="0" y="30" width="250" height="890"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Lane_cc" isHorizontal="false"><dc:Bounds x="250" y="30" width="440" height="890"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Lane_staff" isHorizontal="false"><dc:Bounds x="690" y="30" width="440" height="890"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Start_1"><dc:Bounds x="107" y="92" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="0" y="95" width="99" height="30"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_notify"><dc:Bounds x="310" y="195" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_open"><dc:Bounds x="750" y="315" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="GW_action"><dc:Bounds x="790" y="445" width="50" height="50"/><bpmndi:BPMNLabel><dc:Bounds x="690" y="442" width="92" height="56"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_confirm"><dc:Bounds x="750" y="555" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_bill"><dc:Bounds x="310" y="675" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="End_confirmed"><dc:Bounds x="797" y="812" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="690" y="815" width="99" height="30"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_reject"><dc:Bounds x="940" y="555" width="130" height="70"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="End_rejected"><dc:Bounds x="547" y="692" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="513" y="734" width="104" height="19"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="End_timeout"><dc:Bounds x="107" y="572" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="0" y="569" width="99" height="43"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge bpmnElement="F1"><di:waypoint x="125" y="128"/><di:waypoint x="125" y="162"/><di:waypoint x="375" y="162"/><di:waypoint x="375" y="195"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="F2"><di:waypoint x="375" y="265"/><di:waypoint x="375" y="290"/><di:waypoint x="815" y="290"/><di:waypoint x="815" y="315"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="F3"><di:waypoint x="815" y="385"/><di:waypoint x="815" y="445"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="F4"><di:waypoint x="815" y="495"/><di:waypoint x="815" y="555"/><bpmndi:BPMNLabel><dc:Bounds x="823" y="518" width="50" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="F5"><di:waypoint x="815" y="625"/><di:waypoint x="815" y="650"/><di:waypoint x="375" y="650"/><di:waypoint x="375" y="675"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="F6"><di:waypoint x="375" y="745"/><di:waypoint x="375" y="779"/><di:waypoint x="815" y="779"/><di:waypoint x="815" y="812"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="F7"><di:waypoint x="840" y="470"/><di:waypoint x="860" y="470"/><di:waypoint x="860" y="535"/><di:waypoint x="1005" y="535"/><di:waypoint x="1005" y="555"/><bpmndi:BPMNLabel><dc:Bounds x="868" y="463" width="43" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="F8"><di:waypoint x="1005" y="625"/><di:waypoint x="1005" y="659"/><di:waypoint x="565" y="659"/><di:waypoint x="565" y="692"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="F9"><di:waypoint x="790" y="470"/><di:waypoint x="770" y="470"/><di:waypoint x="770" y="552"/><di:waypoint x="125" y="552"/><di:waypoint x="125" y="572"/><bpmndi:BPMNLabel><dc:Bounds x="786" y="463" width="62" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

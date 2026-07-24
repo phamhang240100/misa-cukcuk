@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { INITIAL_ORDERS } from './data';
-import { Order, AppView, OrderItem, OrderStatus } from './types';
+import { Order, AppView, OrderItem, OrderStatus, SpfCancelReasonCode } from './types';
 import MainOrderView from './components/MainOrderView';
 import DeliveryView from './components/DeliveryView';
 import { motion, AnimatePresence } from 'motion/react';
@@ -15,6 +15,13 @@ export default function App() {
   const [shopeeSelectedOrderId, setShopeeSelectedOrderId] = useState<string | null>(null);
   const [grabActiveTab, setGrabActiveTab] = useState<OrderStatus>('unconfirmed');
   const [grabSelectedOrderId, setGrabSelectedOrderId] = useState<string | null>(null);
+
+  // ShopeeFood: sub-state "tài xế đã lấy" (PICKED) — lift lên App để sống qua unmount DeliveryView
+  // (KHÔNG thêm 'picked' vào OrderStatus để không lan ra tabs/filters/notifications)
+  const [pickedOrderIds, setPickedOrderIds] = useState<string[]>([]);
+
+  // P7: đơn SPF mới chưa được mở — chuông lặp + nhấp nháy đến khi mở đơn
+  const [alertingOrderIds, setAlertingOrderIds] = useState<string[]>([]);
 
   // Stateful notification center
   const [notifications, setNotifications] = useState<any[]>([
@@ -65,6 +72,22 @@ export default function App() {
     } catch (e) {
       // Audio context block safeguard
     }
+  };
+
+  // P7: chuông lặp mỗi ~4s chừng nào còn đơn SPF chưa được mở
+  const alertingCountRef = useRef(0);
+  alertingCountRef.current = alertingOrderIds.length;
+  useEffect(() => {
+    if (alertingOrderIds.length === 0) return;
+    const intervalId = setInterval(() => {
+      if (alertingCountRef.current > 0) playPing();
+    }, 4000);
+    return () => clearInterval(intervalId);
+  }, [alertingOrderIds.length > 0]);
+
+  // P7: đã mở đơn → ngừng chuông/nhấp nháy cho đơn đó
+  const handleOrderAlertSeen = (orderId: string) => {
+    setAlertingOrderIds((prev) => (prev.includes(orderId) ? prev.filter((id) => id !== orderId) : prev));
   };
 
   // Toast trigger helper with click action support
@@ -143,6 +166,9 @@ export default function App() {
     const dateStr = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;
     const orderTime = `${cleanHours.toString().padStart(2, '0')}:${minutes} ${ampm} - ${dateStr}`;
 
+    // ~1/4 đơn ShopeeFood giả lập là đơn khách TỰ ĐẾN LẤY (CUSTOMER_PICKUP)
+    const isSpfPickup = channel === 'ShopeeFood' && Math.random() < 0.25;
+
     const newOrder: Order = {
       id: `sim-${Date.now()}`,
       code,
@@ -152,19 +178,35 @@ export default function App() {
       orderTime,
       status: 'unconfirmed',
       customerPhone: randomPhone,
-      deliveryAddress: randomAddress,
-      driverName: `${randomName} (${channel})`,
-      driverPhone: `09${Math.floor(10000000 + Math.random() * 90000000)}`,
+      deliveryAddress: isSpfPickup ? undefined : randomAddress,
+      driverName: isSpfPickup ? undefined : `${randomName} (${channel})`,
+      driverPhone: isSpfPickup ? undefined : `09${Math.floor(10000000 + Math.random() * 90000000)}`,
       items: selectedDishes,
-      note: channel === 'ShopeeFood' ? 'Giao đơn hàng nhanh, đóng gói cẩn thận.' : undefined,
+      note: channel === 'ShopeeFood'
+        ? (isSpfPickup ? 'Khách sẽ tự đến quầy nhận đơn, gói mang đi.' : 'Giao đơn hàng nhanh, đóng gói cẩn thận.')
+        : undefined,
       subtotalDiscounted: Math.round(totalPrice * 0.95),
       billDiscount: Math.round(totalPrice * 0.05),
-      deliveryFee: 15000,
+      deliveryFee: isSpfPickup ? 0 : 15000,
       platformFee: 4000,
-      driverTip: 2000
+      driverTip: isSpfPickup ? 0 : 2000,
+      // Fields riêng ShopeeFood — Shopee luôn thanh toán qua ví đối soát
+      ...(channel === 'ShopeeFood'
+        ? {
+            merchantNetAmount: Math.round(totalPrice * 0.8),
+            settlementStatus: 'pending' as const,
+            orderType: (isSpfPickup ? 'customer_pickup' : 'delivery') as Order['orderType'],
+            pickupCode: isSpfPickup ? `P-${Math.floor(1000 + Math.random() * 9000)}` : undefined
+          }
+        : {})
     };
 
     setOrders((prev) => [newOrder, ...prev]);
+
+    // P7: đơn SPF mới → bật chế độ cảnh báo lặp đến khi mở đơn
+    if (channel === 'ShopeeFood') {
+      setAlertingOrderIds((prev) => [...prev, newOrder.id]);
+    }
 
     // Add to stateful notifications
     const newNotif = {
@@ -184,6 +226,7 @@ export default function App() {
       if (channel === 'ShopeeFood') {
         setShopeeActiveTab('unconfirmed');
         setShopeeSelectedOrderId(newOrder.id);
+        handleOrderAlertSeen(newOrder.id);
       } else {
         setGrabActiveTab('unconfirmed');
         setGrabSelectedOrderId(newOrder.id);
@@ -204,6 +247,7 @@ export default function App() {
     if (notif.channel === 'ShopeeFood') {
       setShopeeActiveTab(notif.status);
       setShopeeSelectedOrderId(notif.orderId);
+      handleOrderAlertSeen(notif.orderId);
     } else {
       setGrabActiveTab(notif.status);
       setGrabSelectedOrderId(notif.orderId);
@@ -216,6 +260,7 @@ export default function App() {
 
   // Confirm order action (unconfirmed -> confirmed)
   const handleConfirmOrder = (orderId: string) => {
+    handleOrderAlertSeen(orderId);
     setOrders((prev) =>
       prev.map((order) => {
         if (order.id === orderId) {
@@ -247,15 +292,60 @@ export default function App() {
     );
   };
 
+  // ShopeeFood: bàn giao tài xế (PICKED) → ~6s sau Shopee báo DELIVERED → tự động Hoàn thành + đối soát vào ví
+  const handleHandoverOrder = (order: Order) => {
+    setPickedOrderIds((prev) => (prev.includes(order.id) ? prev : [...prev, order.id]));
+    setTimeout(() => {
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === order.id && o.status === 'confirmed'
+            ? { ...o, status: 'completed', settlementStatus: 'received' }
+            : o
+        )
+      );
+      setNotifications((prevNotif) =>
+        prevNotif.map((n) => (n.orderId === order.id ? { ...n, read: true, status: 'completed' } : n))
+      );
+      showToast(`📦 ShopeeFood báo đã giao — đơn ${order.code} hoàn thành`, 'success');
+    }, 6000);
+  };
+
+  // ShopeeFood: giả lập Shopee sửa đơn sau khi gửi (P10c) → banner đỏ + tem "ĐÃ CẬP NHẬT"
+  const handleSimulateShopeeEdit = (orderId: string) => {
+    const target = orders.find((o) => o.id === orderId);
+    if (!target || target.items.length === 0) return;
+    setOrders((prev) =>
+      prev.map((order) => {
+        if (order.id !== orderId) return order;
+        const firstItem = order.items[0];
+        const updatedItems = order.items.map((it, idx) =>
+          idx === 0
+            ? { ...it, qty: it.qty + 1, totalPrice: it.totalPrice + it.originalPrice }
+            : it
+        );
+        return {
+          ...order,
+          items: updatedItems,
+          totalPrice: order.totalPrice + firstItem.originalPrice,
+          subtotalDiscounted: (order.subtotalDiscounted || 0) + firstItem.originalPrice,
+          merchantNetAmount: (order.merchantNetAmount || 0) + Math.round(firstItem.originalPrice * 0.8),
+          updatedByShopee: true
+        };
+      })
+    );
+    showToast(`⚡ ShopeeFood vừa cập nhật đơn ${target.code} — kiểm tra lại danh sách món!`, 'alert');
+  };
+
   // Delete/Reject option (updates to 'cancelled' so they show in Completed tab as specified by brief)
-  const handleDeleteOrder = (orderId: string, reason?: string) => {
+  const handleDeleteOrder = (orderId: string, reason?: string, reasonCode?: SpfCancelReasonCode) => {
     const orderToDel = orders.find((o) => o.id === orderId);
     if (!orderToDel) return;
-    
+
+    handleOrderAlertSeen(orderId);
     setOrders((prev) =>
       prev.map((order) => {
         if (order.id === orderId) {
-          return { ...order, status: 'cancelled' };
+          return { ...order, status: 'cancelled', note: reason || order.note, cancelReasonCode: reasonCode };
         }
         return order;
       })
@@ -264,7 +354,7 @@ export default function App() {
     setNotifications((prevNotif) =>
       prevNotif.map((n) => n.orderId === orderId ? { ...n, read: true, status: 'cancelled' } : n)
     );
-    showToast(`❌ Đã từ chối đơn hàng ${orderToDel.code}${reason ? `: ${reason}` : ''}!`, 'alert');
+    showToast(`❌ Đã từ chối đơn hàng ${orderToDel.code}${reason ? `: ${reason}` : ''}${reasonCode ? ` (mã lý do ${reasonCode})` : ''}!`, 'alert');
   };
 
   return (
@@ -342,6 +432,7 @@ export default function App() {
                 setGrabSelectedOrderId={setGrabSelectedOrderId}
                 setShopeeActiveTab={setShopeeActiveTab}
                 setGrabActiveTab={setGrabActiveTab}
+                shopeeAlerting={alertingOrderIds.length > 0}
               />
             </motion.div>
           ) : (
@@ -366,6 +457,12 @@ export default function App() {
                 setSelectedOrderId={currentView === 'grab' ? setGrabSelectedOrderId : setShopeeSelectedOrderId}
                 notifications={notifications}
                 onNotificationClick={handleNotificationClick}
+
+                pickedOrderIds={pickedOrderIds}
+                onHandoverOrder={handleHandoverOrder}
+                alertingOrderIds={alertingOrderIds}
+                onOrderAlertSeen={handleOrderAlertSeen}
+                onSimulateShopeeEdit={handleSimulateShopeeEdit}
               />
             </motion.div>
           )}

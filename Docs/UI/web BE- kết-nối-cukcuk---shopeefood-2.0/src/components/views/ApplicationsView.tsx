@@ -193,13 +193,19 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
   const [isShopeeFoodScreenActive, setIsShopeeFoodScreenActive] =
     useState(false);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
-  const [connectionType, setConnectionType] = useState<"select" | "has_store" | "no_store">("select");
+  // W3: mặc định "has_store" — vào thẳng màn quét QR, không còn màn chọn gian hàng
+  const [connectionType, setConnectionType] = useState<"select" | "has_store" | "no_store">("has_store");
   const [isNoStoreFlow, setIsNoStoreFlow] = useState(false);
+  // W3: popup hỏi "Nhà hàng đã có thực đơn trên ShopeeFood chưa?" sau khi quét QR thành công
+  const [showMenuExistPopup, setShowMenuExistPopup] = useState(false);
+  // W14: các món bị lỗi trong lần đồng bộ gần nhất + trạng thái đang đồng bộ lại
+  const [syncErrorIds, setSyncErrorIds] = useState<number[]>([]);
+  const [isRetryingSyncErrors, setIsRetryingSyncErrors] = useState(false);
   const [qrScanStatus, setQrScanStatus] = useState<
     "idle" | "scanning" | "authorizing" | "success"
   >("idle");
   const [shopeeSyncStarted, setShopeeSyncStarted] = useState(false);
-  const [shopeeWizardStep, setShopeeWizardStep] = useState<1 | 2 | 3>(1);
+  const [shopeeWizardStep, setShopeeWizardStep] = useState<1 | 2>(1);
   const [showUnlinkedConfirmModal, setShowUnlinkedConfirmModal] =
     useState(false);
   const [showShopeeSyncConfirmModal, setShowShopeeSyncConfirmModal] =
@@ -914,7 +920,8 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
   const [isWizardAlertVisible, setIsWizardAlertVisible] = useState(true);
   const [isSuspended, setIsSuspended] = useState(false);
   const [showSuspendConfirmModal, setShowSuspendConfirmModal] = useState(false);
-  const [wizardSubTab, setWizardSubTab] = useState<"menu" | "menuGroup" | "stpv" | "stpvGroup">("menu");
+  // W6: 2 bước con tuần tự (Đồng bộ món → Đồng bộ STPV) thay cho 4 tab cũ
+  const [wizardSubTab, setWizardSubTab] = useState<"menu" | "stpv">("menu");
 
   // Nhóm thực đơn tab filters
   const [wizardFilterMenuGroupName, setWizardFilterMenuGroupName] = useState("");
@@ -983,6 +990,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       price: 30000,
       status: "Có bán",
       linkedDishId: "cc1",
+      linkedMenuGroupId: "ccmg2",
       image:
         "https://images.unsplash.com/photo-1509722747041-616f39b57569?w=120&auto=format&fit=crop&q=60",
     },
@@ -994,6 +1002,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       price: 50000,
       status: "Có bán",
       linkedDishId: "cc2",
+      linkedMenuGroupId: "ccmg1",
       image:
         "https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?w=120&auto=format&fit=crop&q=60",
     },
@@ -1005,6 +1014,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       price: 100000,
       status: "Có bán",
       linkedDishId: "cc3",
+      linkedMenuGroupId: "ccmg1",
       image:
         "https://images.unsplash.com/photo-1569058242253-92a9c755a0ec?w=120&auto=format&fit=crop&q=60",
     },
@@ -1016,6 +1026,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       price: 50000,
       status: "Có bán",
       linkedDishId: "",
+      linkedMenuGroupId: "",
       image:
         "https://images.unsplash.com/photo-1596797038530-2c107229654b?w=120&auto=format&fit=crop&q=60",
     },
@@ -1027,6 +1038,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       price: 100000,
       status: "Có bán",
       linkedDishId: "cc5",
+      linkedMenuGroupId: "ccmg1",
       image:
         "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=120&auto=format&fit=crop&q=60",
     },
@@ -1038,6 +1050,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       price: 20000,
       status: "Có bán",
       linkedDishId: "cc6",
+      linkedMenuGroupId: "ccmg3",
       image:
         "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=120&auto=format&fit=crop&q=60",
     },
@@ -1049,6 +1062,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       price: 20000,
       status: "Có bán",
       linkedDishId: "cc7",
+      linkedMenuGroupId: "ccmg4",
       image:
         "https://images.unsplash.com/photo-1497534446932-c925b458314e?w=120&auto=format&fit=crop&q=60",
     },
@@ -1060,6 +1074,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       price: 25000,
       status: "Có bán",
       linkedDishId: "",
+      linkedMenuGroupId: "",
       image:
         "https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=120&auto=format&fit=crop&q=60",
     },
@@ -1071,6 +1086,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       price: 25000,
       status: "Có bán",
       linkedDishId: "cc9",
+      linkedMenuGroupId: "ccmg2",
     },
     {
       id: 10,
@@ -1080,6 +1096,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       price: 30000,
       status: "Có bán",
       linkedDishId: "cc10",
+      linkedMenuGroupId: "ccmg3",
       image:
         "https://images.unsplash.com/photo-1613478223719-2ab802602423?w=120&auto=format&fit=crop&q=60",
     },
@@ -1107,6 +1124,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       group: "Topping",
       price: 10000,
       linkedGroupId: "ccg_oreo",
+      linkedStpvGroupId: "ccsg1",
     },
     {
       id: "stpv2",
@@ -1114,6 +1132,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       group: "Topping",
       price: 8000,
       linkedGroupId: "ccg_daudo",
+      linkedStpvGroupId: "ccsg1",
     },
     {
       id: "stpv3",
@@ -1121,6 +1140,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       group: "Topping",
       price: 15000,
       linkedGroupId: "ccg_kemtrung",
+      linkedStpvGroupId: "ccsg1",
     },
     {
       id: "stpv4",
@@ -1128,6 +1148,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       group: "Topping",
       price: 15000,
       linkedGroupId: "",
+      linkedStpvGroupId: "ccsg1",
     },
     {
       id: "stpv5",
@@ -1135,6 +1156,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       group: "Topping",
       price: 5000,
       linkedGroupId: "ccg_tranchau",
+      linkedStpvGroupId: "ccsg1",
     },
     {
       id: "stpv6",
@@ -1142,6 +1164,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       group: "Tùy chọn",
       price: 0,
       linkedGroupId: "ccg_nhieuduong",
+      linkedStpvGroupId: "ccsg2",
     },
     {
       id: "stpv7",
@@ -1149,14 +1172,16 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       group: "Tùy chọn",
       price: 0,
       linkedGroupId: "ccg_nhieuda",
+      linkedStpvGroupId: "ccsg2",
     },
-    { id: "stpv8", name: "Size M", group: "Size", price: 0, linkedGroupId: "" },
+    { id: "stpv8", name: "Size M", group: "Size", price: 0, linkedGroupId: "", linkedStpvGroupId: "ccsg3" },
     {
       id: "stpv9",
       name: "Size L",
       group: "Size",
       price: 10000,
       linkedGroupId: "ccg_sizel",
+      linkedStpvGroupId: "ccsg3",
     },
     {
       id: "stpv10",
@@ -1164,6 +1189,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       group: "Topping",
       price: 10000,
       linkedGroupId: "",
+      linkedStpvGroupId: "ccsg1",
     },
     {
       id: "stpv11",
@@ -1171,6 +1197,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       group: "Topping",
       price: 15000,
       linkedGroupId: "",
+      linkedStpvGroupId: "ccsg1",
     },
     {
       id: "stpv12",
@@ -1178,6 +1205,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       group: "Topping",
       price: 10000,
       linkedGroupId: "",
+      linkedStpvGroupId: "ccsg1",
     },
     {
       id: "stpv13",
@@ -1185,6 +1213,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       group: "Topping",
       price: 5000,
       linkedGroupId: "",
+      linkedStpvGroupId: "ccsg1",
     },
   ]);
 
@@ -1246,7 +1275,9 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
   useEffect(() => {
     if (!isQrModalOpen) {
       setIsVayVonFlow(false);
-      setConnectionType("select");
+      setConnectionType("has_store");
+      setShowMenuExistPopup(false);
+      setWizardSubTab("menu");
     }
   }, [isQrModalOpen]);
 
@@ -1260,6 +1291,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       price: 30000,
       status: "Có bán",
       linkedDishId: "cc1",
+      linkedMenuGroupId: "ccmg2",
       image:
         "https://images.unsplash.com/photo-1509722747041-616f39b57569?w=120&auto=format&fit=crop&q=60",
     },
@@ -1271,6 +1303,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       price: 50000,
       status: "Có bán",
       linkedDishId: "cc2",
+      linkedMenuGroupId: "ccmg1",
       image:
         "https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?w=120&auto=format&fit=crop&q=60",
     },
@@ -1282,6 +1315,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       price: 100000,
       status: "Có bán",
       linkedDishId: "cc3",
+      linkedMenuGroupId: "ccmg1",
       image:
         "https://images.unsplash.com/photo-1569058242253-92a9c755a0ec?w=120&auto=format&fit=crop&q=60",
     },
@@ -1293,6 +1327,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       price: 50000,
       status: "Có bán",
       linkedDishId: "",
+      linkedMenuGroupId: "",
       image:
         "https://images.unsplash.com/photo-1596797038530-2c107229654b?w=120&auto=format&fit=crop&q=60",
     },
@@ -1304,6 +1339,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       price: 100000,
       status: "Có bán",
       linkedDishId: "cc5",
+      linkedMenuGroupId: "ccmg1",
       image:
         "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=120&auto=format&fit=crop&q=60",
     },
@@ -1315,6 +1351,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       price: 20000,
       status: "Có bán",
       linkedDishId: "cc6",
+      linkedMenuGroupId: "ccmg3",
       image:
         "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=120&auto=format&fit=crop&q=60",
     },
@@ -1326,6 +1363,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       price: 20000,
       status: "Có bán",
       linkedDishId: "cc7",
+      linkedMenuGroupId: "ccmg4",
       image:
         "https://images.unsplash.com/photo-1497534446932-c925b458314e?w=120&auto=format&fit=crop&q=60",
     },
@@ -1337,6 +1375,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       price: 25000,
       status: "Có bán",
       linkedDishId: "",
+      linkedMenuGroupId: "",
       image:
         "https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=120&auto=format&fit=crop&q=60",
     },
@@ -1348,6 +1387,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       price: 25000,
       status: "Có bán",
       linkedDishId: "cc9",
+      linkedMenuGroupId: "ccmg2",
     },
     {
       id: 10,
@@ -1357,6 +1397,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       price: 30000,
       status: "Có bán",
       linkedDishId: "cc10",
+      linkedMenuGroupId: "ccmg3",
       image:
         "https://images.unsplash.com/photo-1613478223719-2ab802602423?w=120&auto=format&fit=crop&q=60",
     },
@@ -1382,6 +1423,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       group: "Topping",
       price: 10000,
       linkedGroupId: "ccg_oreo",
+      linkedStpvGroupId: "ccsg1",
     },
     {
       id: "stpv2",
@@ -1389,6 +1431,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       group: "Topping",
       price: 8000,
       linkedGroupId: "ccg_daudo",
+      linkedStpvGroupId: "ccsg1",
     },
     {
       id: "stpv3",
@@ -1396,6 +1439,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       group: "Topping",
       price: 15000,
       linkedGroupId: "ccg_kemtrung",
+      linkedStpvGroupId: "ccsg1",
     },
     {
       id: "stpv4",
@@ -1403,6 +1447,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       group: "Topping",
       price: 15000,
       linkedGroupId: "",
+      linkedStpvGroupId: "ccsg1",
     },
     {
       id: "stpv5",
@@ -1410,6 +1455,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       group: "Topping",
       price: 5000,
       linkedGroupId: "ccg_tranchau",
+      linkedStpvGroupId: "ccsg1",
     },
     {
       id: "stpv6",
@@ -1417,6 +1463,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       group: "Tùy chọn",
       price: 0,
       linkedGroupId: "ccg_nhieuduong",
+      linkedStpvGroupId: "ccsg2",
     },
     {
       id: "stpv7",
@@ -1424,14 +1471,16 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       group: "Tùy chọn",
       price: 0,
       linkedGroupId: "ccg_nhieuda",
+      linkedStpvGroupId: "ccsg2",
     },
-    { id: "stpv8", name: "Size M", group: "Size", price: 0, linkedGroupId: "" },
+    { id: "stpv8", name: "Size M", group: "Size", price: 0, linkedGroupId: "", linkedStpvGroupId: "ccsg3" },
     {
       id: "stpv9",
       name: "Size L",
       group: "Size",
       price: 10000,
       linkedGroupId: "ccg_sizel",
+      linkedStpvGroupId: "ccsg3",
     },
     {
       id: "stpv10",
@@ -1439,6 +1488,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       group: "Topping",
       price: 10000,
       linkedGroupId: "",
+      linkedStpvGroupId: "ccsg1",
     },
     {
       id: "stpv11",
@@ -1446,6 +1496,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       group: "Topping",
       price: 15000,
       linkedGroupId: "",
+      linkedStpvGroupId: "ccsg1",
     },
     {
       id: "stpv12",
@@ -1453,6 +1504,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       group: "Topping",
       price: 10000,
       linkedGroupId: "",
+      linkedStpvGroupId: "ccsg1",
     },
     {
       id: "stpv13",
@@ -1460,6 +1512,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
       group: "Topping",
       price: 5000,
       linkedGroupId: "",
+      linkedStpvGroupId: "ccsg1",
     },
   ];
 
@@ -1508,8 +1561,10 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
     if (isQrModalOpen && shopeeWizardStep === 2) {
       setStep2SyncProgress(100);
       setIsStep2Syncing(false);
+      // W14: giả lập kết quả đồng bộ — 2 món lỗi (chỉ khi có thực đơn trên ShopeeFood)
+      setSyncErrorIds(isNoStoreFlow ? [] : [3, 10]);
     }
-  }, [isQrModalOpen, shopeeWizardStep]);
+  }, [isQrModalOpen, shopeeWizardStep, isNoStoreFlow]);
 
   const handleToggleDay = (id: string) => {
     setShopeeOperatingDays((prev) =>
@@ -1738,6 +1793,51 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
     const isConnected =
       apps.find((a) => a.id === "shopeefood")?.isConnected || false;
 
+    // W10: logic hoàn tất wizard (confetti + chuyển trạng thái đã kết nối) — gọi từ nút
+    // "Hoàn tất" của bước con 2/2 (Đồng bộ STPV), thay cho Bước 3 "Thiết lập bán hàng" cũ
+    const finishShopeeWizard = () => {
+      // Confetti fireworks animation
+      const duration = 2.5 * 1000;
+      const end = Date.now() + duration;
+
+      (function frame() {
+        confetti({
+          particleCount: 4,
+          angle: 60,
+          spread: 55,
+          origin: { x: 0, y: 0.8 },
+          colors: ["#245FDF", "#3B82F6", "#10B981", "#F59E0B"],
+        });
+        confetti({
+          particleCount: 4,
+          angle: 120,
+          spread: 55,
+          origin: { x: 1, y: 0.8 },
+          colors: ["#245FDF", "#3B82F6", "#10B981", "#F59E0B"],
+        });
+
+        if (Date.now() < end) {
+          requestAnimationFrame(frame);
+        }
+      })();
+
+      // Redirect/Navigate down to actual management screen first
+      setApps((prevApps) =>
+        prevApps.map((app) => {
+          if (app.id === "shopeefood") return { ...app, isConnected: true };
+          return app;
+        }),
+      );
+      setIsQrModalOpen(false);
+      setShopeeSyncStarted(true);
+      setShopeeWizardStep(1);
+      setShopeeFoodTab("menu");
+      setShopeeActiveSegment("thuc-don");
+
+      // Now open the success popup modal
+      setIsShopeeSuccessModalOpen(true);
+    };
+
     if (isQrModalOpen) {
       return (
         <div className="fixed inset-0 z-[9999] flex flex-col h-screen w-screen animate-fade-in select-none bg-[#F0F2F4] font-sans">
@@ -1767,7 +1867,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
                 <span
                   className={`text-[13px] font-sans ml-2 ${shopeeWizardStep === 1 ? "text-[#101828] font-bold" : "text-[#717680] font-normal"}`}
                 >
-                  Kết nối ShopeeFood
+                  Quét QR đăng nhập
                 </span>
               </div>
               <div className="w-12 h-[1px] bg-[#E9EAEB] mx-2"></div>
@@ -1789,26 +1889,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
                   className={`text-[13px] font-sans ml-2 flex items-center gap-1.5 ${shopeeWizardStep === 2 ? "text-[#101828] font-bold" : "text-[#717680] font-normal"}`}
                 >
                   <RefreshCw className="w-3.5 h-3.5 text-[#245FDF]" />
-                  Đồng bộ & Thiết lập thực đơn
-                </span>
-              </div>
-              <div className="w-12 h-[1px] bg-[#E9EAEB] mx-2"></div>
-
-              {/* Step 3 */}
-              <div className="flex items-center">
-                <div
-                  className={`w-[22px] h-[22px] rounded-full flex items-center justify-center text-[11px] ${
-                    shopeeWizardStep === 3
-                      ? "bg-[#245FDF] text-white font-bold"
-                      : "bg-white border border-[#D5D7DA] text-[#717680] font-normal"
-                  }`}
-                >
-                  3
-                </div>
-                <span
-                  className={`text-[13px] font-sans ml-2 ${shopeeWizardStep === 3 ? "text-[#101828] font-bold" : "text-[#717680] font-normal"}`}
-                >
-                  Thiết lập bán hàng
+                  Đồng bộ thực đơn
                 </span>
               </div>
             </div>
@@ -1831,8 +1912,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
             {shopeeWizardStep === 2 &&
               step2SyncProgress === 100 &&
               isWizardAlertVisible &&
-              !isNoStoreFlow &&
-              connectionType !== "has_store" && (
+              !isNoStoreFlow && (
                 <div className="mb-4 p-4 bg-[#ECFDF5] border border-[#A7F3D0] rounded-xl text-left flex items-start justify-between relative animate-fade-in w-full shadow-sm">
                   <div className="flex gap-3">
                     <img
@@ -1863,22 +1943,13 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
               )}
 
             <div
-              className={`w-full bg-white rounded-xl shadow-[0_4px_16px_0_rgba(0,0,0,0.04)] flex flex-col border border-[#E9EAEB] ${
-                shopeeWizardStep === 3
-                  ? "flex-initial h-auto overflow-visible"
-                  : "flex-1 overflow-hidden"
-              }`}
-              style={shopeeWizardStep === 3 ? {} : { minHeight: "520px" }}
+              className="w-full bg-white rounded-xl shadow-[0_4px_16px_0_rgba(0,0,0,0.04)] flex flex-col border border-[#E9EAEB] flex-1 overflow-hidden"
+              style={{ minHeight: "520px" }}
             >
               {/* Card Body */}
               <div
-                className={`w-full ${
-                  shopeeWizardStep === 3
-                    ? "flex-initial flex flex-col overflow-visible h-auto"
-                    : "flex-1 flex flex-col overflow-hidden"
-                } ${
-                  (shopeeWizardStep === 2 && step2SyncProgress === 100) ||
-                  shopeeWizardStep === 3
+                className={`w-full flex-1 flex flex-col overflow-hidden ${
+                  shopeeWizardStep === 2 && step2SyncProgress === 100
                     ? "p-0 items-stretch justify-start"
                     : "p-6 items-center justify-center space-y-6 md:space-y-8"
                 }`}
@@ -1991,133 +2062,10 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
                       </p>
                     </div>
                   ) : (
-                    /* TWO CASES SELECTION: ĐÃ CÓ GIAN HÀNG vs CHƯA CÓ GIAN HÀNG */
+                    /* B1 - QUÉT QR ĐĂNG NHẬP (vào thẳng, không còn màn chọn gian hàng) */
                     <div className="w-full flex flex-col items-center justify-center space-y-6">
-                      {connectionType === "select" ? (
-                        /* GORGEOUS SIDE-BY-SIDE SELECTION PANEL */
-                        <div className="w-full max-w-4xl mx-auto py-2 animate-fade-in font-sans">
-                          <div className="text-center mb-8">
-                            <h3 className="text-[#101828] font-extrabold text-xl md:text-2xl tracking-tight">
-                              Kết nối ShopeeFood với CukCuk
-                            </h3>
-                            <p className="text-[#717680] text-[13.5px] mt-2 max-w-[620px] mx-auto leading-relaxed">
-                              Vui lòng lựa chọn trạng thái hiện tại của nhà hàng để CukCuk hướng dẫn liên kết tài khoản & đồng bộ thực đơn phù hợp nhất.
-                            </p>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-4">
-                            {/* Card 1: Has Store */}
-                            <div 
-                              onClick={() => {
-                                setConnectionType("has_store");
-                                setIsNoStoreFlow(false);
-                                setQrScanStatus("idle");
-                                onNotification("Đã chuyển sang màn hình quét mã kết nối", "success");
-                              }}
-                              className="bg-white border border-[#E9EAEB] hover:border-[#EE4D2D] hover:ring-4 hover:ring-[#EE4D2D]/10 rounded-2xl p-6 flex flex-col justify-between transition-all duration-300 shadow-sm hover:shadow-md cursor-pointer group relative overflow-hidden text-left"
-                            >
-                              {/* Top colored brand strip */}
-                              <div className="absolute top-0 left-0 right-0 h-1.5 bg-[#EE4D2D]"></div>
-                              
-                              <div className="space-y-4">
-                                <div className="w-12 h-12 rounded-xl bg-[#FFF1ED] flex items-center justify-center text-[#EE4D2D] group-hover:scale-105 transition-transform duration-300">
-                                  <Store className="w-6 h-6" />
-                                </div>
-                                <div className="space-y-1.5">
-                                  <h4 className="text-[#101828] font-extrabold text-[16px] flex items-center gap-1.5">
-                                    <span>Nhà hàng đã có gian hàng trên ShopeeFood</span>
-                                  </h4>
-                                  <p className="text-[#717680] text-[12px] leading-relaxed">
-                                    Quán đã bán hàng trên ShopeeFood & sở hữu tài khoản quản trị Shopee Partner (đăng nhập bằng số điện thoại).
-                                  </p>
-                                </div>
-                                <div className="space-y-2.5 pt-3 border-t border-gray-100 text-[12px] text-[#344054]">
-                                  <div className="flex items-start gap-2">
-                                    <span className="text-[#EE4D2D] font-bold mt-0.5">✓</span>
-                                    <span>Đăng nhập nhanh 5 giây bằng cách quét mã QR trên điện thoại</span>
-                                  </div>
-                                  <div className="flex items-start gap-2">
-                                    <span className="text-[#EE4D2D] font-bold mt-0.5">✓</span>
-                                    <span>Đồng bộ tự động & thiết lập thực đơn bán hàng về CukCuk</span>
-                                  </div>
-                                  <div className="flex items-start gap-2">
-                                    <span className="text-[#EE4D2D] font-bold mt-0.5">✓</span>
-                                    <span>Tự động nhận đơn và in phiếu chế biến nhanh chóng</span>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="mt-8 pt-2">
-                                <button className="w-full py-2.5 px-4 bg-[#EE4D2D] hover:bg-[#D73C1F] text-white font-bold rounded-lg text-xs transition-colors duration-200 flex items-center justify-center gap-2 cursor-pointer border-none shadow-sm">
-                                  <span>Kết nối ngay</span>
-                                  <ArrowRight className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* Card 2: No Store */}
-                            <div 
-                              onClick={() => {
-                                setConnectionType("no_store");
-                                setIsNoStoreFlow(true);
-                                setQrScanStatus("idle");
-                                onNotification("Đã chuyển sang hướng dẫn đăng ký đối tác mới", "info");
-                              }}
-                              className="bg-white border border-[#E9EAEB] hover:border-[#245FDF] hover:ring-4 hover:ring-[#245FDF]/10 rounded-2xl p-6 flex flex-col justify-between transition-all duration-300 shadow-sm hover:shadow-md cursor-pointer group relative overflow-hidden text-left"
-                            >
-                              {/* Top colored brand strip */}
-                              <div className="absolute top-0 left-0 right-0 h-1.5 bg-[#245FDF]"></div>
-
-                              <div className="space-y-4">
-                                <div className="w-12 h-12 rounded-xl bg-[#EFF6FF] flex items-center justify-center text-[#245FDF] group-hover:scale-105 transition-transform duration-300">
-                                  <Rocket className="w-6 h-6" />
-                                </div>
-                                <div className="space-y-1.5">
-                                  <h4 className="text-[#101828] font-extrabold text-[16px] flex items-center gap-1.5">
-                                    <span>Nhà hàng chưa có gian hàng trên ShopeeFood</span>
-                                  </h4>
-                                  <p className="text-[#717680] text-[12px] leading-relaxed">
-                                    Quán mới mở hoặc chưa từng đăng ký bán hàng trên ShopeeFood, cần tạo hồ sơ & tài khoản bán hàng mới.
-                                  </p>
-                                </div>
-                                <div className="space-y-2.5 pt-3 border-t border-gray-100 text-[12px] text-[#344054]">
-                                  <div className="flex items-start gap-2">
-                                    <span className="text-[#245FDF] font-bold mt-0.5">✓</span>
-                                    <span>Xem quy trình các bước đăng ký tài khoản Shopee Partner trực tuyến</span>
-                                  </div>
-                                  <div className="flex items-start gap-2">
-                                    <span className="text-[#245FDF] font-bold mt-0.5">✓</span>
-                                    <span>Chuẩn bị đầy đủ hồ sơ pháp lý & thông tin thực đơn của quán</span>
-                                  </div>
-                                  <div className="flex items-start gap-2">
-                                    <span className="text-[#245FDF] font-bold mt-0.5">✓</span>
-                                    <span>Liên kết dễ dàng sau khi được ShopeeFood xét duyệt & duyệt bán</span>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="mt-8 pt-2">
-                                <button className="w-full py-2.5 px-4 bg-[#245FDF] hover:bg-[#1B4EBA] text-white font-bold rounded-lg text-xs transition-colors duration-200 flex items-center justify-center gap-2 cursor-pointer border-none shadow-sm">
-                                  <span>Xem hướng dẫn đăng ký</span>
-                                  <ArrowRight className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        /* AFTER SELECTION - SHOW DETAIL VIEW WITH BACK OPTION */
                         <div className="w-full flex flex-col items-center space-y-5 animate-fade-in">
-                          {/* Navigation header row */}
-                          <div className="flex items-center justify-start w-full max-w-[620px] gap-3 px-2 border-b border-gray-100 pb-4 select-none">
-                            <button
-                              onClick={() => setConnectionType("select")}
-                              className="text-xs font-semibold text-[#245FDF] hover:text-[#1B4EBA] flex items-center gap-1.5 bg-transparent border-none cursor-pointer py-1.5 px-2.5 hover:bg-gray-100/70 rounded-lg transition-colors"
-                            >
-                              <ChevronLeft className="w-5 h-5" />
-                            </button>
-                          </div>
 
-                          {connectionType === "has_store" ? (
-                            /* CASE 1: ĐÃ CÓ GIAN HÀNG -> DISPLAY LOGIN QR CODE */
                             <>
                               {/* Two Logos Connected */}
                               <div className="flex items-center justify-center">
@@ -2181,15 +2129,15 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
                               {/* Instructions */}
                               <div className="text-center text-[#717680] text-[13px] leading-relaxed max-w-[620px] px-4 font-sans space-y-2">
                                 <p>
-                                  Vui lòng mở ứng dụng{" "}
+                                  Mở ứng dụng{" "}
                                   <strong className="font-semibold text-[#101828]">
                                     Shopee Partner
                                   </strong>{" "}
-                                  (hoặc ứng dụng Shopee chính) trên điện thoại di động, đi vào mục{" "}
+                                  trên điện thoại, chọn{" "}
                                   <strong className="font-semibold text-[#101828]">
                                     "Thiết lập / Đồng bộ CukCuk"
                                   </strong>{" "}
-                                  và quét mã để đăng nhập & liên kết nhanh cửa hàng.
+                                  rồi quét mã để đăng nhập.
                                 </p>
                                 <div className="text-[12px] text-amber-600 font-medium">
                                   {qrScanStatus === "idle" && "● Sẵn sàng quét (tự động đăng nhập sau 5 giây)..."}
@@ -2197,74 +2145,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
                                 </div>
                               </div>
                             </>
-                          ) : (
-                            /* CASE 2: CHƯA CÓ GIAN HÀNG -> SHOW REGISTER AND CONNECTION GUIDELINES */
-                            <div className="w-full max-w-[540px] flex flex-col gap-4 text-left animate-fade-in font-sans pb-4">
-                              <div className="text-center mb-1">
-                                <h4 className="text-[#101828] font-extrabold text-[16px]">
-                                  Hướng dẫn đăng ký và kết nối ShopeeFood
-                                </h4>
-                                <p className="text-[#717680] text-[12px] mt-1">
-                                  Vui lòng hoàn thành 2 bước dưới đây để bắt đầu đăng ký và liên kết với ShopeeFood.
-                                </p>
-                              </div>
-
-                              <div className="space-y-3.5">
-                                {/* Step 1 */}
-                                <div className="bg-white border border-[#E9EAEB] rounded-xl p-4 flex gap-4 hover:border-[#245FDF]/30 transition-all shadow-sm">
-                                  <div className="w-7 h-7 rounded-full bg-[#EFF6FF] text-[#245FDF] font-extrabold text-[12px] flex items-center justify-center flex-shrink-0 mt-0.5">
-                                    1
-                                  </div>
-                                  <div className="flex-1 space-y-1.5">
-                                    <h4 className="text-[#101828] font-bold text-[13.5px]">Bước 1: Đăng ký ShopeeFood</h4>
-                                    <p className="text-[#717680] text-[12px] leading-relaxed">
-                                      Quý khách vui lòng thực hiện đăng ký gian hàng mới trên ShopeeFood.
-                                    </p>
-                                    <div className="pt-1">
-                                      <a
-                                        href="https://merchant.shopeefood.vn/edu/article/huong-dan-dang-ky-quan-moi-shopeefood"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        onClick={() => onNotification("Đang mở trang hướng dẫn đăng ký ShopeeFood...", "info")}
-                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#EE4D2D] hover:bg-[#D73C1F] text-white rounded-md text-xs font-bold transition-all shadow-sm hover:no-underline cursor-pointer"
-                                      >
-                                        <span>Xem chi tiết hướng dẫn ShopeeFood</span>
-                                        <ExternalLink className="w-3.5 h-3.5" />
-                                      </a>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Step 2 */}
-                                <div className="bg-white border border-[#E9EAEB] rounded-xl p-4 flex gap-4 hover:border-[#245FDF]/30 transition-all shadow-sm">
-                                  <div className="w-7 h-7 rounded-full bg-[#EFF6FF] text-[#245FDF] font-extrabold text-[12px] flex items-center justify-center flex-shrink-0 mt-0.5">
-                                    2
-                                  </div>
-                                  <div className="flex-1 space-y-1.5">
-                                    <h4 className="text-[#101828] font-bold text-[13.5px]">Bước 2: Sau khi đăng ký xong, thực hiện đăng nhập và kết nối với ShopeeFood</h4>
-                                    <p className="text-[#717680] text-[12px] leading-relaxed">
-                                      Khi đã nhận được thông tin tài khoản đăng nhập Shopee Partner, quý khách thực hiện liên kết bằng cách quét mã QR đăng nhập.
-                                    </p>
-                                    <div className="pt-1.5">
-                                      <button
-                                        onClick={() => {
-                                          setConnectionType("has_store");
-                                          setQrScanStatus("idle");
-                                          onNotification("Đã chuyển sang màn hình quét mã kết nối", "success");
-                                        }}
-                                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#245FDF] hover:bg-[#1B4EBA] text-white rounded-md text-xs font-bold transition-all shadow-sm cursor-pointer border-none"
-                                      >
-                                        <span>Kết nối ngay</span>
-                                        <ArrowRight className="w-3.5 h-3.5" />
-                                      </button>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          )}
                         </div>
-                      )}
                     </div>
                   ))}
 
@@ -2326,7 +2207,10 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
                                 if (progress >= 100) {
                                   setStep2SyncProgress(100);
                                   clearInterval(interval);
-                                  onNotification("Đồng bộ thực đơn từ ShopeeFood thành công !", "success");
+                                  // W14: giả lập 2 món lỗi sau mỗi lần đồng bộ đầy đủ
+                                  setSyncErrorIds([3, 10]);
+                                  setIsWizardAlertVisible(true);
+                                  onNotification("Đồng bộ thực đơn từ ShopeeFood hoàn tất", "success");
                                 } else {
                                   setStep2SyncProgress(progress);
                                 }
@@ -2349,94 +2233,73 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
                         </div>
                       </div>
 
-                      {/* Tabs Strip and Warning Information */}
+                      {/* W6: 2 bước con tuần tự thay cho dải 4 tab */}
                       <div className="px-6 border-b border-[#E9EAEB] flex items-center justify-between select-none bg-white">
-                        <div className="flex gap-6">
-                          {/* Tab 1: Món (dynamic) */}
-                          <button
-                            onClick={() => setWizardSubTab("menu")}
-                            className={`pb-3 text-[14px] font-semibold flex items-center gap-2 transition-all cursor-pointer border-b-2 border-solid relative bg-transparent outline-none ${
-                              wizardSubTab === "menu"
-                                ? "text-[#245FDF] border-[#245FDF]"
-                                : "text-[#717680] border-transparent hover:text-[#101828]"
-                            }`}
-                          >
-                            <span>Món ({wizardFoods.length})</span>
-                            {wizardFoods.filter((f) => !f.linkedDishId).length >
-                              0 && (
+                        <div className="flex items-center gap-3 pb-3">
+                          {/* Bước con 1: Đồng bộ món */}
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`w-[20px] h-[20px] rounded-full flex items-center justify-center text-[11px] font-bold ${
+                                wizardSubTab === "menu"
+                                  ? "bg-[#245FDF] text-white"
+                                  : "bg-[#EDFCF4] text-[#12B76A] border border-[#12B76A]/30"
+                              }`}
+                            >
+                              {wizardSubTab === "menu" ? "1" : "✓"}
+                            </span>
+                            <span
+                              className={`text-[13px] ${
+                                wizardSubTab === "menu"
+                                  ? "font-bold text-[#101828]"
+                                  : "font-semibold text-[#12B76A]"
+                              }`}
+                            >
+                              Bước 1/2 — Đồng bộ món ({wizardFoods.length})
+                            </span>
+                            {wizardFoods.filter((f) => !f.linkedDishId).length > 0 && (
                               <AlertTriangle className="w-4 h-4 text-[#F59E0B] stroke-[2.5px]" />
                             )}
-                          </button>
+                          </div>
 
-                          {/* Tab 2: Nhóm thực đơn (dynamic) */}
-                          <button
-                            onClick={() => setWizardSubTab("menuGroup")}
-                            className={`pb-3 text-[14px] font-semibold flex items-center gap-2 transition-all cursor-pointer border-b-2 border-solid relative bg-transparent outline-none ${
-                              wizardSubTab === "menuGroup"
-                                ? "text-[#245FDF] border-[#245FDF]"
-                                : "text-[#717680] border-transparent hover:text-[#101828]"
-                            }`}
-                          >
-                            <span>Nhóm thực đơn ({wizardMenuGroups.length})</span>
-                            {wizardMenuGroups.filter((g) => !g.linkedGroupId).length >
-                              0 && (
-                              <AlertTriangle className="w-4 h-4 text-[#F59E0B] stroke-[2.5px]" />
-                            )}
-                          </button>
+                          <div className="w-10 h-[1px] bg-[#E9EAEB]"></div>
 
-                          {/* Tab 3: Sở thích phục vụ (dynamic) */}
-                          <button
-                            onClick={() => setWizardSubTab("stpv")}
-                            className={`pb-3 text-[14px] font-semibold flex items-center gap-2 transition-all cursor-pointer border-b-2 border-solid relative bg-transparent outline-none ${
-                              wizardSubTab === "stpv"
-                                ? "text-[#245FDF] border-[#245FDF]"
-                                : "text-[#717680] border-transparent hover:text-[#101828]"
-                            }`}
-                          >
-                            <span>Sở thích phục vụ ({wizardStpv.length})</span>
-                            {wizardStpv.filter((s) => !s.linkedGroupId).length >
-                              0 && (
-                              <AlertTriangle className="w-4 h-4 text-[#F59E0B] stroke-[2.5px]" />
-                            )}
-                          </button>
-
-                          {/* Tab 4: Nhóm STPV (dynamic) */}
-                          <button
-                            onClick={() => setWizardSubTab("stpvGroup")}
-                            className={`pb-3 text-[14px] font-semibold flex items-center gap-2 transition-all cursor-pointer border-b-2 border-solid relative bg-transparent outline-none ${
-                              wizardSubTab === "stpvGroup"
-                                ? "text-[#245FDF] border-[#245FDF]"
-                                : "text-[#717680] border-transparent hover:text-[#101828]"
-                            }`}
-                          >
-                            <span>Nhóm STPV ({wizardStpvGroups.length})</span>
-                            {wizardStpvGroups.filter((sg) => !sg.linkedGroupId).length >
-                              0 && (
-                              <AlertTriangle className="w-4 h-4 text-[#F59E0B] stroke-[2.5px]" />
-                            )}
-                          </button>
+                          {/* Bước con 2: Đồng bộ STPV */}
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`w-[20px] h-[20px] rounded-full flex items-center justify-center text-[11px] ${
+                                wizardSubTab === "stpv"
+                                  ? "bg-[#245FDF] text-white font-bold"
+                                  : "bg-white border border-[#D5D7DA] text-[#717680] font-normal"
+                              }`}
+                            >
+                              2
+                            </span>
+                            <span
+                              className={`text-[13px] ${
+                                wizardSubTab === "stpv"
+                                  ? "font-bold text-[#101828]"
+                                  : "font-normal text-[#717680]"
+                              }`}
+                            >
+                              Bước 2/2 — Đồng bộ sở thích phục vụ (STPV) ({wizardStpv.length})
+                            </span>
+                            {wizardSubTab === "stpv" &&
+                              wizardStpv.filter((s) => !s.linkedGroupId).length > 0 && (
+                                <AlertTriangle className="w-4 h-4 text-[#F59E0B] stroke-[2.5px]" />
+                              )}
+                          </div>
                         </div>
 
                         {/* Warnings status column block on far right */}
                         {((wizardSubTab === "menu" &&
-                          wizardFoods.filter((f) => !f.linkedDishId).length >
-                            0) ||
-                          (wizardSubTab === "menuGroup" &&
-                            wizardMenuGroups.filter((g) => !g.linkedGroupId).length >
-                              0) ||
+                          wizardFoods.filter((f) => !f.linkedDishId).length > 0) ||
                           (wizardSubTab === "stpv" &&
-                            wizardStpv.filter((s) => !s.linkedGroupId).length >
-                              0) ||
-                          (wizardSubTab === "stpvGroup" &&
-                            wizardStpvGroups.filter((sg) => !sg.linkedGroupId).length >
-                              0)) && (
+                            wizardStpv.filter((s) => !s.linkedGroupId).length > 0)) && (
                           <div className="pb-3 flex items-center gap-2 text-[#B45309] font-medium text-[13px]">
                             <AlertTriangle className="w-4.5 h-4.5 text-[#F59E0B] stroke-[2.5px]" />
                             <span>
                               {wizardSubTab === "menu" && `Có ${wizardFoods.filter((f) => !f.linkedDishId).length}/${wizardFoods.length} món ăn chưa được liên kết`}
-                              {wizardSubTab === "menuGroup" && `Có ${wizardMenuGroups.filter((g) => !g.linkedGroupId).length}/${wizardMenuGroups.length} nhóm thực đơn chưa được liên kết`}
                               {wizardSubTab === "stpv" && `Có ${wizardStpv.filter((s) => !s.linkedGroupId).length}/${wizardStpv.length} STPV chưa được liên kết`}
-                              {wizardSubTab === "stpvGroup" && `Có ${wizardStpvGroups.filter((sg) => !sg.linkedGroupId).length}/${wizardStpvGroups.length} nhóm STPV chưa được liên kết`}
                             </span>
                           </div>
                         )}
@@ -2607,6 +2470,14 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
                                           className="w-full px-2 py-0 text-[12px] bg-transparent outline-none h-full border-none focus:ring-0 text-[#101828]"
                                         />
                                       </div>
+                                    </div>
+                                  </th>
+
+
+                                  {/* W7: Nhóm thực đơn tương ứng */}
+                                  <th className="px-4 py-2 border-r border-[#E9EAEB] min-w-[190px]">
+                                    <div className="flex h-[72px] items-center justify-center text-center text-[#101828] font-bold">
+                                      <span>Nhóm thực đơn tương ứng</span>
                                     </div>
                                   </th>
 
@@ -2874,6 +2745,12 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
                                                         ? {
                                                             ...f,
                                                             linkedDishId: newId,
+                                                            // W7: tự điền nhóm thực đơn theo nhóm của món
+                                                            linkedMenuGroupId:
+                                                              f.linkedMenuGroupId ||
+                                                              (wizardCukCukMenuGroups.find(
+                                                                (g) => g.name === f.category,
+                                                              )?.id ?? ""),
                                                           }
                                                         : f,
                                                     ),
@@ -3073,6 +2950,12 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
                                                                               ...f,
                                                                               linkedDishId:
                                                                                 cc.id,
+                                                                              // W7: tự điền nhóm thực đơn theo nhóm của món
+                                                                              linkedMenuGroupId:
+                                                                                f.linkedMenuGroupId ||
+                                                                                (wizardCukCukMenuGroups.find(
+                                                                                  (g) => g.name === f.category,
+                                                                                )?.id ?? ""),
                                                                             }
                                                                           : f,
                                                                     ),
@@ -3125,6 +3008,112 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
                                             )}
                                           </td>
 
+
+                                          {/* W7: Nhóm thực đơn tương ứng trên MISA CukCuk */}
+                                          <td className="px-4 py-2 border-r border-[#E9EAEB] overflow-visible">
+                                            <div className="relative">
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  if (activeDropdownId === `foodgrp_${item.id}`) {
+                                                    setActiveDropdownId(null);
+                                                  } else {
+                                                    setActiveDropdownId(`foodgrp_${item.id}`);
+                                                    setDropdownSearch("");
+                                                  }
+                                                }}
+                                                className="w-full h-[32px] px-2 text-[13px] border border-[#D5D7DA] rounded-[6px] bg-white text-[#101828] outline-none focus:border-[#245FDF] focus:ring-1 focus:ring-[#245FDF]/10 flex items-center justify-between cursor-pointer font-medium text-left font-sans"
+                                              >
+                                                <span className="truncate">
+                                                  {item.linkedMenuGroupId ? (
+                                                    (() => {
+                                                      const matchedGrp = wizardCukCukMenuGroups.find(
+                                                        (g) => g.id === item.linkedMenuGroupId,
+                                                      );
+                                                      return matchedGrp
+                                                        ? `${matchedGrp.code ? `[${matchedGrp.code}] ` : ""}${matchedGrp.name}`
+                                                        : "";
+                                                    })()
+                                                  ) : (
+                                                    <span className="text-gray-400 font-normal">
+                                                      Chọn nhóm tương ứng...
+                                                    </span>
+                                                  )}
+                                                </span>
+                                                <svg
+                                                  className="w-4 h-4 text-[#717680] flex-shrink-0 ml-1"
+                                                  fill="none"
+                                                  viewBox="0 0 24 24"
+                                                  stroke="currentColor"
+                                                >
+                                                  <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M19 9l-7 7-7-7"
+                                                  />
+                                                </svg>
+                                              </button>
+
+                                              {activeDropdownId === `foodgrp_${item.id}` && (
+                                                <>
+                                                  <div
+                                                    className="fixed inset-0 z-40 bg-transparent"
+                                                    onClick={() => setActiveDropdownId(null)}
+                                                  />
+                                                  <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white border border-[#D5D7DA] rounded-lg shadow-lg max-h-60 overflow-hidden flex flex-col text-left">
+                                                    <div className="flex-1 overflow-y-auto max-h-[200px] divide-y divide-gray-50">
+                                                      <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                          setWizardFoods((prev) =>
+                                                            prev.map((f) =>
+                                                              f.id === item.id
+                                                                ? { ...f, linkedMenuGroupId: "" }
+                                                                : f,
+                                                            ),
+                                                          );
+                                                          setActiveDropdownId(null);
+                                                        }}
+                                                        className="w-full px-3 py-2 text-left text-[12px] text-gray-400 hover:bg-gray-50 cursor-pointer flex items-center justify-between font-sans bg-white border-none"
+                                                      >
+                                                        -- Bỏ chọn --
+                                                      </button>
+                                                      {wizardCukCukMenuGroups.map((g) => (
+                                                        <button
+                                                          key={g.id}
+                                                          type="button"
+                                                          onClick={() => {
+                                                            setWizardFoods((prev) =>
+                                                              prev.map((f) =>
+                                                                f.id === item.id
+                                                                  ? { ...f, linkedMenuGroupId: g.id }
+                                                                  : f,
+                                                              ),
+                                                            );
+                                                            setActiveDropdownId(null);
+                                                          }}
+                                                          className={`w-full px-3 py-1.5 text-left hover:bg-gray-50 cursor-pointer flex flex-col font-sans border-none ${
+                                                            item.linkedMenuGroupId === g.id
+                                                              ? "bg-[#F0F6FE] text-[#245FDF] font-semibold"
+                                                              : "text-[#101828] bg-white"
+                                                          }`}
+                                                        >
+                                                          <span className="text-[10px] text-gray-400 font-semibold font-mono">
+                                                            {g.code}
+                                                          </span>
+                                                          <span className="text-[13px]">
+                                                            {g.name}
+                                                          </span>
+                                                        </button>
+                                                      ))}
+                                                    </div>
+                                                  </div>
+                                                </>
+                                              )}
+                                            </div>
+                                          </td>
+
                                           {/* Trash / Delete Row Button */}
                                           <td className="px-4 py-2 text-center">
                                             <button
@@ -3151,7 +3140,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
                                 ) : (
                                   <tr>
                                     <td
-                                      colSpan={9}
+                                      colSpan={10}
                                       className="text-center py-12 text-[#717680] font-sans bg-[#FAFBFC]/40"
                                     >
                                       {isNoStoreFlow && wizardFoods.length === 0 ? (
@@ -3168,298 +3157,6 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
                                         </div>
                                       ) : (
                                         <span>Không tìm thấy món ăn nào phù hợp với bộ lọc.</span>
-                                      )}
-                                    </td>
-                                  </tr>
-                                )}
-                              </tbody>
-                            </table>
-                          </div>
-                        )}
-
-                        {wizardSubTab === "menuGroup" && (
-                          /* MENU GROUPS (NHÓM THỰC ĐƠN) TABLE LAYOUT */
-                          <div className="w-full bg-white animate-fade-in">
-                            <table className="w-full border-collapse text-left text-[13px]">
-                              <thead>
-                                <tr className="bg-[#F7F7F8] border-b border-[#E9EAEB]">
-                                  {/* Tên nhóm thực đơn */}
-                                  <th className="px-4 py-2 border-r border-[#E9EAEB] min-w-[200px]">
-                                    <div className="flex flex-col w-full h-[72px] justify-between">
-                                      <div className="flex-1 flex items-center justify-center text-center font-bold text-[#101828]">
-                                        <span>Tên nhóm thực đơn</span>
-                                      </div>
-                                      <div className="flex w-full border border-[#D5D7DA] rounded-[4px] overflow-hidden bg-white h-[28px] items-center font-normal">
-                                        <div className="px-2 bg-gray-50 text-gray-500 text-[11px] font-bold h-full flex items-center justify-center border-r border-[#E9EAEB] select-none">
-                                          *
-                                        </div>
-                                        <input
-                                          type="text"
-                                          placeholder=""
-                                          value={wizardFilterMenuGroupName}
-                                          onChange={(e) => setWizardFilterMenuGroupName(e.target.value)}
-                                          className="w-full px-2 py-0 text-[12px] bg-transparent outline-none h-full border-none focus:ring-0 text-[#101828]"
-                                        />
-                                      </div>
-                                    </div>
-                                  </th>
-
-                                  {/* Mô tả */}
-                                  <th className="px-4 py-2 border-r border-[#E9EAEB] min-w-[200px]">
-                                    <div className="flex flex-col w-full h-[72px] justify-between">
-                                      <div className="flex-1 flex items-center justify-center text-center font-bold text-[#101828]">
-                                        <span>Mô tả</span>
-                                      </div>
-                                      <div className="flex w-full border border-[#D5D7DA] rounded-[4px] overflow-hidden bg-white h-[28px] items-center font-normal">
-                                        <div className="px-2 bg-gray-50 text-gray-500 text-[11px] font-bold h-full flex items-center justify-center border-r border-[#E9EAEB] select-none">
-                                          *
-                                        </div>
-                                        <input
-                                          type="text"
-                                          placeholder=""
-                                          value={wizardFilterMenuGroupDesc}
-                                          onChange={(e) => setWizardFilterMenuGroupDesc(e.target.value)}
-                                          className="w-full px-2 py-0 text-[12px] bg-transparent outline-none h-full border-none focus:ring-0 text-[#101828]"
-                                        />
-                                      </div>
-                                    </div>
-                                  </th>
-
-                                  {/* Trạng thái liên kết */}
-                                  <th className="px-4 py-2 border-r border-[#E9EAEB] w-[140px]">
-                                    <div className="flex flex-col w-full h-[72px] justify-between">
-                                      <div className="flex-1 flex items-center justify-center text-center font-bold text-[#101828]">
-                                        <span>Trạng thái liên kết</span>
-                                      </div>
-                                      <select
-                                        value={wizardFilterMenuGroupStatus}
-                                        onChange={(e) => setWizardFilterMenuGroupStatus(e.target.value)}
-                                        className="w-full h-[28px] border border-[#D5D7DA] rounded-[4px] text-[12px] bg-white text-[#101828] outline-none px-1 py-0 cursor-pointer focus:border-[#245FDF] font-normal"
-                                      >
-                                        <option value="">Tất cả</option>
-                                        <option value="linked">Đã liên kết</option>
-                                        <option value="unlinked">Chưa liên kết</option>
-                                      </select>
-                                    </div>
-                                  </th>
-
-                                  {/* Nhóm thực đơn tương ứng trên MISA CukCuk */}
-                                  <th className="px-4 py-2 border-r border-[#E9EAEB] min-w-[220px]">
-                                    <div className="flex flex-col w-full h-[72px] justify-between">
-                                      <div className="flex-1 flex items-center justify-center text-center font-bold text-[#101828]">
-                                        <span>Nhóm tương ứng trên MISA CukCuk</span>
-                                      </div>
-                                      <div className="flex w-full border border-[#D5D7DA] rounded-[4px] overflow-hidden bg-white h-[28px] items-center font-normal">
-                                        <div className="px-2 bg-gray-50 text-gray-500 text-[11px] font-bold h-full flex items-center justify-center border-r border-[#E9EAEB] select-none">
-                                          *
-                                        </div>
-                                        <input
-                                          type="text"
-                                          placeholder=""
-                                          value={wizardFilterMenuGroupCukCuk}
-                                          onChange={(e) => setWizardFilterMenuGroupCukCuk(e.target.value)}
-                                          className="w-full px-2 py-0 text-[12px] bg-transparent outline-none h-full border-none focus:ring-0 text-[#101828]"
-                                        />
-                                      </div>
-                                    </div>
-                                  </th>
-
-                                  {/* Xóa */}
-                                  <th className="px-4 py-2 w-[60px] text-center">
-                                    <div className="flex h-[72px] items-center justify-center text-center">
-                                      <div className="flex-1 flex items-center justify-center" />
-                                    </div>
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {wizardMenuGroups.filter((item) => {
-                                  if (wizardFilterMenuGroupName && !item.name.toLowerCase().includes(wizardFilterMenuGroupName.toLowerCase())) return false;
-                                  if (wizardFilterMenuGroupDesc && !item.description.toLowerCase().includes(wizardFilterMenuGroupDesc.toLowerCase())) return false;
-                                  if (wizardFilterMenuGroupStatus) {
-                                    const isL = !!item.linkedGroupId;
-                                    if (wizardFilterMenuGroupStatus === "linked" && !isL) return false;
-                                    if (wizardFilterMenuGroupStatus === "unlinked" && isL) return false;
-                                  }
-                                  if (wizardFilterMenuGroupCukCuk) {
-                                    const ccName = wizardCukCukMenuGroups.find((c) => c.id === item.linkedGroupId)?.name || "";
-                                    if (!ccName.toLowerCase().includes(wizardFilterMenuGroupCukCuk.toLowerCase())) return false;
-                                  }
-                                  return true;
-                                }).length > 0 ? (
-                                  wizardMenuGroups
-                                    .filter((item) => {
-                                      if (wizardFilterMenuGroupName && !item.name.toLowerCase().includes(wizardFilterMenuGroupName.toLowerCase())) return false;
-                                      if (wizardFilterMenuGroupDesc && !item.description.toLowerCase().includes(wizardFilterMenuGroupDesc.toLowerCase())) return false;
-                                      if (wizardFilterMenuGroupStatus) {
-                                        const isL = !!item.linkedGroupId;
-                                        if (wizardFilterMenuGroupStatus === "linked" && !isL) return false;
-                                        if (wizardFilterMenuGroupStatus === "unlinked" && isL) return false;
-                                      }
-                                      if (wizardFilterMenuGroupCukCuk) {
-                                        const ccName = wizardCukCukMenuGroups.find((c) => c.id === item.linkedGroupId)?.name || "";
-                                        if (!ccName.toLowerCase().includes(wizardFilterMenuGroupCukCuk.toLowerCase())) return false;
-                                      }
-                                      return true;
-                                    })
-                                    .map((item) => {
-                                      const isLinked = !!item.linkedGroupId;
-                                      return (
-                                        <tr key={item.id} className="border-b border-[#E9EAEB] hover:bg-[#F9FAFB] transition-colors h-[54px]">
-                                          {/* Name */}
-                                          <td className="px-4 py-2 border-r border-[#E9EAEB] text-[#101828] font-semibold">
-                                            {item.name}
-                                          </td>
-
-                                          {/* Description */}
-                                          <td className="px-4 py-2 border-r border-[#E9EAEB] text-[#717680]">
-                                            {item.description}
-                                          </td>
-
-                                          {/* Status */}
-                                          <td className="px-4 py-2 border-r border-[#E9EAEB]">
-                                            <div className="flex items-center gap-1.5">
-                                              <span className={`w-2 h-2 rounded-full ${isLinked ? "bg-[#12B76A]" : "bg-[#717680]"}`} />
-                                              <span className={`font-semibold ${isLinked ? "text-[#12B76A]" : "text-[#717680]"}`}>
-                                                {isLinked ? "Đã liên kết" : "Chưa liên kết"}
-                                              </span>
-                                            </div>
-                                          </td>
-
-                                          {/* Dropdown Select CukCuk corresponding */}
-                                          <td className="px-4 py-2 border-r border-[#E9EAEB] overflow-visible">
-                                            <div className="relative">
-                                              <button
-                                                type="button"
-                                                onClick={() => {
-                                                  if (activeDropdownId === `menugroup_${item.id}`) {
-                                                    setActiveDropdownId(null);
-                                                  } else {
-                                                    setActiveDropdownId(`menugroup_${item.id}`);
-                                                    setDropdownSearch("");
-                                                  }
-                                                }}
-                                                className="w-full h-[32px] px-2 text-[13px] border border-[#D5D7DA] rounded-[6px] bg-white text-[#101828] outline-none focus:border-[#245FDF] focus:ring-1 focus:ring-[#245FDF]/10 flex items-center justify-between cursor-pointer font-medium text-left font-sans"
-                                              >
-                                                <span className="truncate">
-                                                  {item.linkedGroupId ? (
-                                                    (() => {
-                                                      const matched = wizardCukCukMenuGroups.find((cc) => cc.id === item.linkedGroupId);
-                                                      return matched ? `${matched.code ? `[${matched.code}] ` : ""}${matched.name}` : "";
-                                                    })()
-                                                  ) : (
-                                                    <span className="text-gray-400 font-normal">Chọn nhóm tương ứng...</span>
-                                                  )}
-                                                </span>
-                                                <svg className="w-4 h-4 text-[#717680] flex-shrink-0 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                                </svg>
-                                              </button>
-
-                                              {activeDropdownId === `menugroup_${item.id}` && (
-                                                <>
-                                                  <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setActiveDropdownId(null)} />
-                                                  <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white border border-[#D5D7DA] rounded-lg shadow-lg max-h-60 overflow-hidden flex flex-col text-left">
-                                                    <div className="p-2 border-b border-gray-100 bg-gray-50/50 sticky top-0">
-                                                      <input
-                                                        type="text"
-                                                        placeholder="Tìm mã, tên nhóm..."
-                                                        value={dropdownSearch}
-                                                        onChange={(e) => setDropdownSearch(e.target.value)}
-                                                        className="w-full h-8 px-2.5 text-[12px] border border-[#D5D7DA] rounded-md outline-none focus:border-[#245FDF] bg-white text-[#101828]"
-                                                        autoFocus
-                                                        onClick={(e) => e.stopPropagation()}
-                                                      />
-                                                    </div>
-                                                    <div className="flex-1 overflow-y-auto max-h-[160px] divide-y divide-gray-50">
-                                                      <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                          setWizardMenuGroups((prev) =>
-                                                            prev.map((g) => g.id === item.id ? { ...g, linkedGroupId: "" } : g)
-                                                          );
-                                                          setActiveDropdownId(null);
-                                                        }}
-                                                        className="w-full px-3 py-2 text-left text-[12px] text-gray-400 hover:bg-gray-50 cursor-pointer flex items-center justify-between font-sans bg-white border-none"
-                                                      >
-                                                        -- Bỏ chọn --
-                                                      </button>
-                                                      {wizardCukCukMenuGroups
-                                                        .filter((cc) => {
-                                                          if (!dropdownSearch) return true;
-                                                          const q = dropdownSearch.toLowerCase();
-                                                          return (cc.code || "").toLowerCase().includes(q) || cc.name.toLowerCase().includes(q);
-                                                        })
-                                                        .map((cc) => (
-                                                          <button
-                                                            key={cc.id}
-                                                            type="button"
-                                                            onClick={() => {
-                                                              setWizardMenuGroups((prev) =>
-                                                                prev.map((g) => g.id === item.id ? { ...g, linkedGroupId: cc.id } : g)
-                                                              );
-                                                              setActiveDropdownId(null);
-                                                            }}
-                                                            className={`w-full px-3 py-1.5 text-left hover:bg-gray-50 cursor-pointer flex flex-col font-sans border-none ${
-                                                              item.linkedGroupId === cc.id ? "bg-[#F0F6FE] text-[#245FDF] font-semibold" : "text-[#101828] bg-white"
-                                                            }`}
-                                                          >
-                                                            <span className="text-[10px] text-gray-400 font-semibold font-mono">{cc.code}</span>
-                                                            <span className="text-[13px]">{cc.name}</span>
-                                                          </button>
-                                                        ))}
-                                                      {wizardCukCukMenuGroups.filter((cc) => {
-                                                        if (!dropdownSearch) return true;
-                                                        const q = dropdownSearch.toLowerCase();
-                                                        return (cc.code || "").toLowerCase().includes(q) || cc.name.toLowerCase().includes(q);
-                                                      }).length === 0 && (
-                                                        <div className="px-3 py-3 text-center text-[12px] text-gray-400 font-sans">
-                                                          Không tìm thấy nhóm thực đơn phù hợp
-                                                        </div>
-                                                      )}
-                                                    </div>
-                                                  </div>
-                                                </>
-                                              )}
-                                            </div>
-                                          </td>
-
-                                          {/* Delete button */}
-                                          <td className="px-4 py-2 text-center">
-                                            <button
-                                              onClick={() => {
-                                                setWizardMenuGroups((prev) => prev.filter((g) => g.id !== item.id));
-                                                onNotification(`Đã xóa nhóm thực đơn "${item.name}" khỏi danh mục đối chiếu`, "info");
-                                              }}
-                                              className="p-1.5 hover:bg-red-50 text-red-500 hover:text-red-600 rounded-md transition-colors cursor-pointer inline-flex items-center justify-center bg-transparent border-none"
-                                              title="Xóa đối chiếu"
-                                            >
-                                              <Trash2 className="w-4 h-4" />
-                                            </button>
-                                          </td>
-                                        </tr>
-                                      );
-                                    })
-                                ) : (
-                                  <tr>
-                                    <td
-                                      colSpan={6}
-                                      className="text-center py-12 text-[#717680] font-sans bg-[#FAFBFC]/40"
-                                    >
-                                      {isNoStoreFlow && wizardMenuGroups.length === 0 ? (
-                                        <div className="flex flex-col items-center justify-center space-y-3 py-4 max-w-lg mx-auto">
-                                          <div className="w-12 h-12 rounded-full bg-[#EFF6FF] flex items-center justify-center text-[#245FDF]">
-                                            <PlusCircle className="w-6 h-6" />
-                                          </div>
-                                          <div className="space-y-1">
-                                            <p className="font-bold text-[#101828] text-[14px]">Chưa có nhóm thực đơn</p>
-                                            <p className="text-[12px] text-[#717680] leading-relaxed">
-                                              Nhóm thực đơn sẽ tự động được thêm sau khi bạn bấm <strong className="text-[#245FDF] font-semibold">"Chọn món"</strong> ở góc trên bên phải để chọn các món ăn từ MISA CukCuk sang ShopeeFood.
-                                            </p>
-                                          </div>
-                                        </div>
-                                      ) : (
-                                        <span>Không tìm thấy nhóm thực đơn nào phù hợp với bộ lọc.</span>
                                       )}
                                     </td>
                                   </tr>
@@ -3601,6 +3298,14 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
                                           className="w-full px-2 py-0 text-[12px] bg-transparent outline-none h-full border-none focus:ring-0 text-[#101828]"
                                         />
                                       </div>
+                                    </div>
+                                  </th>
+
+
+                                  {/* W7: Nhóm STPV tương ứng */}
+                                  <th className="px-4 py-2 border-r border-[#E9EAEB] min-w-[190px]">
+                                    <div className="flex h-[72px] items-center justify-center text-center text-[#101828] font-bold">
+                                      <span>Nhóm STPV tương ứng</span>
                                     </div>
                                   </th>
 
@@ -3935,6 +3640,12 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
                                                                             ...s,
                                                                             linkedGroupId:
                                                                               ccg.id,
+                                                                            // W7: tự điền nhóm STPV theo nhóm của STPV
+                                                                            linkedStpvGroupId:
+                                                                              s.linkedStpvGroupId ||
+                                                                              (wizardCukCukStpvGroups.find(
+                                                                                (g) => g.name === s.group,
+                                                                              )?.id ?? ""),
                                                                           }
                                                                         : s,
                                                                   ),
@@ -3986,6 +3697,112 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
                                             </div>
                                           </td>
 
+
+                                          {/* W7: Nhóm STPV tương ứng trên MISA CukCuk */}
+                                          <td className="px-4 py-2 border-r border-[#E9EAEB] overflow-visible">
+                                            <div className="relative">
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  if (activeDropdownId === `stpvgrp_${item.id}`) {
+                                                    setActiveDropdownId(null);
+                                                  } else {
+                                                    setActiveDropdownId(`stpvgrp_${item.id}`);
+                                                    setDropdownSearch("");
+                                                  }
+                                                }}
+                                                className="w-full h-[32px] px-2 text-[13px] border border-[#D5D7DA] rounded-[6px] bg-white text-[#101828] outline-none focus:border-[#245FDF] focus:ring-1 focus:ring-[#245FDF]/10 flex items-center justify-between cursor-pointer font-medium text-left font-sans"
+                                              >
+                                                <span className="truncate">
+                                                  {item.linkedStpvGroupId ? (
+                                                    (() => {
+                                                      const matchedGrp = wizardCukCukStpvGroups.find(
+                                                        (g) => g.id === item.linkedStpvGroupId,
+                                                      );
+                                                      return matchedGrp
+                                                        ? `${matchedGrp.code ? `[${matchedGrp.code}] ` : ""}${matchedGrp.name}`
+                                                        : "";
+                                                    })()
+                                                  ) : (
+                                                    <span className="text-gray-400 font-normal">
+                                                      Chọn nhóm tương ứng...
+                                                    </span>
+                                                  )}
+                                                </span>
+                                                <svg
+                                                  className="w-4 h-4 text-[#717680] flex-shrink-0 ml-1"
+                                                  fill="none"
+                                                  viewBox="0 0 24 24"
+                                                  stroke="currentColor"
+                                                >
+                                                  <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M19 9l-7 7-7-7"
+                                                  />
+                                                </svg>
+                                              </button>
+
+                                              {activeDropdownId === `stpvgrp_${item.id}` && (
+                                                <>
+                                                  <div
+                                                    className="fixed inset-0 z-40 bg-transparent"
+                                                    onClick={() => setActiveDropdownId(null)}
+                                                  />
+                                                  <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white border border-[#D5D7DA] rounded-lg shadow-lg max-h-60 overflow-hidden flex flex-col text-left">
+                                                    <div className="flex-1 overflow-y-auto max-h-[200px] divide-y divide-gray-50">
+                                                      <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                          setWizardStpv((prev) =>
+                                                            prev.map((f) =>
+                                                              f.id === item.id
+                                                                ? { ...f, linkedStpvGroupId: "" }
+                                                                : f,
+                                                            ),
+                                                          );
+                                                          setActiveDropdownId(null);
+                                                        }}
+                                                        className="w-full px-3 py-2 text-left text-[12px] text-gray-400 hover:bg-gray-50 cursor-pointer flex items-center justify-between font-sans bg-white border-none"
+                                                      >
+                                                        -- Bỏ chọn --
+                                                      </button>
+                                                      {wizardCukCukStpvGroups.map((g) => (
+                                                        <button
+                                                          key={g.id}
+                                                          type="button"
+                                                          onClick={() => {
+                                                            setWizardStpv((prev) =>
+                                                              prev.map((f) =>
+                                                                f.id === item.id
+                                                                  ? { ...f, linkedStpvGroupId: g.id }
+                                                                  : f,
+                                                              ),
+                                                            );
+                                                            setActiveDropdownId(null);
+                                                          }}
+                                                          className={`w-full px-3 py-1.5 text-left hover:bg-gray-50 cursor-pointer flex flex-col font-sans border-none ${
+                                                            item.linkedStpvGroupId === g.id
+                                                              ? "bg-[#F0F6FE] text-[#245FDF] font-semibold"
+                                                              : "text-[#101828] bg-white"
+                                                          }`}
+                                                        >
+                                                          <span className="text-[10px] text-gray-400 font-semibold font-mono">
+                                                            {g.code}
+                                                          </span>
+                                                          <span className="text-[13px]">
+                                                            {g.name}
+                                                          </span>
+                                                        </button>
+                                                      ))}
+                                                    </div>
+                                                  </div>
+                                                </>
+                                              )}
+                                            </div>
+                                          </td>
+
                                           {/* Trash / Delete Row Button */}
                                           <td className="px-4 py-2 text-center">
                                             <button
@@ -4012,7 +3829,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
                                 ) : (
                                   <tr>
                                     <td
-                                      colSpan={6}
+                                      colSpan={7}
                                       className="text-center py-12 text-[#717680] font-sans bg-[#FAFBFC]/40"
                                     >
                                       {isNoStoreFlow && wizardStpv.length === 0 ? (
@@ -4038,1268 +3855,10 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
                           </div>
                         )}
 
-                        {wizardSubTab === "stpvGroup" && (
-                          /* STPV GROUPS (NHÓM STPV) TABLE LAYOUT */
-                          <div className="w-full bg-white animate-fade-in">
-                            <table className="w-full border-collapse text-left text-[13px]">
-                              <thead>
-                                <tr className="bg-[#F7F7F8] border-b border-[#E9EAEB]">
-                                  {/* Tên nhóm STPV */}
-                                  <th className="px-4 py-2 border-r border-[#E9EAEB] min-w-[200px]">
-                                    <div className="flex flex-col w-full h-[72px] justify-between">
-                                      <div className="flex-1 flex items-center justify-center text-center font-bold text-[#101828]">
-                                        <span>Tên nhóm STPV</span>
-                                      </div>
-                                      <div className="flex w-full border border-[#D5D7DA] rounded-[4px] overflow-hidden bg-white h-[28px] items-center font-normal">
-                                        <div className="px-2 bg-gray-50 text-gray-500 text-[11px] font-bold h-full flex items-center justify-center border-r border-[#E9EAEB] select-none">
-                                          *
-                                        </div>
-                                        <input
-                                          type="text"
-                                          placeholder=""
-                                          value={wizardFilterStpvGroupName}
-                                          onChange={(e) => setWizardFilterStpvGroupName(e.target.value)}
-                                          className="w-full px-2 py-0 text-[12px] bg-transparent outline-none h-full border-none focus:ring-0 text-[#101828]"
-                                        />
-                                      </div>
-                                    </div>
-                                  </th>
-
-                                  {/* Mô tả */}
-                                  <th className="px-4 py-2 border-r border-[#E9EAEB] min-w-[200px]">
-                                    <div className="flex flex-col w-full h-[72px] justify-between">
-                                      <div className="flex-1 flex items-center justify-center text-center font-bold text-[#101828]">
-                                        <span>Mô tả</span>
-                                      </div>
-                                      <div className="flex w-full border border-[#D5D7DA] rounded-[4px] overflow-hidden bg-white h-[28px] items-center font-normal">
-                                        <div className="px-2 bg-gray-50 text-gray-500 text-[11px] font-bold h-full flex items-center justify-center border-r border-[#E9EAEB] select-none">
-                                          *
-                                        </div>
-                                        <input
-                                          type="text"
-                                          placeholder=""
-                                          value={wizardFilterStpvGroupDesc}
-                                          onChange={(e) => setWizardFilterStpvGroupDesc(e.target.value)}
-                                          className="w-full px-2 py-0 text-[12px] bg-transparent outline-none h-full border-none focus:ring-0 text-[#101828]"
-                                        />
-                                      </div>
-                                    </div>
-                                  </th>
-
-                                  {/* Trạng thái liên kết */}
-                                  <th className="px-4 py-2 border-r border-[#E9EAEB] w-[140px]">
-                                    <div className="flex flex-col w-full h-[72px] justify-between">
-                                      <div className="flex-1 flex items-center justify-center text-center font-bold text-[#101828]">
-                                        <span>Trạng thái liên kết</span>
-                                      </div>
-                                      <select
-                                        value={wizardFilterStpvGroupStatus}
-                                        onChange={(e) => setWizardFilterStpvGroupStatus(e.target.value)}
-                                        className="w-full h-[28px] border border-[#D5D7DA] rounded-[4px] text-[12px] bg-white text-[#101828] outline-none px-1 py-0 cursor-pointer focus:border-[#245FDF] font-normal"
-                                      >
-                                        <option value="">Tất cả</option>
-                                        <option value="linked">Đã liên kết</option>
-                                        <option value="unlinked">Chưa liên kết</option>
-                                      </select>
-                                    </div>
-                                  </th>
-
-                                  {/* Nhóm STPV tương ứng trên MISA CukCuk */}
-                                  <th className="px-4 py-2 border-r border-[#E9EAEB] min-w-[220px]">
-                                    <div className="flex flex-col w-full h-[72px] justify-between">
-                                      <div className="flex-1 flex items-center justify-center text-center font-bold text-[#101828]">
-                                        <span>Nhóm tương ứng trên MISA CukCuk</span>
-                                      </div>
-                                      <div className="flex w-full border border-[#D5D7DA] rounded-[4px] overflow-hidden bg-white h-[28px] items-center font-normal">
-                                        <div className="px-2 bg-gray-50 text-gray-500 text-[11px] font-bold h-full flex items-center justify-center border-r border-[#E9EAEB] select-none">
-                                          *
-                                        </div>
-                                        <input
-                                          type="text"
-                                          placeholder=""
-                                          value={wizardFilterStpvGroupCukCuk}
-                                          onChange={(e) => setWizardFilterStpvGroupCukCuk(e.target.value)}
-                                          className="w-full px-2 py-0 text-[12px] bg-transparent outline-none h-full border-none focus:ring-0 text-[#101828]"
-                                        />
-                                      </div>
-                                    </div>
-                                  </th>
-
-                                  {/* Xóa */}
-                                  <th className="px-4 py-2 w-[60px] text-center">
-                                    <div className="flex h-[72px] items-center justify-center text-center">
-                                      <div className="flex-1 flex items-center justify-center" />
-                                    </div>
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {wizardStpvGroups.filter((item) => {
-                                  if (wizardFilterStpvGroupName && !item.name.toLowerCase().includes(wizardFilterStpvGroupName.toLowerCase())) return false;
-                                  if (wizardFilterStpvGroupDesc && !item.description?.toLowerCase().includes(wizardFilterStpvGroupDesc.toLowerCase())) return false;
-                                  if (wizardFilterStpvGroupStatus) {
-                                    const isL = !!item.linkedGroupId;
-                                    if (wizardFilterStpvGroupStatus === "linked" && !isL) return false;
-                                    if (wizardFilterStpvGroupStatus === "unlinked" && isL) return false;
-                                  }
-                                  if (wizardFilterStpvGroupCukCuk) {
-                                    const ccName = wizardCukCukStpvGroups.find((c) => c.id === item.linkedGroupId)?.name || "";
-                                    if (!ccName.toLowerCase().includes(wizardFilterStpvGroupCukCuk.toLowerCase())) return false;
-                                  }
-                                  return true;
-                                }).length > 0 ? (
-                                  wizardStpvGroups
-                                    .filter((item) => {
-                                      if (wizardFilterStpvGroupName && !item.name.toLowerCase().includes(wizardFilterStpvGroupName.toLowerCase())) return false;
-                                      if (wizardFilterStpvGroupDesc && !item.description?.toLowerCase().includes(wizardFilterStpvGroupDesc.toLowerCase())) return false;
-                                      if (wizardFilterStpvGroupStatus) {
-                                        const isL = !!item.linkedGroupId;
-                                        if (wizardFilterStpvGroupStatus === "linked" && !isL) return false;
-                                        if (wizardFilterStpvGroupStatus === "unlinked" && isL) return false;
-                                      }
-                                      if (wizardFilterStpvGroupCukCuk) {
-                                        const ccName = wizardCukCukStpvGroups.find((c) => c.id === item.linkedGroupId)?.name || "";
-                                        if (!ccName.toLowerCase().includes(wizardFilterStpvGroupCukCuk.toLowerCase())) return false;
-                                      }
-                                      return true;
-                                    })
-                                    .map((item) => {
-                                      const isLinked = !!item.linkedGroupId;
-                                      return (
-                                        <tr key={item.id} className="border-b border-[#E9EAEB] hover:bg-[#F9FAFB] transition-colors h-[54px]">
-                                          {/* Name */}
-                                          <td className="px-4 py-2 border-r border-[#E9EAEB] text-[#101828] font-semibold">
-                                            {item.name}
-                                          </td>
-
-                                          {/* Description */}
-                                          <td className="px-4 py-2 border-r border-[#E9EAEB] text-[#717680] font-sans">
-                                            {item.description}
-                                          </td>
-
-                                          {/* Status */}
-                                          <td className="px-4 py-2 border-r border-[#E9EAEB]">
-                                            <div className="flex items-center gap-1.5">
-                                              <span className={`w-2 h-2 rounded-full ${isLinked ? "bg-[#12B76A]" : "bg-[#717680]"}`} />
-                                              <span className={`font-semibold ${isLinked ? "text-[#12B76A]" : "text-[#717680]"}`}>
-                                                {isLinked ? "Đã liên kết" : "Chưa liên kết"}
-                                              </span>
-                                            </div>
-                                          </td>
-
-                                          {/* Dropdown Select CukCuk corresponding */}
-                                          <td className="px-4 py-2 border-r border-[#E9EAEB] overflow-visible">
-                                            <div className="relative">
-                                              <button
-                                                type="button"
-                                                onClick={() => {
-                                                  if (activeDropdownId === `stpvgroup_${item.id}`) {
-                                                    setActiveDropdownId(null);
-                                                  } else {
-                                                    setActiveDropdownId(`stpvgroup_${item.id}`);
-                                                    setDropdownSearch("");
-                                                  }
-                                                }}
-                                                className="w-full h-[32px] px-2 text-[13px] border border-[#D5D7DA] rounded-[6px] bg-white text-[#101828] outline-none focus:border-[#245FDF] focus:ring-1 focus:ring-[#245FDF]/10 flex items-center justify-between cursor-pointer font-medium text-left font-sans"
-                                              >
-                                                <span className="truncate">
-                                                  {item.linkedGroupId ? (
-                                                    (() => {
-                                                      const matched = wizardCukCukStpvGroups.find((cc) => cc.id === item.linkedGroupId);
-                                                      return matched ? `${matched.code ? `[${matched.code}] ` : ""}${matched.name}` : "";
-                                                    })()
-                                                  ) : (
-                                                    <span className="text-gray-400 font-normal">Chọn nhóm tương ứng...</span>
-                                                  )}
-                                                </span>
-                                                <svg className="w-4 h-4 text-[#717680] flex-shrink-0 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                                </svg>
-                                              </button>
-
-                                              {activeDropdownId === `stpvgroup_${item.id}` && (
-                                                <>
-                                                  <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setActiveDropdownId(null)} />
-                                                  <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white border border-[#D5D7DA] rounded-lg shadow-lg max-h-60 overflow-hidden flex flex-col text-left">
-                                                    <div className="p-2 border-b border-gray-100 bg-gray-50/50 sticky top-0">
-                                                      <input
-                                                        type="text"
-                                                        placeholder="Tìm mã, tên nhóm..."
-                                                        value={dropdownSearch}
-                                                        onChange={(e) => setDropdownSearch(e.target.value)}
-                                                        className="w-full h-8 px-2.5 text-[12px] border border-[#D5D7DA] rounded-md outline-none focus:border-[#245FDF] bg-white text-[#101828]"
-                                                        autoFocus
-                                                        onClick={(e) => e.stopPropagation()}
-                                                      />
-                                                    </div>
-                                                    <div className="flex-1 overflow-y-auto max-h-[160px] divide-y divide-gray-50">
-                                                      <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                          setWizardStpvGroups((prev) =>
-                                                            prev.map((sg) => sg.id === item.id ? { ...sg, linkedGroupId: "" } : sg)
-                                                          );
-                                                          setActiveDropdownId(null);
-                                                        }}
-                                                        className="w-full px-3 py-2 text-left text-[12px] text-gray-400 hover:bg-gray-50 cursor-pointer flex items-center justify-between font-sans bg-white border-none"
-                                                      >
-                                                        -- Bỏ chọn --
-                                                      </button>
-                                                      {wizardCukCukStpvGroups
-                                                        .filter((cc) => {
-                                                          if (!dropdownSearch) return true;
-                                                          const q = dropdownSearch.toLowerCase();
-                                                          return (cc.code || "").toLowerCase().includes(q) || cc.name.toLowerCase().includes(q);
-                                                        })
-                                                        .map((cc) => (
-                                                          <button
-                                                            key={cc.id}
-                                                            type="button"
-                                                            onClick={() => {
-                                                              setWizardStpvGroups((prev) =>
-                                                                prev.map((sg) => sg.id === item.id ? { ...sg, linkedGroupId: cc.id } : sg)
-                                                              );
-                                                              setActiveDropdownId(null);
-                                                            }}
-                                                            className={`w-full px-3 py-1.5 text-left hover:bg-gray-50 cursor-pointer flex flex-col font-sans border-none ${
-                                                              item.linkedGroupId === cc.id ? "bg-[#F0F6FE] text-[#245FDF] font-semibold" : "text-[#101828] bg-white"
-                                                            }`}
-                                                          >
-                                                            <span className="text-[10px] text-gray-400 font-semibold font-mono">{cc.code}</span>
-                                                            <span className="text-[13px]">{cc.name}</span>
-                                                          </button>
-                                                        ))}
-                                                      {wizardCukCukStpvGroups.filter((cc) => {
-                                                        if (!dropdownSearch) return true;
-                                                        const q = dropdownSearch.toLowerCase();
-                                                        return (cc.code || "").toLowerCase().includes(q) || cc.name.toLowerCase().includes(q);
-                                                      }).length === 0 && (
-                                                        <div className="px-3 py-3 text-center text-[12px] text-gray-400 font-sans">
-                                                          Không tìm thấy nhóm STPV phù hợp
-                                                        </div>
-                                                      )}
-                                                    </div>
-                                                  </div>
-                                                </>
-                                              )}
-                                            </div>
-                                          </td>
-
-                                          {/* Delete button */}
-                                          <td className="px-4 py-2 text-center">
-                                            <button
-                                              onClick={() => {
-                                                setWizardStpvGroups((prev) => prev.filter((sg) => sg.id !== item.id));
-                                                onNotification(`Đã xóa nhóm sở thích phục vụ "${item.name}" khỏi danh mục đối chiếu`, "info");
-                                              }}
-                                              className="p-1.5 hover:bg-red-50 text-red-500 hover:text-red-600 rounded-md transition-colors cursor-pointer inline-flex items-center justify-center bg-transparent border-none"
-                                              title="Xóa đối chiếu"
-                                            >
-                                              <Trash2 className="w-4 h-4" />
-                                            </button>
-                                          </td>
-                                        </tr>
-                                      );
-                                    })
-                                ) : (
-                                  <tr>
-                                    <td
-                                      colSpan={5}
-                                      className="text-center py-12 text-[#717680] font-sans bg-[#FAFBFC]/40"
-                                    >
-                                      {isNoStoreFlow && wizardStpvGroups.length === 0 ? (
-                                        <div className="flex flex-col items-center justify-center space-y-3 py-4 max-w-lg mx-auto">
-                                          <div className="w-12 h-12 rounded-full bg-[#EFF6FF] flex items-center justify-center text-[#245FDF]">
-                                            <PlusCircle className="w-6 h-6" />
-                                          </div>
-                                          <div className="space-y-1">
-                                            <p className="font-bold text-[#101828] text-[14px]">Chưa có nhóm sở thích phục vụ</p>
-                                            <p className="text-[12px] text-[#717680] leading-relaxed">
-                                              Nhóm sở thích phục vụ sẽ tự động được thêm sau khi bạn bấm <strong className="text-[#245FDF] font-semibold">"Chọn món"</strong> ở góc trên bên phải để chọn món có nhóm sở thích phục vụ đi kèm từ MISA CukCuk sang ShopeeFood.
-                                            </p>
-                                          </div>
-                                        </div>
-                                      ) : (
-                                        <span>Không tìm thấy nhóm sở thích phục vụ nào phù hợp với bộ lọc.</span>
-                                      )}
-                                    </td>
-                                  </tr>
-                                )}
-                              </tbody>
-                            </table>
-                          </div>
-                        )}
                       </div>
                     </div>
                   ))}
 
-                {shopeeWizardStep === 3 && (
-                  <>
-                  <div className="w-full text-left bg-white rounded-xl">
-                    {/* Content Area - No independent scroll, let parent handle it */}
-                    <div className="px-8 py-6 space-y-6">
-                      {/* Section 1: Thời gian hoạt động */}
-                      <div className="space-y-4">
-                        <h4 className="text-[#101828] font-bold text-[14px]">
-                          Thời gian hoạt động
-                        </h4>
-
-                        <div className="space-y-3.5 max-w-[600px]">
-                          {shopeeOperatingDays.map((day) => (
-                            <div
-                              key={day.id}
-                              className="flex items-start gap-4 text-[13px] text-[#101828]"
-                            >
-                              <span className="font-semibold select-none w-10 mt-2">
-                                {day.name}
-                              </span>
-
-                              <div className="flex-1 space-y-2">
-                                {day.ranges.map((range: any, idx: number) => (
-                                  <div
-                                    key={idx}
-                                    className="flex items-center gap-3"
-                                  >
-                                    {idx === 0 ? (
-                                      <select
-                                        value={day.active ? "open" : "closed"}
-                                        onChange={(e) => {
-                                          const active = e.target.value === "open";
-                                          setShopeeOperatingDays((prev) =>
-                                            prev.map((d) =>
-                                              d.id === day.id ? { ...d, active } : d,
-                                            ),
-                                          );
-                                        }}
-                                        className="h-8 w-[100px] px-2.5 border border-[#D5D7DA] rounded-[8px] text-[#101828] text-[13px] font-medium focus:border-[#245FDF] focus:ring-1 focus:ring-[#245FDF]/20 outline-none bg-white cursor-pointer font-sans"
-                                      >
-                                        <option value="open">Mở cửa</option>
-                                        <option value="closed">Đóng cửa</option>
-                                      </select>
-                                    ) : (
-                                      <div className="w-[100px]" />
-                                    )}
-
-                                    <div className={`flex items-center gap-3 transition-opacity ${day.active ? "opacity-100" : "opacity-40 pointer-events-none"}`}>
-                                      <span className="text-[#717680] text-[13px] w-6">
-                                        Từ
-                                      </span>
-                                      <input
-                                        type="text"
-                                        value={range.from}
-                                        onChange={(e) =>
-                                          handleTimeChange(
-                                            day.id,
-                                            idx,
-                                            "from",
-                                            e.target.value,
-                                          )
-                                        }
-                                        className="w-24 h-9 px-3 border border-[#D5D7DA] rounded-lg text-[#101828] text-center font-medium focus:border-[#245FDF] focus:ring-1 focus:ring-[#245FDF]/20 outline-none bg-white"
-                                      />
-                                      <span className="text-[#717680] text-[13px] w-8 text-center">
-                                        Đến
-                                      </span>
-                                      <input
-                                        type="text"
-                                        value={range.to}
-                                        onChange={(e) =>
-                                          handleTimeChange(
-                                            day.id,
-                                            idx,
-                                            "to",
-                                            e.target.value,
-                                          )
-                                        }
-                                        className="w-24 h-9 px-3 border border-[#D5D7DA] rounded-lg text-[#101828] text-center font-medium focus:border-[#245FDF] focus:ring-1 focus:ring-[#245FDF]/20 outline-none bg-white"
-                                      />
-
-                                      {idx === 0 ? (
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            handleAddHourRange(day.id)
-                                          }
-                                          disabled={!day.active}
-                                          className="w-9 h-9 border border-[#245FDF] text-[#245FDF] hover:bg-[#F0F6FE] disabled:opacity-50 disabled:pointer-events-none rounded-lg flex items-center justify-center transition-all cursor-pointer font-semibold bg-transparent"
-                                        >
-                                          +
-                                        </button>
-                                      ) : (
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            handleRemoveHourRange(day.id, idx)
-                                          }
-                                          disabled={!day.active}
-                                          className="w-9 h-9 border border-red-200 text-red-500 hover:bg-red-50 disabled:opacity-50 disabled:pointer-events-none rounded-lg flex items-center justify-center transition-all cursor-pointer font-semibold bg-transparent"
-                                        >
-                                          -
-                                        </button>
-                                      )}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        <div className="pt-2 flex flex-col gap-4">
-                          <div>
-                            <button
-                              type="button"
-                              onClick={handleQuickSetup}
-                              className="px-4 py-1.5 border border-[#245FDF] text-[#245FDF] hover:bg-[#F0F6FE] rounded-lg text-[13px] font-semibold transition-all cursor-pointer bg-white"
-                              style={{ height: "36px" }}
-                            >
-                              Thiết lập nhanh
-                            </button>
-                          </div>
-
-                          {/* Holiday Setting Section inside Step 3 */}
-                          <div className="space-y-3 max-w-[650px] pl-1">
-                            <label className="flex items-start gap-3 cursor-pointer select-none">
-                              <input
-                                type="checkbox"
-                                checked={shopeeHolidaySetting}
-                                onChange={() => {
-                                  setShopeeHolidaySetting(!shopeeHolidaySetting);
-                                }}
-                                className="h-4.5 w-4.5 rounded border-[#D5D7DA] text-[#245FDF] focus:ring-[#245FDF] cursor-pointer mt-0.5"
-                              />
-                              <div>
-                                <span className="font-semibold text-[13px] text-[#101828] block">Cài đặt ngày lễ / Ngày nghỉ tạm thời</span>
-                                <span className="text-xs text-[#717680]">Thiết lập trước những ngày nhà hàng sẽ ngừng nhận đơn trên ShopeeFood trong năm (ngày nghỉ lễ, ngày bảo trì, Tết...).</span>
-                              </div>
-                            </label>
-
-                            {shopeeHolidaySetting && (
-                              <div className="pl-7 space-y-3 pt-2 border-t border-gray-100 animate-fade-in text-[13px]">
-                                <div className="space-y-2">
-                                  {shopeeHolidays.map((holiday) => (
-                                    <div key={holiday.id} className="flex flex-wrap items-center gap-3 bg-white p-3 rounded-lg border border-[#E9EAEB]">
-                                      <div className="flex-1 min-w-[150px]">
-                                        <label className="block text-[11px] font-medium text-gray-500 mb-1">Tên kỳ nghỉ</label>
-                                        <input
-                                          type="text"
-                                          value={holiday.name}
-                                          onChange={(e) => {
-                                            const val = e.target.value;
-                                            setShopeeHolidays(prev => prev.map(h => h.id === holiday.id ? { ...h, name: val } : h));
-                                          }}
-                                          className="w-full h-[32px] px-3 border border-[#D5D7DA] rounded-[8px] text-[#101828] font-medium outline-none bg-white text-xs"
-                                          placeholder="Ví dụ: Tết Nguyên Đán"
-                                        />
-                                      </div>
-                                      <div className="w-[120px]">
-                                        <label className="block text-[11px] font-medium text-gray-500 mb-1">Từ ngày</label>
-                                        <input
-                                          type="date"
-                                          value={holiday.from}
-                                          onChange={(e) => {
-                                            const val = e.target.value;
-                                            setShopeeHolidays(prev => prev.map(h => h.id === holiday.id ? { ...h, from: val } : h));
-                                          }}
-                                          className="w-full h-[32px] px-2 border border-[#D5D7DA] rounded-[8px] text-[#101828] font-medium outline-none bg-white text-xs"
-                                        />
-                                      </div>
-                                      <div className="w-[120px]">
-                                        <label className="block text-[11px] font-medium text-gray-500 mb-1">Đến ngày</label>
-                                        <input
-                                          type="date"
-                                          value={holiday.to}
-                                          onChange={(e) => {
-                                            const val = e.target.value;
-                                            setShopeeHolidays(prev => prev.map(h => h.id === holiday.id ? { ...h, to: val } : h));
-                                          }}
-                                          className="w-full h-[32px] px-2 border border-[#D5D7DA] rounded-[8px] text-[#101828] font-medium outline-none bg-white text-xs"
-                                        />
-                                      </div>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setShopeeHolidays(prev => prev.filter(h => h.id !== holiday.id));
-                                          onNotification("Đã xóa thiết lập nghỉ lễ", "info");
-                                        }}
-                                        className="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded-lg transition-colors mt-5 bg-transparent border-none cursor-pointer"
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                                      </button>
-                                    </div>
-                                  ))}
-
-                                  {shopeeHolidays.length === 0 && (
-                                    <p className="text-gray-400 italic text-xs py-2">Chưa thiết lập ngày nghỉ lễ nào. Vui lòng thêm bên dưới.</p>
-                                  )}
-                                </div>
-
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const newId = Date.now();
-                                    setShopeeHolidays(prev => [...prev, { id: newId, name: "Kỳ nghỉ mới", from: "2026-06-28", to: "2026-06-28" }]);
-                                  }}
-                                  className="flex items-center gap-1.5 text-xs text-[#245FDF] hover:text-[#1849b2] font-semibold transition-all bg-transparent border-none cursor-pointer"
-                                >
-                                  <Plus className="w-4 h-4" />
-                                  Thêm ngày nghỉ lễ
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Section 2: Lịch áp dụng thực đơn (always visible) */}
-                      <div className="mt-6 pt-6 border-t border-[#E9EAEB] space-y-4 animate-fade-in">
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-[#101828] font-bold text-[14px] m-0">
-                            Lịch áp dụng thực đơn
-                          </h4>
-                          <div className="group relative inline-block">
-                            <HelpCircle className="w-4.5 h-4.5 text-[#717680] hover:text-[#245FDF] cursor-help transition-colors" />
-                            {/* Tooltip box - aligned below/above cleanly */}
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-80 p-3 bg-[#101828] text-white text-[12px] font-normal leading-relaxed rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[99999] shadow-lg pointer-events-none text-left">
-                              Thiết lập các khung giờ bán món cho các món thực đơn cụ thể. Ví dụ: Bữa sáng(Bún, Phở,...), Bữa trưa(Cơm văn phòng,...), Bữa tối(Nhậu, Nướng,...)
-                              {/* Arrow */}
-                              <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-[#101828]"></div>
-                            </div>
-                          </div>
-                        </div>
-
-                          <div className="border border-[#E9EAEB] rounded-xl overflow-hidden bg-white shadow-sm">
-                            <table className="w-full border-collapse text-left text-[13px]">
-                              <thead>
-                                <tr className="bg-[#F8F9FA] border-b border-[#E9EAEB] text-[#475467] font-semibold">
-                                  <th className="px-4 py-3 border-r border-[#E9EAEB] font-semibold text-[#344054] w-[25%]">
-                                    Tên khung giờ
-                                  </th>
-                                  <th className="px-4 py-3 border-r border-[#E9EAEB] font-semibold text-[#344054] w-[40%]">
-                                    Khung giờ hoạt động
-                                  </th>
-                                  <th className="px-4 py-3 border-r border-[#E9EAEB] font-semibold text-[#344054] w-[30%]">
-                                    Nhóm thực đơn áp dụng
-                                  </th>
-                                  <th className="px-4 py-3 font-semibold text-[#344054] w-[5%] text-center"></th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-[#E9EAEB] text-[#344054]">
-                                {shopeeTimeGroups.map((group) => (
-                                  <tr
-                                    key={group.id}
-                                    className="hover:bg-gray-50/50 transition-colors"
-                                  >
-                                    <td className="px-4 py-3.5 border-r border-[#E9EAEB] font-semibold text-[#101828]">
-                                      {group.name}
-                                    </td>
-                                    <td className="px-4 py-3.5 border-r border-[#E9EAEB] text-[#475467]">
-                                      {group.timeRange}
-                                    </td>
-                                    <td className="px-4 py-3.5 border-r border-[#E9EAEB] text-[#475467]">
-                                      {group.menuGroups}
-                                    </td>
-                                    <td className="px-4 py-3.5 text-center">
-                                      <div className="flex items-center justify-center gap-2">
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            handleOpenEditTimeGroup(group)
-                                          }
-                                          className="p-1.5 hover:bg-gray-100 rounded text-[#475467] hover:text-[#101828] transition-colors cursor-pointer bg-transparent border-none"
-                                          title="Sửa"
-                                        >
-                                          <Pencil className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            handleDeleteTimeGroup(group.id)
-                                          }
-                                          className="p-1.5 hover:bg-red-50 rounded text-red-500 hover:text-red-700 transition-colors cursor-pointer bg-transparent border-none"
-                                          title="Xóa"
-                                        >
-                                          <Trash2 className="w-4 h-4" />
-                                        </button>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                ))}
-                                {shopeeTimeGroups.length === 0 && (
-                                  <tr>
-                                    <td
-                                      colSpan={4}
-                                      className="text-center py-8 text-[#717680] font-sans"
-                                    >
-                                      Chưa cấu hình khung giờ thay đổi nào. Vui
-                                      lòng bấm "Thêm khung giờ" để thiết lập.
-                                    </td>
-                                  </tr>
-                                )}
-                              </tbody>
-                            </table>
-                          </div>
-
-                          <div className="flex justify-start">
-                            <button
-                              type="button"
-                              onClick={handleOpenAddTimeGroup}
-                              className="px-4 h-[32px] border border-[#245FDF] text-[#245FDF] hover:bg-[#F0F6FE] rounded-lg text-[13px] font-semibold transition-all cursor-pointer bg-white flex items-center gap-1.5"
-                              style={{ minWidth: "84px" }}
-                            >
-                              <Plus className="w-4 h-4" />
-                              Thêm khung giờ
-                            </button>
-                          </div>
-                        </div>
-
-                      {/* Section 3: Cài đặt đơn hàng */}
-                      <div className="mt-8 pt-8 border-t border-[#E9EAEB] space-y-5 animate-fade-in">
-                        <h4 className="text-[#101828] font-bold text-[14px]">
-                          Cài đặt đơn hàng
-                        </h4>
-
-                        <div className="space-y-6 max-w-[650px] pl-1">
-                          {/* Toggle A: Tự động xác nhận Order */}
-                          <div className="space-y-3">
-                            <label className="flex items-start gap-3 cursor-pointer select-none">
-                              <input
-                                type="checkbox"
-                                checked={shopeeAutoConfirmOrder}
-                                onChange={() => {
-                                  setShopeeAutoConfirmOrder(!shopeeAutoConfirmOrder);
-                                }}
-                                className="h-4.5 w-4.5 rounded border-[#D5D7DA] text-[#245FDF] focus:ring-[#245FDF] cursor-pointer mt-0.5"
-                              />
-                              <div>
-                                <span className="font-semibold text-[13px] text-[#101828] block">Tự động xác nhận Order</span>
-                                <span className="text-xs text-[#717680] block mt-0.5 leading-relaxed">Hệ thống POS tự động phản hồi xác nhận đơn hàng khi nhận được Order đồng bộ từ ShopeeFood.</span>
-                              </div>
-                            </label>
-
-                            {shopeeAutoConfirmOrder && (
-                              <div className="pl-7 space-y-3.5 pt-2 animate-fade-in text-[13px]">
-                                <label className="flex items-start gap-3 cursor-pointer">
-                                  <input
-                                    type="radio"
-                                    name="wizard_confirm_type"
-                                    checked={shopeeAutoConfirmType === "all"}
-                                    onChange={() => {
-                                      setShopeeAutoConfirmType("all");
-                                    }}
-                                    className="h-4 w-4 text-[#245FDF] border-gray-300 focus:ring-[#245FDF] cursor-pointer mt-0.5"
-                                  />
-                                  <div>
-                                    <span className="font-semibold text-[#101828]">Tất cả đơn hàng</span>
-                                    <span className="block text-xs text-[#717680] mt-0.5">Tất cả đơn hàng đồng bộ về POS đều được tự động xác nhận</span>
-                                  </div>
-                                </label>
-
-                                <label className="flex items-start gap-3 cursor-pointer">
-                                  <input
-                                    type="radio"
-                                    name="wizard_confirm_type"
-                                    checked={shopeeAutoConfirmType === "paid"}
-                                    onChange={() => {
-                                      setShopeeAutoConfirmType("paid");
-                                    }}
-                                    className="h-4 w-4 text-[#245FDF] border-gray-300 focus:ring-[#245FDF] cursor-pointer mt-0.5"
-                                  />
-                                  <div>
-                                    <span className="font-semibold text-[#101828]">Đơn hàng đã thanh toán</span>
-                                    <span className="block text-xs text-[#717680] mt-0.5">Chỉ những Order được thanh toán rồi mới được xác nhận</span>
-                                  </div>
-                                </label>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Toggle B: Tự động in hóa đơn tạm tính */}
-                          <div className="space-y-3">
-                            <label className="flex items-start gap-3 cursor-pointer select-none">
-                              <input
-                                type="checkbox"
-                                checked={shopeeAutoPrintReceipt}
-                                onChange={() => {
-                                  setShopeeAutoPrintReceipt(!shopeeAutoPrintReceipt);
-                                }}
-                                className="h-4.5 w-4.5 rounded border-[#D5D7DA] text-[#245FDF] focus:ring-[#245FDF] cursor-pointer mt-0.5"
-                              />
-                              <div>
-                                <span className="font-semibold text-[13px] text-[#101828] block">Tự động in hóa đơn tạm tính</span>
-                                <span className="text-xs text-[#717680] block mt-0.5 leading-relaxed">Tự động xuất hóa đơn tạm tính qua máy in liên kết của nhà hàng khi có đơn mới.</span>
-                              </div>
-                            </label>
-
-                            {shopeeAutoPrintReceipt && (
-                              <div className="pl-7 space-y-3.5 pt-2 animate-fade-in text-[13px]">
-                                <label className="flex items-start gap-3 cursor-pointer">
-                                  <input
-                                    type="radio"
-                                    name="wizard_print_trigger"
-                                    checked={shopeeAutoPrintTrigger === "confirmed"}
-                                    onChange={() => {
-                                      setShopeeAutoPrintTrigger("confirmed");
-                                    }}
-                                    className="h-4 w-4 text-[#245FDF] border-gray-300 focus:ring-[#245FDF] cursor-pointer mt-0.5"
-                                  />
-                                  <div>
-                                    <span className="font-semibold text-[#101828]">Khi đơn hàng được xác nhận</span>
-                                    <span className="block text-xs text-[#717680] mt-0.5">In hóa đơn ngay khi đơn được ghi nhận và xác nhận trên POS.</span>
-                                  </div>
-                                </label>
-
-                                <label className="flex items-start gap-3 cursor-pointer">
-                                  <input
-                                    type="radio"
-                                    name="wizard_print_trigger"
-                                    checked={shopeeAutoPrintTrigger === "kitchen"}
-                                    onChange={() => {
-                                      setShopeeAutoPrintTrigger("kitchen");
-                                    }}
-                                    className="h-4 w-4 text-[#245FDF] border-gray-300 focus:ring-[#245FDF] cursor-pointer mt-0.5"
-                                  />
-                                  <div>
-                                    <span className="font-semibold text-[#101828]">Khi đơn hàng được gửi bếp</span>
-                                    <span className="block text-xs text-[#717680] mt-0.5">In hóa đơn khi món được chuyển lệnh xuống bộ phận chế biến.</span>
-                                  </div>
-                                </label>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                    {/* Add/Edit Time Group Popup Modal */}
-                    {isTimeGroupModalOpen && (
-                      <div className="fixed inset-0 bg-black/40 z-[10005] flex items-center justify-center p-4 animate-fade-in font-sans">
-                        <div className="bg-white rounded-xl shadow-2xl border border-[#D5D7DA] w-full max-w-[620px] overflow-hidden flex flex-col text-left">
-                          {/* 1️⃣ Header */}
-                          <div className="bg-white border-b border-[#E9EAEB] px-4 py-3 flex items-center justify-between text-[#101828] select-none">
-                            <h3 className="text-[#101828] font-semibold text-sm font-sans tracking-wide m-0">
-                              {editingTimeGroup
-                                ? "Sửa khung giờ"
-                                : "Thêm khung giờ"}
-                            </h3>
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  onNotification(
-                                    "Hệ thống trợ giúp CukCuk 2.0 đang tải...",
-                                    "info",
-                                  )
-                                }
-                                className="text-[#717680] hover:text-[#245FDF] p-1.5 hover:bg-gray-100 rounded transition-all cursor-pointer bg-transparent border-none flex items-center justify-center"
-                                title="Trợ giúp"
-                              >
-                                <HelpCircle className="w-4 h-4" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setIsTimeGroupModalOpen(false)}
-                                className="text-[#717680] hover:text-red-500 p-1.5 hover:bg-gray-100 rounded transition-all cursor-pointer bg-transparent border-none flex items-center justify-center"
-                                title="Đóng"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* 2️⃣ Body content */}
-                          <div className="p-5 space-y-4 flex-1">
-                            {/* Row 1: Tên khung giờ */}
-                            <div className="grid grid-cols-[160px_1fr] items-center gap-4">
-                              <label className="text-[13px] font-sans text-gray-700 font-medium">
-                                Tên khung giờ{" "}
-                                <span className="text-red-500 font-bold">
-                                  *
-                                </span>
-                              </label>
-                              <input
-                                type="text"
-                                value={timeGroupName}
-                                onChange={(e) =>
-                                  setTimeGroupName(e.target.value)
-                                }
-                                placeholder="Ví dụ: Thứ 3 Thứ 6"
-                                className="w-full h-8 px-3 border border-[#D5D7DA] rounded text-[#101828] text-[13px] outline-none focus:border-[#245FDF] focus:ring-1 focus:ring-[#245FDF]/20 font-sans"
-                              />
-                            </div>
-
-                            {/* Row 2: Khung giờ hoạt động (Radio Select) */}
-                            <div className="grid grid-cols-[160px_1fr] gap-4 items-center">
-                              <label className="text-[13px] font-sans text-gray-700 font-medium">
-                                Khung giờ hoạt động
-                              </label>
-                              <div className="flex items-center gap-6 select-none">
-                                <label className="flex items-center gap-2 cursor-pointer text-[13px] font-sans text-[#101828]">
-                                  <input
-                                    type="radio"
-                                    name="timeGroupType"
-                                    checked={timeGroupType === "all"}
-                                    onChange={() => setTimeGroupType("all")}
-                                    className="h-4 w-4 border-[#D5D7DA] text-[#245FDF] focus:ring-[#245FDF] cursor-pointer"
-                                  />
-                                  Toàn bộ khung giờ
-                                </label>
-                                <label className="flex items-center gap-2 cursor-pointer text-[13px] font-sans text-[#101828]">
-                                  <input
-                                    type="radio"
-                                    name="timeGroupType"
-                                    checked={timeGroupType === "custom"}
-                                    onChange={() => setTimeGroupType("custom")}
-                                    className="h-4 w-4 border-[#D5D7DA] text-[#245FDF] focus:ring-[#245FDF] cursor-pointer"
-                                  />
-                                  Chọn khung giờ
-                                </label>
-                              </div>
-                            </div>
-
-                            {/* Row 3: Chọn cụ thể khung giờ (chỉ hiển thị khi timeGroupType === "custom") */}
-                            {timeGroupType === "custom" && (
-                              <div className="grid grid-cols-[160px_1fr] gap-4 relative items-center animate-fade-in">
-                                <label className="text-[13px] font-sans text-gray-700 font-medium">
-                                  Chọn khung giờ <span className="text-red-500 font-bold">*</span>
-                                </label>
-                                <div>
-                                  <div
-                                    className="flex flex-wrap items-center gap-1.5 p-1 px-2 border border-[#D5D7DA] rounded min-h-[32px] bg-white relative cursor-pointer"
-                                    onClick={() =>
-                                      setIsTagDropdownOpen(!isTagDropdownOpen)
-                                    }
-                                  >
-                                    <div className="flex flex-wrap gap-1 items-center flex-1 pr-6 select-none">
-                                      {timeGroupRange
-                                        .split(",")
-                                        .map((s) => s.trim())
-                                        .filter(Boolean)
-                                        .map((tag, idx) => (
-                                          <span
-                                            key={idx}
-                                            className="bg-gray-100 hover:bg-gray-200 text-[#101828] text-[12px] font-sans px-2 py-0.5 rounded flex items-center gap-1 border border-[#E9EAEB] transition-colors"
-                                          >
-                                            {tag}
-                                            <button
-                                              type="button"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                const nextTags = timeGroupRange
-                                                  .split(",")
-                                                  .map((s) => s.trim())
-                                                  .filter(Boolean)
-                                                  .filter(
-                                                    (_, tIdx) => tIdx !== idx,
-                                                  );
-                                                setTimeGroupRange(
-                                                  nextTags.join(", "),
-                                                );
-                                              }}
-                                              className="text-gray-400 hover:text-red-500 font-bold p-0 border-none bg-transparent cursor-pointer flex items-center justify-center text-[10px] w-3 h-3 rounded-full hover:bg-gray-200"
-                                            >
-                                              ×
-                                            </button>
-                                          </span>
-                                        ))}
-                                      {(!timeGroupRange ||
-                                        !timeGroupRange.trim()) && (
-                                        <span className="text-gray-400 text-xs font-sans pl-1">
-                                          Nhấp để chọn khung giờ...
-                                        </span>
-                                      )}
-                                    </div>
-                                    <ChevronDown className="w-4 h-4 text-[#717680] absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-                                  </div>
-
-                                  {/* Dropdown element with overlay to close */}
-                                  {isTagDropdownOpen && (
-                                    <>
-                                      <div
-                                        className="fixed inset-0 z-[10005] bg-transparent"
-                                        onClick={() =>
-                                          setIsTagDropdownOpen(false)
-                                        }
-                                      />
-                                      <div className="absolute left-0 right-0 mt-1 bg-white border border-[#D5D7DA] rounded shadow-lg z-[10006] max-h-[180px] overflow-y-auto p-1 text-left font-sans text-xs">
-                                        <div className="p-1.5 border-b border-[#E9EAEB] flex items-center justify-between text-gray-500 text-[11px] font-medium select-none">
-                                          <span>Khung giờ từ Bước 1</span>
-                                          <div className="flex gap-2">
-                                            <button
-                                              type="button"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                const allActive =
-                                                  shopeeOperatingDays
-                                                    .filter((d) => d.active)
-                                                    .map(
-                                                      (d) =>
-                                                        `${d.name} (${d.ranges.map((r: any) => `${r.from}-${r.to}`).join(", ")})`,
-                                                    );
-                                                setTimeGroupRange(
-                                                  allActive.join(", "),
-                                                );
-                                              }}
-                                              className="text-[#245FDF] hover:underline font-semibold bg-transparent border-none p-0 cursor-pointer text-[10px]"
-                                            >
-                                              Chọn tất cả
-                                            </button>
-                                            <span className="text-[#D5D7DA]">
-                                              |
-                                            </span>
-                                            <button
-                                              type="button"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                setTimeGroupRange("");
-                                              }}
-                                              className="text-[#717680] hover:underline font-semibold bg-transparent border-none p-0 cursor-pointer text-[10px]"
-                                            >
-                                              Xóa chọn
-                                            </button>
-                                          </div>
-                                        </div>
-                                        <div className="py-1 space-y-0.5">
-                                          {shopeeOperatingDays
-                                            .filter((d) => d.active)
-                                            .map((d) => {
-                                              const formattedRange = d.ranges
-                                                .map(
-                                                  (r: any) =>
-                                                    `${r.from}-${r.to}`,
-                                                )
-                                                .join(", ");
-                                              const dayString = `${d.name} (${formattedRange})`;
-                                              const currentTags = timeGroupRange
-                                                .split(",")
-                                                .map((s) => s.trim())
-                                                .filter(Boolean);
-                                              const isSelected =
-                                                currentTags.includes(dayString);
-                                              return (
-                                                <label
-                                                  key={d.id}
-                                                  className="flex items-center gap-2 px-2 py-1.5 hover:bg-[#F0F6FE] rounded cursor-pointer select-none text-[#101828]"
-                                                  onClick={(e) =>
-                                                    e.stopPropagation()
-                                                  }
-                                                >
-                                                  <input
-                                                    type="checkbox"
-                                                    checked={isSelected}
-                                                    onChange={() => {
-                                                      let nextTags = [
-                                                        ...currentTags,
-                                                      ];
-                                                      if (isSelected) {
-                                                        nextTags =
-                                                          nextTags.filter(
-                                                            (t) =>
-                                                              t !== dayString,
-                                                          );
-                                                      } else {
-                                                        nextTags.push(
-                                                          dayString,
-                                                        );
-                                                      }
-                                                      const dayOrder = [
-                                                        "T2",
-                                                        "T3",
-                                                        "T4",
-                                                        "T5",
-                                                        "T6",
-                                                        "T7",
-                                                        "CN",
-                                                      ];
-                                                      nextTags.sort((a, b) => {
-                                                        const dayA =
-                                                          a.split(" ")[0];
-                                                        const dayB =
-                                                          b.split(" ")[0];
-                                                        return (
-                                                          dayOrder.indexOf(
-                                                            dayA,
-                                                          ) -
-                                                          dayOrder.indexOf(dayB)
-                                                        );
-                                                      });
-                                                      setTimeGroupRange(
-                                                        nextTags.join(", "),
-                                                      );
-                                                    }}
-                                                    className="w-3.5 h-3.5 text-[#245FDF] rounded border-[#D5D7DA] focus:ring-[#245FDF]/20"
-                                                  />
-                                                  <span className="text-xs font-sans">
-                                                    {dayString}
-                                                  </span>
-                                                </label>
-                                              );
-                                            })}
-                                          {shopeeOperatingDays.filter(
-                                            (d) => d.active,
-                                          ).length === 0 && (
-                                            <div className="p-3 text-center text-gray-400 italic">
-                                              Chưa thiết lập ngày hoạt động nào
-                                              ở Bước 1
-                                            </div>
-                                          )}
-                                        </div>
-                                      </div>
-                                    </>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Section Header: Chọn nhóm thực đơn áp dụng */}
-                            <div className="pt-3 border-t border-[#E9EAEB] mt-2">
-                              <h4 className="text-[13px] font-sans font-bold text-[#101828] mb-1">
-                                Chọn nhóm thực đơn áp dụng
-                              </h4>
-
-                              {/* Toolbar Lên / Xuống */}
-                              <div className="flex items-center gap-4 py-1 border-b border-[#E9EAEB]">
-                                <button
-                                  type="button"
-                                  disabled={
-                                    selectedMenuGroupIndex === null ||
-                                    selectedMenuGroupIndex === 0
-                                  }
-                                  onClick={() => {
-                                    if (
-                                      selectedMenuGroupIndex === null ||
-                                      selectedMenuGroupIndex === 0
-                                    )
-                                      return;
-                                    const newList = [...menuGroupList];
-                                    const temp =
-                                      newList[selectedMenuGroupIndex];
-                                    newList[selectedMenuGroupIndex] =
-                                      newList[selectedMenuGroupIndex - 1];
-                                    newList[selectedMenuGroupIndex - 1] = temp;
-                                    setMenuGroupList(newList);
-                                    setSelectedMenuGroupIndex(
-                                      selectedMenuGroupIndex - 1,
-                                    );
-                                  }}
-                                  className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded transition-colors bg-transparent border-none ${
-                                    selectedMenuGroupIndex !== null &&
-                                    selectedMenuGroupIndex > 0
-                                      ? "text-[#245FDF] hover:bg-[#F0F6FE] cursor-pointer"
-                                      : "text-gray-300 cursor-not-allowed"
-                                  }`}
-                                >
-                                  <ArrowUp className="w-3.5 h-3.5" />
-                                  Lên
-                                </button>
-                                <button
-                                  type="button"
-                                  disabled={
-                                    selectedMenuGroupIndex === null ||
-                                    selectedMenuGroupIndex ===
-                                      menuGroupList.length - 1
-                                  }
-                                  onClick={() => {
-                                    if (
-                                      selectedMenuGroupIndex === null ||
-                                      selectedMenuGroupIndex ===
-                                        menuGroupList.length - 1
-                                    )
-                                      return;
-                                    const newList = [...menuGroupList];
-                                    const temp =
-                                      newList[selectedMenuGroupIndex];
-                                    newList[selectedMenuGroupIndex] =
-                                      newList[selectedMenuGroupIndex + 1];
-                                    newList[selectedMenuGroupIndex + 1] = temp;
-                                    setMenuGroupList(newList);
-                                    setSelectedMenuGroupIndex(
-                                      selectedMenuGroupIndex + 1,
-                                    );
-                                  }}
-                                  className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded transition-colors bg-transparent border-none ${
-                                    selectedMenuGroupIndex !== null &&
-                                    selectedMenuGroupIndex <
-                                      menuGroupList.length - 1
-                                      ? "text-[#245FDF] hover:bg-[#F0F6FE] cursor-pointer"
-                                      : "text-gray-300 cursor-not-allowed"
-                                  }`}
-                                >
-                                  <ArrowDown className="w-3.5 h-3.5" />
-                                  Xuống
-                                </button>
-                              </div>
-
-                              {/* Table of Menu Groups */}
-                              <div className="border border-[#D5D7DA] rounded-lg overflow-hidden mt-2 bg-white flex flex-col min-h-[160px] max-h-[220px]">
-                                <table className="w-full text-left border-collapse table-fixed flex-1 flex flex-col">
-                                  <thead className="bg-[#F7F7F8] border-b border-[#E9EAEB] flex-shrink-0 w-full">
-                                    <tr className="flex w-full">
-                                      <th className="w-[80px] py-2 text-center text-xs font-semibold text-gray-700 border-r border-[#E9EAEB] font-sans">
-                                        Thứ tự
-                                      </th>
-                                      <th className="flex-1 py-2 text-center text-xs font-semibold text-gray-700 font-sans">
-                                        Nhóm thực đơn
-                                      </th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="overflow-y-auto flex-1 w-full divide-y divide-[#E9EAEB]">
-                                    {menuGroupList.map((item, idx) => {
-                                      const isSelected =
-                                        selectedMenuGroupIndex === idx;
-                                      return (
-                                        <tr
-                                          key={idx}
-                                          onClick={() => {
-                                            setSelectedMenuGroupIndex(idx);
-                                          }}
-                                          onDoubleClick={() =>
-                                            setEditingMenuGroupIndex(idx)
-                                          }
-                                          className={`flex w-full transition-colors cursor-pointer select-none items-center ${
-                                            isSelected
-                                              ? "bg-[#EDFCF4]"
-                                              : "hover:bg-gray-50"
-                                          }`}
-                                        >
-                                          <td className="w-[80px] py-2 text-right pr-4 text-xs text-[#101828] border-r border-[#E9EAEB] font-mono font-medium">
-                                            {idx + 1}
-                                          </td>
-                                          <td className="flex-1 py-1 text-left px-3 text-xs text-[#101828] font-sans">
-                                            {editingMenuGroupIndex === idx ? (
-                                              <select
-                                                value={item}
-                                                autoFocus
-                                                onChange={(e) => {
-                                                  const newList = [
-                                                    ...menuGroupList,
-                                                  ];
-                                                  newList[idx] = e.target.value;
-                                                  setMenuGroupList(newList);
-                                                }}
-                                                onBlur={() =>
-                                                  setEditingMenuGroupIndex(null)
-                                                }
-                                                onClick={(e) =>
-                                                  e.stopPropagation()
-                                                }
-                                                className="w-full h-7 px-2 border border-[#245FDF] rounded focus:outline-none text-xs font-sans bg-white cursor-pointer"
-                                              >
-                                                <option value="">-- Chọn nhóm thực đơn --</option>
-                                                <option value="Bánh gạo">Bánh gạo</option>
-                                                <option value="Gà rán">Gà rán</option>
-                                                <option value="Nước giải khát">Nước giải khát</option>
-                                                <option value="Lẩu">Lẩu</option>
-                                                <option value="Bia">Bia</option>
-                                                <option value="Món chính">Món chính</option>
-                                                <option value="Món ăn nhẹ">Món ăn nhẹ</option>
-                                                <option value="Đồ uống lạnh">Đồ uống lạnh</option>
-                                                <option value="Phở">Phở</option>
-                                                <option value="Món ăn kèm">Món ăn kèm</option>
-                                                <option value="Đồ uống">Đồ uống</option>
-                                                <option value="Khai vị">Khai vị</option>
-                                                <option value="Tráng miệng">Tráng miệng</option>
-                                              </select>
-                                            ) : (
-                                              <div className="py-1 min-h-[24px] flex items-center justify-between group/row">
-                                                <span>
-                                                  {item || (
-                                                    <span className="text-gray-400 italic">
-                                                      (Chưa chọn nhóm)
-                                                    </span>
-                                                  )}
-                                                </span>
-                                                <span className="text-gray-400 text-[10px] opacity-0 group-hover/row:opacity-100 transition-opacity font-sans">
-                                                  Double click để sửa
-                                                </span>
-                                              </div>
-                                            )}
-                                          </td>
-                                        </tr>
-                                      );
-                                    })}
-                                    {menuGroupList.length === 0 && (
-                                      <tr className="flex w-full">
-                                        <td className="w-full text-center py-8 text-gray-400 italic text-xs font-sans">
-                                          Chưa có nhóm thực đơn nào. Vui lòng
-                                          thêm dòng.
-                                        </td>
-                                      </tr>
-                                    )}
-                                  </tbody>
-                                </table>
-                              </div>
-
-                              {/* Button Thêm dòng / Xóa dòng */}
-                              <div className="flex items-center gap-2 mt-3 select-none">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const newList = [...menuGroupList, ""];
-                                    setMenuGroupList(newList);
-                                    setSelectedMenuGroupIndex(
-                                      newList.length - 1,
-                                    );
-                                    setEditingMenuGroupIndex(
-                                      newList.length - 1,
-                                    );
-                                  }}
-                                  className="h-8 px-3 bg-white hover:bg-gray-50 border border-[#D5D7DA] text-gray-700 rounded-lg flex items-center justify-center gap-1.5 text-xs font-sans font-medium transition-all cursor-pointer select-none"
-                                >
-                                  <Plus className="w-3.5 h-3.5 text-[#245FDF]" />
-                                  Thêm dòng
-                                </button>
-                                <button
-                                  type="button"
-                                  disabled={selectedMenuGroupIndex === null}
-                                  onClick={() => {
-                                    if (selectedMenuGroupIndex === null) return;
-                                    const newList = menuGroupList.filter(
-                                      (_, idx) =>
-                                        idx !== selectedMenuGroupIndex,
-                                    );
-                                    setMenuGroupList(newList);
-                                    setSelectedMenuGroupIndex(null);
-                                    setEditingMenuGroupIndex(null);
-                                  }}
-                                  className={`h-8 px-3 border rounded-lg flex items-center justify-center gap-1.5 text-xs font-sans font-medium transition-all select-none ${
-                                    selectedMenuGroupIndex !== null
-                                      ? "bg-white hover:bg-red-50 border-red-200 text-red-600 cursor-pointer"
-                                      : "bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed"
-                                  }`}
-                                >
-                                  <X className="w-3.5 h-3.5" />
-                                  Xóa dòng
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* 3️⃣ Footer Action bar */}
-                          <div className="bg-[#FAFAFA] border-t border-[#E9EAEB] px-5 py-3 flex items-center justify-end select-none">
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => setIsTimeGroupModalOpen(false)}
-                                className="h-8 min-w-[84px] px-4 bg-white hover:bg-gray-50 border border-[#D5D7DA] text-[#101828] rounded-lg flex items-center justify-center text-xs font-sans font-medium transition-all cursor-pointer"
-                              >
-                                Hủy bỏ
-                              </button>
-                              <button
-                                type="button"
-                                onClick={handleSaveTimeGroup}
-                                className="h-8 min-w-[84px] px-4 bg-[#245FDF] hover:bg-[#1B4EBA] text-white rounded-lg flex items-center justify-center text-xs font-sans font-semibold transition-all cursor-pointer border-none shadow-sm"
-                              >
-                                Lưu
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
               </div>
             </div>
           </div>
@@ -5312,7 +3871,6 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
                   onClick={() => {
                     setIsQrModalOpen(false);
                     setShopeeWizardStep(1);
-                    setConnectionType("select");
                     setIsNoStoreFlow(false);
                   }}
                   className="bg-white hover:bg-gray-50 text-[#101828] border border-[#D5D7DA] font-normal text-[13px] rounded-[8px] flex items-center justify-center transition-all cursor-pointer"
@@ -5323,7 +3881,8 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
                 <button
                   onClick={() => {
                     if (qrScanStatus === "success") {
-                      setShopeeWizardStep(2);
+                      // W3: hỏi nhà hàng đã có thực đơn trên ShopeeFood chưa trước khi sang B2
+                      setShowMenuExistPopup(true);
                     }
                   }}
                   disabled={qrScanStatus !== "success"}
@@ -5343,11 +3902,14 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
               <button
                 onClick={() => {
                   if (shopeeWizardStep === 2) {
+                    if (wizardSubTab === "stpv") {
+                      // W6: từ bước con 2 (STPV) quay về bước con 1 (Món)
+                      setWizardSubTab("menu");
+                      return;
+                    }
                     setShopeeWizardStep(1);
-                    setConnectionType("select");
                     setIsNoStoreFlow(false);
                   }
-                  if (shopeeWizardStep === 3) setShopeeWizardStep(2);
                 }}
                 className="bg-white hover:bg-gray-50 text-[#101828] border border-[#D5D7DA] font-normal text-[13px] rounded-[8px] flex items-center justify-center transition-all cursor-pointer"
                 style={{ height: "32px", minWidth: "84px" }}
@@ -5359,97 +3921,91 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
             {shopeeWizardStep === 2 && (
               <button
                 onClick={() => {
-                  if (connectionType === "has_store" || isNoStoreFlow) {
-                    setShopeeWizardStep(3);
-                    return;
-                  }
-                  if (step2SyncProgress < 100) return;
-
-                  const unlinkedFoods = wizardFoods.filter(
-                    (f) => !f.linkedDishId,
-                  ).length;
-                  const unlinkedMenuGroups = wizardMenuGroups.filter(
-                    (g) => !g.linkedGroupId,
-                  ).length;
-                  const unlinkedStpv = wizardStpv.filter(
-                    (s) => !s.linkedGroupId,
-                  ).length;
-                  const unlinkedStpvGroups = wizardStpvGroups.filter(
-                    (sg) => !sg.linkedGroupId,
-                  ).length;
-                  if (unlinkedFoods > 0 || unlinkedMenuGroups > 0 || unlinkedStpv > 0 || unlinkedStpvGroups > 0) {
-                    setShowUnlinkedConfirmModal(true);
+                  // W6: điều hướng theo 2 bước con — 1/2 Đồng bộ món → 2/2 Đồng bộ STPV
+                  if (wizardSubTab === "menu") {
+                    if (!isNoStoreFlow) {
+                      if (step2SyncProgress < 100) return;
+                      const unlinkedFoods = wizardFoods.filter(
+                        (f) => !f.linkedDishId,
+                      ).length;
+                      if (unlinkedFoods > 0) {
+                        setShowUnlinkedConfirmModal(true);
+                        return;
+                      }
+                    }
+                    setWizardSubTab("stpv");
                     return;
                   }
 
-                  setShopeeWizardStep(3);
+                  // Bước con 2/2 (STPV) — Hoàn tất
+                  if (!isNoStoreFlow) {
+                    const unlinkedStpv = wizardStpv.filter(
+                      (s) => !s.linkedGroupId,
+                    ).length;
+                    if (unlinkedStpv > 0) {
+                      setShowUnlinkedConfirmModal(true);
+                      return;
+                    }
+                  }
+                  finishShopeeWizard();
                 }}
-                disabled={
-                  !isNoStoreFlow && connectionType !== "has_store" && step2SyncProgress < 100
-                }
+                disabled={!isNoStoreFlow && step2SyncProgress < 100}
                 className={`font-normal text-[13px] rounded-[8px] flex items-center justify-center transition-all border-none ${
-                  isNoStoreFlow || connectionType === "has_store" || step2SyncProgress === 100
+                  isNoStoreFlow || step2SyncProgress === 100
                     ? "bg-[#245FDF] hover:bg-[#1B4EBA] text-white cursor-pointer"
                     : "bg-[#E9EAEB] text-[#A4A7AE] cursor-not-allowed border border-[#D5D7DA]"
                 }`}
                 style={{ height: "32px", minWidth: "84px" }}
               >
-                Tiếp tục
+                {wizardSubTab === "menu" ? "Tiếp tục" : "Hoàn tất"}
               </button>
             )}
 
-            {shopeeWizardStep === 3 && (
-              <button
-                onClick={() => {
-                  // Confetti fireworks animation
-                  const duration = 2.5 * 1000;
-                  const end = Date.now() + duration;
-
-                  (function frame() {
-                    confetti({
-                      particleCount: 4,
-                      angle: 60,
-                      spread: 55,
-                      origin: { x: 0, y: 0.8 },
-                      colors: ["#245FDF", "#3B82F6", "#10B981", "#F59E0B"],
-                    });
-                    confetti({
-                      particleCount: 4,
-                      angle: 120,
-                      spread: 55,
-                      origin: { x: 1, y: 0.8 },
-                      colors: ["#245FDF", "#3B82F6", "#10B981", "#F59E0B"],
-                    });
-
-                  if (Date.now() < end) {
-                    requestAnimationFrame(frame);
-                  }
-                  })();
-
-                  // Redirect/Navigate down to actual management screen first
-                  setApps((prevApps) =>
-                    prevApps.map((app) => {
-                      if (app.id === "shopeefood")
-                        return { ...app, isConnected: true };
-                      return app;
-                    }),
-                  );
-                  setIsQrModalOpen(false);
-                  setShopeeSyncStarted(true);
-                  setShopeeWizardStep(1);
-                  setShopeeFoodTab("menu");
-                  setShopeeActiveSegment("thuc-don");
-
-                  // Now open the success popup modal
-                  setIsShopeeSuccessModalOpen(true);
-                }}
-                className="bg-[#245FDF] hover:bg-[#1B4EBA] text-white cursor-pointer font-normal text-[13px] rounded-[8px] flex items-center justify-center transition-all border-none"
-                style={{ height: "32px", minWidth: "84px" }}
-              >
-                Hoàn tất
-              </button>
-            )}
           </div>
+
+          {/* W3: Popup hỏi nhà hàng đã có thực đơn trên ShopeeFood chưa (thay màn chọn gian hàng cũ) */}
+          {showMenuExistPopup && (
+            <div className="fixed inset-0 bg-black/60 z-[10000] flex items-center justify-center p-4 animate-fade-in">
+              <div className="bg-white rounded-xl shadow-2xl border border-[#E9EAEB] w-full max-w-[420px] overflow-hidden animate-scale-up p-6 flex flex-col items-center text-center">
+                <div className="w-12 h-12 rounded-full bg-[#FFF1ED] flex items-center justify-center mb-4">
+                  <Utensils className="w-6 h-6 text-[#EE4D2D]" />
+                </div>
+
+                <h3 className="text-[#101828] font-bold text-lg leading-6 mb-2">
+                  Nhà hàng đã có thực đơn trên ShopeeFood chưa?
+                </h3>
+
+                <p className="text-[#717680] text-[13px] leading-relaxed mb-6">
+                  Nếu đã có, hệ thống sẽ tự động đồng bộ thực đơn từ ShopeeFood
+                  về MISA CukCuk để bạn ghép nối. Nếu chưa có, bạn sẽ bắt đầu
+                  với thực đơn trống và chọn món từ MISA CukCuk.
+                </p>
+
+                <div className="flex gap-3 w-full">
+                  <button
+                    onClick={() => {
+                      setIsNoStoreFlow(true);
+                      setShowMenuExistPopup(false);
+                      setShopeeWizardStep(2);
+                    }}
+                    className="flex-1 py-2 bg-white hover:bg-gray-50 text-[#101828] border border-[#D5D7DA] font-semibold text-[13px] rounded-lg transition-all cursor-pointer h-9 flex items-center justify-center"
+                  >
+                    Chưa có
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsNoStoreFlow(false);
+                      setShowMenuExistPopup(false);
+                      setShopeeWizardStep(2);
+                    }}
+                    className="flex-1 py-2 bg-[#245FDF] hover:bg-[#1B4EBA] text-white font-semibold text-[13px] rounded-lg transition-all cursor-pointer h-9 flex items-center justify-center border-none"
+                  >
+                    Đã có
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Warning popup: showUnlinkedConfirmModal with a higher z-index (z-[10000]) than the main popup (z-[9999]) */}
           {showUnlinkedConfirmModal && (
@@ -5465,11 +4021,16 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
 
                 <p className="text-[#717680] text-[13px] leading-relaxed mb-6">
                   {(() => {
+                    // W6: chỉ cảnh báo theo bước con hiện tại (1/2 Món hoặc 2/2 STPV)
                     const unlinkedItems = [];
-                    const countDishes = wizardFoods.filter((f) => !f.linkedDishId).length;
-                    const countGroups = wizardMenuGroups.filter((g) => !g.linkedGroupId).length;
-                    const countStpv = wizardStpv.filter((s) => !s.linkedGroupId).length;
-                    const countStpvGroups = wizardStpvGroups.filter((sg) => !sg.linkedGroupId).length;
+                    const countDishes =
+                      wizardSubTab === "menu"
+                        ? wizardFoods.filter((f) => !f.linkedDishId).length
+                        : 0;
+                    const countStpv =
+                      wizardSubTab === "stpv"
+                        ? wizardStpv.filter((s) => !s.linkedGroupId).length
+                        : 0;
 
                     if (countDishes > 0) {
                       unlinkedItems.push(
@@ -5478,24 +4039,10 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
                         </span>
                       );
                     }
-                    if (countGroups > 0) {
-                      unlinkedItems.push(
-                        <span key="groups" className="font-semibold text-amber-600">
-                          {countGroups} nhóm thực đơn
-                        </span>
-                      );
-                    }
                     if (countStpv > 0) {
                       unlinkedItems.push(
                         <span key="stpv" className="font-semibold text-amber-600">
                           {countStpv} sở thích phục vụ
-                        </span>
-                      );
-                    }
-                    if (countStpvGroups > 0) {
-                      unlinkedItems.push(
-                        <span key="stpvGroups" className="font-semibold text-amber-600">
-                          {countStpvGroups} nhóm STPV
                         </span>
                       );
                     }
@@ -5540,7 +4087,12 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
                   <button
                     onClick={() => {
                       setShowUnlinkedConfirmModal(false);
-                      setShopeeWizardStep(3);
+                      // W6: bước con 1 → sang bước con 2; bước con 2 → hoàn tất wizard
+                      if (wizardSubTab === "menu") {
+                        setWizardSubTab("stpv");
+                      } else {
+                        finishShopeeWizard();
+                      }
                     }}
                     className="flex-1 py-2 bg-[#245FDF] hover:bg-[#1B4EBA] text-white font-semibold text-[13px] rounded-lg transition-all cursor-pointer h-9 flex items-center justify-center border-none"
                   >
@@ -5579,7 +4131,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
                   <button
                     onClick={() => {
                       setShowShopeeSyncConfirmModal(false);
-                      setShopeeWizardStep(3);
+                      finishShopeeWizard();
                     }}
                     className="flex-1 py-2 bg-white hover:bg-gray-50 text-[#101828] border border-[#D5D7DA] font-semibold text-[13px] rounded-lg transition-all cursor-pointer h-9 flex items-center justify-center"
                   >
@@ -5592,7 +4144,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
                         "Đang tải dữ liệu thực đơn lên ShopeeFood...",
                         "success"
                       );
-                      setShopeeWizardStep(3);
+                      finishShopeeWizard();
                     }}
                     className="flex-1 py-2 bg-[#245FDF] hover:bg-[#1B4EBA] text-white font-semibold text-[13px] rounded-lg transition-all cursor-pointer h-9 flex items-center justify-center border-none"
                   >
@@ -9982,13 +8534,11 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
                 <strong className="text-[#101828] font-semibold">
                   ShopeeFood
                 </strong>{" "}
-                để nhận và xử lý đơn hàng ngay trên{" "}
+                để nhận và xử lý đơn ngay trên{" "}
                 <strong className="text-[#101828] font-semibold">
                   MISA CukCuk
                 </strong>
-                . Tự động đồng bộ dữ liệu, giảm thao tác thủ công, đảm bảo chính
-                xác doanh thu, tồn kho,... và giúp nhà hàng vận hành hiệu quả
-                hơn.
+                . Đồng bộ tự động, giảm thao tác thủ công, doanh thu chính xác.
               </p>
 
               {/* 3. Action Button */}
@@ -10012,7 +8562,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
                     1
                   </div>
                   <span className="text-[#101828] font-normal text-[13px] text-center mb-2 font-sans">
-                    Kết nối ShopeeFood
+                    Quét QR đăng nhập
                   </span>
                   {/* Image 1 */}
                   <div className="h-28 w-full flex items-center justify-center">
@@ -10050,51 +8600,13 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
                     2
                   </div>
                   <span className="text-[#101828] font-normal text-[13px] text-center mb-2 font-sans">
-                    Đồng bộ & Thiết lập thực đơn
+                    Đồng bộ thực đơn
                   </span>
                   {/* Image 2 */}
                   <div className="h-28 w-full flex items-center justify-center">
                     <img
                       src="https://misajsc.amis.vn/oneai/g1/api/file/v1/files/image?fileType=5003&fileId=8fbc624f-d945-4dd7-83c5-f638dc5ea670.png&isTemp=true&tenantCode=misa"
                       alt="Đồng bộ thực đơn"
-                      className="max-h-full max-w-full object-contain"
-                      referrerPolicy="no-referrer"
-                    />
-                  </div>
-                </div>
-
-                {/* Arrow */}
-                <div className="text-[#D5D7DA] flex items-center justify-center rotate-90 md:rotate-0">
-                  <svg
-                    width="24"
-                    height="16"
-                    viewBox="0 0 24 16"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M 2 8 L 20 8 M 14 3 L 20 8 L 14 13"
-                      stroke="#D5D7DA"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </div>
-
-                {/* Step 3 */}
-                <div className="relative w-full max-w-[260px] h-[200px] bg-white border border-dashed border-[#D5D7DA] rounded-xl flex flex-col items-center justify-center px-4 py-3">
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 w-7 h-7 rounded-full bg-[#245FDF] text-white flex items-center justify-center font-bold text-[13px] border-2 border-white shadow-sm">
-                    3
-                  </div>
-                  <span className="text-[#101828] font-normal text-[13px] text-center mb-2 font-sans">
-                    Thiết lập bán hàng
-                  </span>
-                  {/* Image 3 */}
-                  <div className="h-28 w-full flex items-center justify-center">
-                    <img
-                      src="https://misajsc.amis.vn/oneai/g1/api/file/v1/files/image?fileType=5003&fileId=6cec4103-2379-4880-bf9e-2c4cb9a48e0c.png&isTemp=true&tenantCode=misa"
-                      alt="Thiết lập bán hàng"
                       className="max-h-full max-w-full object-contain"
                       referrerPolicy="no-referrer"
                     />
@@ -10340,372 +8852,6 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
           </div>
         )}
 
-        {/* 💠 QR CODE MODAL POPUP (image 2) */}
-        {isQrModalOpen && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 transition-all duration-300 animate-fade-in">
-            {qrScanStatus === "success" ? (
-              /* Success connection popup */
-              <div
-                className="bg-white flex flex-col w-full max-w-[420px] overflow-hidden shadow-2xl relative animate-scale-up"
-                style={{ borderRadius: "12px" }}
-              >
-                {/* Header Modal - Black text on white background styled as per design instructions */}
-                <div
-                  className="flex items-center justify-between px-6 bg-white border-b border-[#E9EAEB]"
-                  style={{ height: "62px", padding: "24px 24px 16px 24px" }}
-                >
-                  <div className="flex items-center gap-2">
-                    <RefreshCw
-                      className="w-4 h-4 text-[#245FDF] animate-spin animate-infinite"
-                      style={{ animationDuration: "6s" }}
-                    />
-                    <h3 className="text-[#101828] font-bold text-sm tracking-wider uppercase">
-                      KẾT NỐI THÀNH CÔNG!
-                    </h3>
-                  </div>
-                  <button
-                    onClick={() => setIsQrModalOpen(false)}
-                    className="text-[#717680] hover:text-[#101828] p-1.5 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-
-                {/* Body Form */}
-                <div className="p-6 flex flex-col items-center">
-                  {/* Large light green circle checkmark */}
-                  <div className="w-16 h-16 rounded-full bg-[#DCFCE7] flex items-center justify-center mt-2">
-                    <Check className="w-8 h-8 text-[#10B981] stroke-[3px]" />
-                  </div>
-
-                  <h3 className="text-[#101828] font-bold text-lg text-center mt-4">
-                    Môi trường kết nối hoàn tất!
-                  </h3>
-
-                  <p className="text-[#5E6470] text-xs text-center leading-relaxed mt-2 max-w-sm px-1">
-                    Hệ thống đã kết nối đồng bộ thành công gian hàng{" "}
-                    <strong className="text-[#101828] font-bold">
-                      TRÀ SỮA TAM ĐẢO - CHI NHÁNH CHÍNH
-                    </strong>{" "}
-                    với tài khoản quản lý{" "}
-                    <strong className="text-[#101828] font-bold">
-                      ShopeeFood Partner
-                    </strong>{" "}
-                    của bạn.
-                  </p>
-
-                  {/* Properties table - Using Inter font instead of font-mono */}
-                  <div className="bg-[#F8F9FA] border border-[#E9EAEB] rounded-xl p-4 space-y-3 w-full mt-5 text-[12px]">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[#717680]">Merchant ID:</span>
-                      <span className="font-bold text-[#101828] font-sans">
-                        SPF-98234-CUK
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-[#717680]">Số tài khoản:</span>
-                      <span className="font-bold text-[#101828] font-sans">
-                        0987******
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* CTA button inside body - Styled with primary BrandColor */}
-                  <button
-                    onClick={() => {
-                      setIsQrModalOpen(false);
-                      setShopeeFoodTab("menu");
-                      setShopeeWizardStep(2);
-                    }}
-                    className="w-full bg-[#245FDF] hover:bg-[#1B4EBA] text-white font-bold text-sm py-3 px-4 rounded-lg transition-all duration-200 cursor-pointer text-center flex items-center justify-center mt-6 shadow-md shadow-blue-500/10 active:scale-95"
-                    style={{ height: "40px" }}
-                  >
-                    Bắt đầu Đồng bộ dữ liệu bán hàng
-                  </button>
-                </div>
-              </div>
-            ) : (
-              /* QR Code scanning flow popup */
-              <div
-                className={`bg-white flex flex-col w-full overflow-hidden shadow-2xl relative animate-scale-up transition-all duration-300 ${
-                  connectionType === "select"
-                    ? "max-w-2xl"
-                    : connectionType === "no_store"
-                      ? "max-w-xl"
-                      : "max-w-md"
-                }`}
-                style={{ borderRadius: "12px" }}
-              >
-                {/* Header Modal */}
-                <div
-                  className="flex items-center justify-between px-6 border-b border-[#E9EAEB]"
-                  style={{ height: "62px" }}
-                >
-                  <h3 className="text-[#101828] font-bold text-base">
-                    Kết nối đối tác ShopeeFood
-                  </h3>
-                  <button
-                    onClick={() => setIsQrModalOpen(false)}
-                    className="text-[#717680] hover:text-[#101828] p-1.5 hover:bg-gray-100 rounded-full transition-colors cursor-pointer border-none bg-transparent"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-
-                {/* Body Form */}
-                <div className="p-6 flex flex-col items-center space-y-6">
-                  {connectionType === "select" ? (
-                    /* GORGEOUS CHOICES FOR POPUP */
-                    <div className="w-full text-center space-y-5 font-sans animate-fade-in">
-                      <div className="space-y-1">
-                        <h4 className="text-[#101828] font-extrabold text-base md:text-lg">
-                          Lựa chọn trạng thái gian hàng của quán
-                        </h4>
-                        <p className="text-[#717680] text-xs">
-                          Vui lòng chọn 1 trong 2 hình thức dưới đây để bắt đầu liên kết
-                        </p>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left pt-2 w-full">
-                        {/* Choice 1: Has store */}
-                        <div
-                          onClick={() => {
-                            setConnectionType("has_store");
-                            setIsNoStoreFlow(false);
-                            setQrScanStatus("idle");
-                            onNotification("Đã chuyển sang màn hình quét mã kết nối", "success");
-                          }}
-                          className="border border-[#E9EAEB] hover:border-[#EE4D2D] hover:ring-4 hover:ring-[#EE4D2D]/5 rounded-xl p-5 flex flex-col justify-between transition-all duration-200 cursor-pointer group relative overflow-hidden bg-white hover:shadow-sm"
-                        >
-                          <div className="absolute top-0 left-0 right-0 h-1 bg-[#EE4D2D]"></div>
-                          <div className="space-y-3">
-                            <div className="w-10 h-10 rounded-lg bg-[#FFF1ED] flex items-center justify-center text-[#EE4D2D] group-hover:scale-105 transition-transform">
-                              <Store className="w-5 h-5" />
-                            </div>
-                            <div className="space-y-1">
-                              <h5 className="font-bold text-[13.5px] text-[#101828] flex items-center gap-1.5">
-                                <span>Đã có gian hàng</span>
-                              </h5>
-                              <p className="text-[#717680] text-[11px] leading-relaxed">
-                                Đã bán hàng trên ShopeeFood & sở hữu tài khoản quản trị Shopee Partner. Liên kết nhanh bằng quét mã QR.
-                              </p>
-                            </div>
-                          </div>
-                          <div className="pt-4">
-                            <button className="w-full py-2 bg-[#EE4D2D] hover:bg-[#D73C1F] text-white font-bold rounded-lg text-[11px] transition-colors flex items-center justify-center gap-1.5 border-none cursor-pointer">
-                              <span>Kết nối bằng mã QR</span>
-                              <ArrowRight className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Choice 2: No store */}
-                        <div
-                          onClick={() => {
-                            setConnectionType("no_store");
-                            setIsNoStoreFlow(true);
-                            setQrScanStatus("idle");
-                            onNotification("Đã chuyển sang hướng dẫn đăng ký đối tác mới", "info");
-                          }}
-                          className="border border-[#E9EAEB] hover:border-[#245FDF] hover:ring-4 hover:ring-[#245FDF]/5 rounded-xl p-5 flex flex-col justify-between transition-all duration-200 cursor-pointer group relative overflow-hidden bg-white hover:shadow-sm"
-                        >
-                          <div className="absolute top-0 left-0 right-0 h-1 bg-[#245FDF]"></div>
-                          <div className="space-y-3">
-                            <div className="w-10 h-10 rounded-lg bg-[#EFF6FF] flex items-center justify-center text-[#245FDF] group-hover:scale-105 transition-transform">
-                              <Rocket className="w-5 h-5" />
-                            </div>
-                            <div className="space-y-1">
-                              <h5 className="font-bold text-[13.5px] text-[#101828]">
-                                Chưa có gian hàng
-                              </h5>
-                              <p className="text-[#717680] text-[11px] leading-relaxed">
-                                Quán mới hoặc chưa bán hàng trên ShopeeFood. Cần hỗ trợ đăng ký tài khoản Shopee Partner mới.
-                              </p>
-                            </div>
-                          </div>
-                          <div className="pt-4">
-                            <button className="w-full py-2 bg-[#245FDF] hover:bg-[#1B4EBA] text-white font-bold rounded-lg text-[11px] transition-colors flex items-center justify-center gap-1.5 border-none cursor-pointer">
-                              <span>Xem quy trình đăng ký</span>
-                              <ArrowRight className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    /* ALREADY SELECTED SUBVIEW WITH A WAY BACK */
-                    <div className="w-full flex flex-col items-center space-y-4 animate-fade-in">
-                      {/* Navigation & standard tabs switcher */}
-                      <div className="flex items-center justify-start w-full border-b border-gray-100 pb-3 gap-3 select-none">
-                        <button
-                          onClick={() => setConnectionType("select")}
-                          className="text-xs font-semibold text-[#245FDF] hover:text-[#1B4EBA] flex items-center gap-1 bg-transparent border-none cursor-pointer p-1 hover:bg-gray-50 rounded"
-                        >
-                          <ChevronLeft className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      {connectionType === "has_store" ? (
-                        /* CASE 1: HAS STORE - SHOW QR */
-                        <>
-                          {/* Yellow Instruction Banner */}
-                          <div className="w-full bg-[#FFF9EC] border border-[#FFE4A3] rounded-lg p-4 flex gap-3 text-[#854D0E] text-xs leading-relaxed">
-                            <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-                            <div>
-                              Vui lòng{" "}
-                              <strong className="font-semibold text-[#101828]">
-                                mở ứng dụng Shopee Partner
-                              </strong>{" "}
-                              (hoặc ứng dụng Shopee chính) trên điện thoại di động, đi
-                              vào mục{" "}
-                              <strong className="font-semibold text-[#101828]">
-                                "Thiết lập / Đồng bộ CukCuk"
-                              </strong>{" "}
-                              và quét mã dưới đây để tích hợp nhanh cửa hàng.
-                            </div>
-                          </div>
-
-                          {/* Dashed QR Card */}
-                          <div className="w-full border-2 border-dashed border-[#FF8E75]/40 bg-white rounded-xl p-5 flex flex-col items-center justify-center relative shadow-sm">
-                            {/* QR Image representation */}
-                            <div className="relative w-44 h-44 bg-white flex items-center justify-center p-2 rounded-lg border border-gray-100 shadow-inner overflow-hidden">
-                              {/* Laser line overlay */}
-                              {qrScanStatus === "scanning" && (
-                                <div className="absolute top-2 left-2 right-2 h-[2px] bg-[#EE4D2D] shadow-[0_0_10px_3px_#EE4D2D] animate-qr-scan z-10" />
-                              )}
-
-                              <div className="relative w-full h-full flex items-center justify-center">
-                                <img
-                                  src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=ShopeeFoodPartnerCukCukIntegration_SPF-98234-CUK"
-                                  alt="ShopeeFood QR Code"
-                                  className="w-full h-full object-contain select-none"
-                                  referrerPolicy="no-referrer"
-                                />
-                                {/* Center ShopeeFood Badge Logo circle ("SF") */}
-                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                  <div className="w-9 h-9 rounded-full bg-[#EE4D2D] border-2 border-white flex items-center justify-center shadow-md">
-                                    <span className="text-white text-[11px] font-black tracking-tighter">
-                                      SF
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="mt-4 text-center select-none text-[11px] tracking-wider text-gray-500 font-semibold uppercase">
-                              GIAN HÀNG:{" "}
-                              <span className="text-[#101828] font-bold">
-                                TRÀ SỮA TAM ĐẢO - CHI NHÁNH CHÍNH
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Status/Activity loading pill */}
-                          <div className="inline-flex items-center gap-2 bg-[#F2F4F7] text-[#344054] px-4 py-1.5 rounded-full text-xs font-semibold shadow-inner select-none">
-                            {qrScanStatus === "idle" && (
-                              <>
-                                <span className="relative flex h-2 w-2">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-                                </span>
-                                <span>Mã QR sẵn sàng (quét sau 2s)...</span>
-                              </>
-                            )}
-                            {qrScanStatus === "scanning" && (
-                              <>
-                                <span className="relative flex h-2 w-2">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[#EE4D2D]"></span>
-                                </span>
-                                <span className="text-[#EE4D2D] font-medium">
-                                  Đang quét mã QR...
-                                </span>
-                              </>
-                            )}
-                            {qrScanStatus === "authorizing" && (
-                              <>
-                                <Loader2 className="w-3.5 h-3.5 text-blue-500 animate-spin" />
-                                <span className="text-blue-600">
-                                  Đang chờ KH đăng nhập Shopee Partner & ủy quyền...
-                                </span>
-                              </>
-                            )}
-                          </div>
-                        </>
-                      ) : (
-                        /* CASE 2: NO STORE - SHOW GUIDELINES */
-                        <div className="w-full flex flex-col gap-4 text-left animate-fade-in font-sans">
-                          <div className="text-center mb-1">
-                            <h4 className="text-[#101828] font-bold text-sm">
-                              Hướng dẫn đăng ký và kết nối ShopeeFood
-                            </h4>
-                            <p className="text-[#717680] text-[11px] mt-0.5">
-                              Vui lòng hoàn thành 2 bước dưới đây để đăng ký và liên kết.
-                            </p>
-                          </div>
-
-                          <div className="space-y-3">
-                            {/* Step 1 */}
-                            <div className="border border-[#E9EAEB] rounded-lg p-3 flex gap-3 hover:border-[#245FDF]/30 transition-all shadow-sm">
-                              <div className="w-6 h-6 rounded-full bg-[#EFF6FF] text-[#245FDF] font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
-                                1
-                              </div>
-                              <div className="flex-1 space-y-1">
-                                <h4 className="text-[#101828] font-bold text-xs">Bước 1: Đăng ký ShopeeFood</h4>
-                                <p className="text-[#717680] text-[11px] leading-relaxed">
-                                  Quý khách vui lòng thực hiện đăng ký gian hàng mới trên ShopeeFood.
-                                </p>
-                                <div className="pt-1">
-                                  <a
-                                    href="https://merchant.shopeefood.vn/edu/article/huong-dan-dang-ky-quan-moi-shopeefood"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    onClick={() => onNotification("Đang mở trang hướng dẫn đăng ký ShopeeFood...", "info")}
-                                    className="inline-flex items-center gap-1.5 text-[#245FDF] hover:text-[#1B4EBA] font-bold text-[11px] hover:underline cursor-pointer"
-                                  >
-                                    <span>Xem chi tiết hướng dẫn ShopeeFood</span>
-                                    <ExternalLink className="w-3 h-3" />
-                                  </a>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Step 2 */}
-                            <div className="border border-[#E9EAEB] rounded-lg p-3 flex gap-3 hover:border-[#245FDF]/30 transition-all shadow-sm">
-                              <div className="w-6 h-6 rounded-full bg-[#EFF6FF] text-[#245FDF] font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
-                                2
-                              </div>
-                              <div className="flex-1 space-y-1">
-                                <h4 className="text-[#101828] font-bold text-xs">Bước 2: Sau khi đăng ký xong, thực hiện đăng nhập và kết nối với ShopeeFood</h4>
-                                <p className="text-[#717680] text-[11px] leading-relaxed">
-                                  Khi đã nhận được thông tin tài khoản đăng nhập Shopee Partner, quý khách thực hiện liên kết bằng cách quét mã QR đăng nhập.
-                                </p>
-                                <div className="pt-1.5">
-                                  <button
-                                    onClick={() => {
-                                      setConnectionType("has_store");
-                                      setQrScanStatus("idle");
-                                      onNotification("Đã chuyển sang màn hình quét mã kết nối", "success");
-                                    }}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#245FDF] hover:bg-[#1B4EBA] text-white rounded text-[11px] font-bold transition-all border-none cursor-pointer shadow-sm"
-                                  >
-                                    <span>Kết nối ngay</span>
-                                    <ArrowRight className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* 💠 CONNECTION DETAILS POPUP MODAL */}
         {isInfoModalOpen && (
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 transition-all duration-300 animate-fade-in">
@@ -10746,16 +8892,10 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({
 
                 {/* Properties list */}
                 <div className="bg-[#F8F9FA] border border-[#E9EAEB] rounded-xl p-4 space-y-3.5 w-full mt-5 text-[12px]">
-                  <div className="flex justify-between items-center border-b border-gray-100 pb-2">
+                  <div className="flex justify-between items-center">
                     <span className="text-[#717680]">Merchant ID:</span>
                     <span className="font-bold text-[#101828] font-sans">
                       SPF-98234-CUK
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-[#717680]">Số tài khoản:</span>
-                    <span className="font-bold text-[#101828] font-sans">
-                      0987******
                     </span>
                   </div>
                 </div>

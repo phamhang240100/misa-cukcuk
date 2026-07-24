@@ -1,5 +1,0 @@
-{
-  "actors": ["Chủ quán", "Nhân viên POS", "Hệ thống CukCuk", "ShopeeFood", "Khách hàng & Tài xế"],
-  "branches": ["Thất bại", "Từ chối"],
-  "errors": ["Kết nối thất bại", "Đơn bị hủy"]
-}

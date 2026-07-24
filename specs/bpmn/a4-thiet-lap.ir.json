@@ -1,0 +1,24 @@
+{
+  "process": { "id": "Process_a4", "title": "A4 · Thiết lập tùy chọn bán hàng (cấu hình)" },
+  "lanes": [
+    { "id": "Lane_owner", "name": "Chủ quán" },
+    { "id": "Lane_cc",    "name": "Phần mềm CukCuk" }
+  ],
+  "nodes": [
+    { "id": "Start_1",    "kind": "start", "lane": "Lane_owner", "name": "Mở màn Thiết lập ShopeeFood" },
+    { "id": "Task_hours", "kind": "task",  "lane": "Lane_owner", "name": "Đặt giờ mở – đóng cửa & ngày nghỉ lễ" },
+    { "id": "Task_auto",  "kind": "task",  "lane": "Lane_owner", "name": "Chọn cách xác nhận đơn: nhân viên tự bấm / tự động tất cả / tự động chỉ đơn đã trả (kèm tự xác nhận sau 2 phút)" },
+    { "id": "Task_bill",  "kind": "task",  "lane": "Lane_owner", "name": "Chọn tự in tạm tính: khi xác nhận / khi gửi bếp / tắt" },
+    { "id": "Task_slip",  "kind": "task",  "lane": "Lane_owner", "name": "Bật / tắt in phiếu bàn giao cho tài xế" },
+    { "id": "Task_save",  "kind": "task",  "lane": "Lane_cc",    "name": "Lưu thiết lập" },
+    { "id": "End_ok",     "kind": "end",   "lane": "Lane_cc",    "name": "Đã lưu — áp dụng cho các đơn sau" }
+  ],
+  "flows": [
+    { "id": "F1", "src": "Start_1",    "tgt": "Task_hours" },
+    { "id": "F2", "src": "Task_hours", "tgt": "Task_auto" },
+    { "id": "F3", "src": "Task_auto",  "tgt": "Task_bill" },
+    { "id": "F4", "src": "Task_bill",  "tgt": "Task_slip" },
+    { "id": "F5", "src": "Task_slip",  "tgt": "Task_save" },
+    { "id": "F6", "src": "Task_save",  "tgt": "End_ok" }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "process": { "id": "Process_a2", "title": "A2 · Đưa thực đơn lên ShopeeFood (ghép món)" },
+  "lanes": [
+    { "id": "Lane_owner", "name": "Chủ quán" },
+    { "id": "Lane_cc",    "name": "Phần mềm CukCuk" },
+    { "id": "Lane_spf",   "name": "ShopeeFood" }
+  ],
+  "nodes": [
+    { "id": "Start_1",     "kind": "start",   "lane": "Lane_cc",    "name": "Kết nối thành công" },
+    { "id": "GW_has",      "kind": "gateway", "lane": "Lane_owner", "name": "Quán đã có thực đơn trên ShopeeFood chưa?" },
+    { "id": "Task_pull",   "kind": "task",    "lane": "Lane_cc",    "name": "Lấy danh sách món trên ShopeeFood về để đối chiếu" },
+    { "id": "Task_suggest","kind": "task",    "lane": "Lane_cc",    "name": "Tự động khớp món tên gần giống (≥80%) → gợi ý cặp sẵn, chủ quán chỉ duyệt lại [UX: đỡ ghép tay từng món]" },
+    { "id": "GW_case",     "kind": "gateway", "lane": "Lane_owner", "name": "Món thuộc trường hợp nào?" },
+    { "id": "Task_pair",   "kind": "task",    "lane": "Lane_owner", "name": "Có ở cả hai bên → xác nhận ghép cặp" },
+    { "id": "Task_addnew", "kind": "task",    "lane": "Lane_owner", "name": "Chỉ có ở quán → chọn đẩy lên (tạo mới)" },
+    { "id": "Task_create", "kind": "task",    "lane": "Lane_owner", "name": "Chỉ có trên ShopeeFood → tạo món ở thực đơn quán rồi ghép" },
+    { "id": "Task_group",  "kind": "task",    "lane": "Lane_owner", "name": "Ghép cả nhóm món & nhóm tùy chọn (topping) [RULE: chưa ghép mà đồng bộ → món cũ bị xóa, mất lượt bán]" },
+    { "id": "Task_pick",   "kind": "task",    "lane": "Lane_owner", "name": "Chọn món từ thực đơn quán để bán trên ShopeeFood" },
+    { "id": "Task_push",   "kind": "task",    "lane": "Lane_cc",    "name": "Đẩy thực đơn lên ShopeeFood" },
+    { "id": "Task_apply",  "kind": "task",    "lane": "Lane_spf",   "name": "Cập nhật gian hàng" },
+    { "id": "End_ok",      "kind": "end",     "lane": "Lane_cc",    "name": "Thực đơn đã lên ShopeeFood (báo số món thành công / lỗi)" }
+  ],
+  "flows": [
+    { "id": "F1",  "src": "Start_1",     "tgt": "GW_has" },
+    { "id": "F2",  "src": "GW_has",      "tgt": "Task_pull", "name": "Đã có" },
+    { "id": "F3",  "src": "Task_pull",   "tgt": "Task_suggest" },
+    { "id": "F4",  "src": "Task_suggest","tgt": "GW_case" },
+    { "id": "F5",  "src": "GW_case",     "tgt": "Task_pair",   "name": "Có ở cả hai bên" },
+    { "id": "F6",  "src": "GW_case",     "tgt": "Task_addnew", "name": "Chỉ có ở quán" },
+    { "id": "F7",  "src": "GW_case",     "tgt": "Task_create", "name": "Chỉ có trên ShopeeFood" },
+    { "id": "F8",  "src": "Task_pair",   "tgt": "Task_group" },
+    { "id": "F9",  "src": "Task_addnew", "tgt": "Task_group" },
+    { "id": "F10", "src": "Task_create", "tgt": "Task_group" },
+    { "id": "F11", "src": "Task_group",  "tgt": "Task_push" },
+    { "id": "F12", "src": "GW_has",      "tgt": "Task_pick",   "name": "Chưa có" },
+    { "id": "F13", "src": "Task_pick",   "tgt": "Task_push" },
+    { "id": "F14", "src": "Task_push",   "tgt": "Task_apply" },
+    { "id": "F15", "src": "Task_apply",  "tgt": "End_ok" }
+  ]
+}

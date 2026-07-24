@@ -25,7 +25,17 @@ import {
   Info,
   Save
 } from 'lucide-react';
-import { Order, OrderStatus } from '../types';
+import { Order, OrderStatus, SpfCancelReasonCode } from '../types';
+
+// ShopeeFood: 3 lý do hủy hợp lệ theo API
+const SPF_CANCEL_REASONS: { code: SpfCancelReasonCode; label: string; desc: string }[] = [
+  { code: 79, label: 'Hết món', desc: 'Món ăn / nguyên liệu đã hết' },
+  { code: 80, label: 'Quán quá tải', desc: 'Nhà hàng quá tải, chuẩn bị không kịp' },
+  { code: 81, label: 'Quán đóng cửa', desc: 'Cửa hàng đang đóng cửa / nghỉ lễ' }
+];
+
+// ShopeeFood: mã rút gọn in tem bàn giao (4 ký tự cuối, bỏ ký tự đặc biệt)
+const shortCode = (code: string) => code.replace(/[^0-9A-Za-z]/g, '').slice(-4).toUpperCase();
 
 interface DeliveryViewProps {
   channel: 'Grab' | 'ShopeeFood';
@@ -33,13 +43,19 @@ interface DeliveryViewProps {
   onBackToMain: () => void;
   onConfirmOrder: (orderId: string) => void;
   onCompleteOrder: (orderId: string) => void;
-  onDeleteOrder?: (orderId: string, reason?: string) => void;
+  onDeleteOrder?: (orderId: string, reason?: string, reasonCode?: SpfCancelReasonCode) => void;
   activeTab?: OrderStatus;
   setActiveTab?: (tab: OrderStatus) => void;
   selectedOrderId?: string | null;
   setSelectedOrderId?: (orderId: string | null) => void;
   notifications?: any[];
   onNotificationClick?: (notif: any) => void;
+  // ShopeeFood: sub-state "tài xế đã lấy" + cảnh báo đơn mới + case phụ (lift lên App)
+  pickedOrderIds?: string[];
+  onHandoverOrder?: (order: Order) => void;
+  alertingOrderIds?: string[];
+  onOrderAlertSeen?: (orderId: string) => void;
+  onSimulateShopeeEdit?: (orderId: string) => void;
 }
 
 export default function DeliveryView({
@@ -54,7 +70,12 @@ export default function DeliveryView({
   selectedOrderId: externalSelectedOrderId,
   setSelectedOrderId: externalSelectedOrderIdSetter,
   notifications = [],
-  onNotificationClick
+  onNotificationClick,
+  pickedOrderIds = [],
+  onHandoverOrder,
+  alertingOrderIds = [],
+  onOrderAlertSeen,
+  onSimulateShopeeEdit
 }: DeliveryViewProps) {
   const [localActiveTab, setLocalActiveTab] = useState<OrderStatus>('unconfirmed');
   const [localSelectedOrderId, setLocalSelectedOrderId] = useState<string | null>(null);
@@ -109,6 +130,21 @@ export default function DeliveryView({
 
   const [showNotificationsDropdown, setShowNotificationsDropdown] = useState(false);
 
+  // ShopeeFood: lý do hủy/từ chối theo mã API (79/80/81)
+  const [spfCancelReasonCode, setSpfCancelReasonCode] = useState<SpfCancelReasonCode>(79);
+
+  // P10a: Báo hết món (multi-select món → cảnh báo hủy CẢ đơn)
+  const [showOutOfStockModal, setShowOutOfStockModal] = useState(false);
+  const [outOfStockItemIds, setOutOfStockItemIds] = useState<string[]>([]);
+
+  // P10b: Báo trễ (busy_info — không đổi trạng thái đơn)
+  const [showDelayModal, setShowDelayModal] = useState(false);
+  const [delayMinutes, setDelayMinutes] = useState<number>(15);
+  const [delayNotices, setDelayNotices] = useState<Record<string, number>>({});
+
+  // P8: highlight danh sách món khi chuyển đơn từ thông báo
+  const [highlightItemsTable, setHighlightItemsTable] = useState(false);
+
   // Filter orders by active status & channel (completed tab includes both completed and cancelled)
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
@@ -151,6 +187,23 @@ export default function DeliveryView({
     const found = filteredOrders.find((o) => o.id === selectedOrderId);
     return found || filteredOrders[0];
   }, [filteredOrders, selectedOrderId]);
+
+  // P7: đang xem đơn SPF đang cảnh báo → tắt chuông + nhấp nháy cho đơn đó
+  useEffect(() => {
+    if (selectedOrder && onOrderAlertSeen && alertingOrderIds.includes(selectedOrder.id)) {
+      onOrderAlertSeen(selectedOrder.id);
+    }
+  }, [selectedOrder?.id, alertingOrderIds]);
+
+  // P8: chuyển đơn (từ thông báo hoặc danh sách) → cuộn tới danh sách Món + highlight 2s (chỉ SPF)
+  useEffect(() => {
+    if (!selectedOrderId || channel !== 'ShopeeFood') return;
+    const el = document.getElementById('details-items-table');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    setHighlightItemsTable(true);
+    const timer = setTimeout(() => setHighlightItemsTable(false), 2000);
+    return () => clearTimeout(timer);
+  }, [selectedOrderId, channel]);
 
   // Resolve breakdown helper
   const getOrderBreakdown = (order: Order) => {
@@ -348,11 +401,17 @@ export default function DeliveryView({
       return;
     }
     
+    // P10c: đơn SPF bị Shopee cập nhật → đóng dấu "ĐÃ CẬP NHẬT" trên phiếu bếp in lại
+    const updatedStampKitchenHtml = targetOrder.updatedByShopee
+      ? '<div style="border: 2px solid #000; font-weight: 900; font-size: 13px; text-align: center; padding: 4px 0; margin: 6px 0; letter-spacing: 1px;">*** ĐÃ CẬP NHẬT ***</div>'
+      : '';
+
     const kitchenHtml = `
       <div class="kitchen-slip">
         <div class="center">
           <div class="kitchen-title">BẾP CHẾ BIẾN (KITCHEN)</div>
           <div class="kitchen-subtitle">*** PHIẾU BÁO CUNG ỨNG - KHÔNG THANH TOÁN ***</div>
+          ${updatedStampKitchenHtml}
           <div class="dotted-divider"></div>
         </div>
         
@@ -566,6 +625,79 @@ export default function DeliveryView({
     const printWindow = window.open('', '_blank', 'width=450,height=650');
     if (!printWindow) {
       alert("Trình duyệt đã chặn cửa sổ Pop-up. Vui lòng cho phép Pop-up để tiến hành in hóa đơn.");
+      return;
+    }
+
+    // P6 — ShopeeFood: TEM BÀN GIAO — mã rút gọn cỡ lớn + Tên món/SL.
+    // KHÔNG in địa chỉ khách, tên khách, tổng tiền (tài xế đối chiếu bằng app, quán không thu tiền)
+    if (targetOrder.channel === 'ShopeeFood') {
+      const isPickup = targetOrder.orderType === 'customer_pickup';
+      const sc = shortCode(targetOrder.code);
+      const spfItemsHtml = targetOrder.items.map((item: any, idx: number) => (
+        '<tr>' +
+          '<td style="padding: 5px 2px; font-size: 12px; font-weight: 600;">' + (idx + 1) + '. ' + item.name + '</td>' +
+          '<td style="padding: 5px 2px; text-align: right; font-size: 15px; font-weight: 800;">x' + item.qty + '</td>' +
+        '</tr>'
+      )).join('');
+      const updatedStampHtml = targetOrder.updatedByShopee
+        ? '<div style="border: 2px solid #000; font-weight: 900; font-size: 13px; text-align: center; padding: 4px 0; margin: 8px 0; letter-spacing: 1px;">*** ĐÃ CẬP NHẬT ***</div>'
+        : '';
+      const pickupHtml = isPickup
+        ? '<div style="font-size: 13px; font-weight: 900; text-align: center; border: 1.5px dashed #000; padding: 5px 0; margin: 6px 0;">KHÁCH TỰ ĐẾN LẤY<br/>Mã nhận đơn: ' + (targetOrder.pickupCode || '—') + '</div>'
+        : '';
+
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>MISA CUKCUK - Tem Bàn Giao #${targetOrder.code}</title>
+            <style>
+              @page { size: 80mm auto; margin: 0; }
+              body {
+                font-family: 'Courier New', Courier, monospace;
+                width: 74mm; margin: 0 auto; padding: 12px 4px;
+                color: #000; background: #fff; font-size: 11px; line-height: 1.35;
+                -webkit-print-color-adjust: exact; print-color-adjust: exact;
+              }
+              .center { text-align: center; }
+              .divider { border-top: 1px dashed #000; margin: 6px 0; }
+              table { width: 100%; border-collapse: collapse; }
+              table.items-table td { border-bottom: 1px dotted #999; vertical-align: top; }
+            </style>
+          </head>
+          <body>
+            <div class="center">
+              <div style="font-size: 11px; font-weight: bold;">${isPickup ? 'TEM ĐƠN TỰ ĐẾN LẤY' : 'TEM BÀN GIAO TÀI XẾ'} — SHOPEEFOOD</div>
+              <div style="font-size: 44px; font-weight: 900; letter-spacing: 2px; margin: 6px 0 2px 0;">${sc}</div>
+              <div style="font-size: 10px; color: #333;">Mã đầy đủ: ${targetOrder.code}</div>
+              ${pickupHtml}
+              ${updatedStampHtml}
+              <div class="divider"></div>
+            </div>
+            <table class="items-table">
+              <thead>
+                <tr>
+                  <th style="text-align: left; border-bottom: 1.5px dashed #000; padding: 4px 0; font-size: 11px;">Tên món</th>
+                  <th style="text-align: right; border-bottom: 1.5px dashed #000; padding: 4px 0; font-size: 11px;">SL</th>
+                </tr>
+              </thead>
+              <tbody>${spfItemsHtml}</tbody>
+            </table>
+            <div class="divider"></div>
+            <div class="center" style="font-size: 11px; font-weight: bold;">
+              TỔNG SỐ MÓN: ${targetOrder.items.reduce((acc: number, item: any) => acc + item.qty, 0)}
+            </div>
+            <div class="center" style="font-size: 9px; color: #444; margin-top: 8px;">
+              Không thu tiền tại quầy — ShopeeFood đối soát qua ví<br/>In lúc ${new Date().toLocaleTimeString('vi-VN')} · Powered by MISA CUKCUK
+            </div>
+            <script>
+              window.onload = function() {
+                setTimeout(function() { window.print(); window.close(); }, 400);
+              };
+            </script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
       return;
     }
 
@@ -858,6 +990,21 @@ export default function DeliveryView({
     }, 2200);
   };
 
+  // ShopeeFood: nút "GIAO HÀNG" (giữ nguyên nhãn) = in tem bàn giao + chuyển PICKED (App đặt timer auto-DELIVERED)
+  const handleShopeeHandover = (order: Order) => {
+    try {
+      handlePrintDeliverySlip(order);
+    } catch (e) {
+      // safe fallback if window.open is blocked by sandboxing
+    }
+    setDeliveryPrintOrder(order);
+    setShowDeliveryPrintOverlay(true);
+    setTimeout(() => {
+      setShowDeliveryPrintOverlay(false);
+    }, 2200);
+    if (onHandoverOrder) onHandoverOrder(order);
+  };
+
   const handleConfirmOrderDirectly = (order: Order) => {
     onConfirmOrder(order.id);
     setActiveTab('confirmed');
@@ -874,6 +1021,9 @@ export default function DeliveryView({
   const rowSelectedBg = isGrab ? 'bg-[#b3d3ea] border-b border-[#a2c8e3]' : 'bg-[#F0F6FE] border-b border-[#0973B9]/30';
 
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  // P7: còn đơn SPF chưa được mở → nhấp nháy tab "Chưa xác nhận" liên tục
+  const hasSpfAlerts = !isGrab && alertingOrderIds.length > 0;
 
   return (
     <div id="delivery-view-container" className="flex flex-col h-full bg-white select-none text-[13px] font-sans">
@@ -1020,13 +1170,16 @@ export default function DeliveryView({
               setSelectedOrderId(null);
               setShowPriceBreakdown(false);
             }}
-            className={`h-full px-4 flex items-center justify-center rounded font-semibold text-center border transition ${
+            className={`h-full px-4 flex items-center justify-center rounded font-semibold text-center border transition relative ${
               activeTab === 'unconfirmed'
                 ? isGrab ? 'bg-[#026b97] text-white border-[#02567a]' : 'bg-[#00497D] text-white border-[#00497D]'
                 : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-            }`}
+            } ${hasSpfAlerts ? 'animate-pulse ring-2 ring-red-500 ring-offset-1' : ''}`}
           >
             Chưa xác nhận
+            {hasSpfAlerts && (
+              <span id="tab-unconfirmed-alert-dot" className="absolute -top-1 -right-1 w-3 h-3 bg-red-600 rounded-full animate-ping"></span>
+            )}
           </button>
 
           <button
@@ -1126,9 +1279,27 @@ export default function DeliveryView({
                     }`}
                   >
                     {/* Code Column */}
-                    <div id={`order-code-${order.code}`} className="w-1/4 px-1 text-left pl-3 font-semibold text-gray-900 flex items-center gap-1">
-                      <span className={`w-1.5 h-1.5 rounded-full ${brandBg}`}></span>
-                      <span>{order.code}</span>
+                    <div id={`order-code-${order.code}`} className="w-1/4 px-1 text-left pl-3 font-semibold text-gray-900 flex items-center gap-1 flex-wrap">
+                      <span className={`w-1.5 h-1.5 rounded-full ${brandBg} ${!isGrab && alertingOrderIds.includes(order.id) ? 'animate-ping bg-red-600' : ''}`}></span>
+                      <span className={!isGrab && alertingOrderIds.includes(order.id) ? 'animate-pulse text-red-600' : ''}>{order.code}</span>
+                      {/* SPF: badge tài xế đã lấy (PICKED) */}
+                      {!isGrab && order.status === 'confirmed' && pickedOrderIds.includes(order.id) && (
+                        <span id={`badge-picked-${order.code}`} className="text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1 py-0.5 leading-none">
+                          Tài xế đã lấy
+                        </span>
+                      )}
+                      {/* SPF: badge đơn khách tự đến lấy */}
+                      {!isGrab && order.orderType === 'customer_pickup' && (
+                        <span id={`badge-pickup-${order.code}`} className="text-[9px] font-bold text-[#f26522] bg-orange-50 border border-orange-200 rounded px-1 py-0.5 leading-none">
+                          🛍 Tự đến lấy
+                        </span>
+                      )}
+                      {/* SPF: badge đơn bị Shopee cập nhật */}
+                      {!isGrab && order.updatedByShopee && order.status !== 'cancelled' && (
+                        <span id={`badge-updated-${order.code}`} className="text-[9px] font-bold text-red-700 bg-red-50 border border-red-200 rounded px-1 py-0.5 leading-none">
+                          ĐÃ CẬP NHẬT
+                        </span>
+                      )}
                     </div>
 
                     {/* Qty Column */}
@@ -1177,14 +1348,42 @@ export default function DeliveryView({
                 <div id="details-header-top-row" className="flex items-center justify-between mb-2">
                   <span id="title-info-header" className="text-gray-500 text-xs font-bold uppercase tracking-wider block">Thông tin đơn hàng</span>
                 </div>
-                
-                <h2 id="details-code-title" className={`text-xl font-extrabold ${brandText} tracking-tight block mb-1.5`}>
-                  {selectedOrder.code}
-                </h2>
+
+                {/* P10c: banner đỏ khi Shopee sửa đơn sau khi gửi */}
+                {!isGrab && selectedOrder.updatedByShopee && selectedOrder.status !== 'cancelled' && (
+                  <div id="spf-updated-banner" className="bg-red-600 text-white rounded px-3 py-2 mb-2 text-xs font-bold flex items-center gap-2">
+                    <span className="animate-pulse">⚠</span>
+                    <span>Đơn đã được cập nhật từ ShopeeFood — kiểm tra lại danh sách món trước khi chế biến / bàn giao!</span>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                  <h2 id="details-code-title" className={`text-xl font-extrabold ${brandText} tracking-tight block`}>
+                    {selectedOrder.code}
+                  </h2>
+                  {/* SPF: badge trạng thái bàn giao tài xế (PICKED) ở header chi tiết */}
+                  {!isGrab && selectedOrder.status === 'confirmed' && pickedOrderIds.includes(selectedOrder.id) && (
+                    <span id="details-picked-badge" className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-full px-2 py-0.5">
+                      ✓ Tài xế đã lấy
+                    </span>
+                  )}
+                  {/* P10d: badge đơn khách tự đến lấy */}
+                  {!isGrab && selectedOrder.orderType === 'customer_pickup' && (
+                    <span id="details-pickup-badge" className="text-[10px] font-bold text-[#f26522] bg-orange-50 border border-orange-300 rounded-full px-2 py-0.5">
+                      🛍 Khách tự đến lấy
+                    </span>
+                  )}
+                </div>
 
                 <div id="details-time-row" className="text-gray-700 text-xs mb-3 flex items-center gap-1.5 font-medium">
                   <Clock className="w-3.5 h-3.5 text-gray-400" />
                   <span>Thời gian đặt: <strong className="text-gray-900">{selectedOrder.orderTime}</strong></span>
+                  {/* P10b: đã báo trễ — busy_info, trạng thái đơn giữ nguyên */}
+                  {!isGrab && delayNotices[selectedOrder.id] !== undefined && (
+                    <span id="spf-delay-notice" className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-300 rounded-full px-2 py-0.5">
+                      ⏱ Đã báo trễ +{delayNotices[selectedOrder.id]} phút
+                    </span>
+                  )}
                 </div>
 
                 {/* Additional detailed items (thêm chi tiết đơn hàng as user requested) */}
@@ -1197,27 +1396,41 @@ export default function DeliveryView({
                     </div>
                   </div>
                   
-                  <div className="flex items-start gap-1.5" id="c-driver-row">
-                    <Truck className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
-                    <div>
-                      <span className="text-gray-500 block">Tài xế giao hàng</span>
-                      <strong className="text-gray-800">{selectedOrder.driverName || 'Chưa phân phối tài xế'}</strong>
-                      {selectedOrder.driverPhone && <span className="text-gray-500 block text-[10px]">{selectedOrder.driverPhone}</span>}
+                  {/* P10d: đơn tự đến lấy — thay dòng tài xế bằng Mã nhận đơn, ẩn địa chỉ giao */}
+                  {!isGrab && selectedOrder.orderType === 'customer_pickup' ? (
+                    <div className="flex items-start gap-1.5" id="c-driver-row">
+                      <span className="text-base leading-none mt-0.5 shrink-0">🛍</span>
+                      <div>
+                        <span className="text-gray-500 block">Khách tự đến lấy — Mã nhận đơn</span>
+                        <strong className="text-[#f26522] text-sm tracking-widest">{selectedOrder.pickupCode || '—'}</strong>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="flex items-start gap-1.5" id="c-driver-row">
+                      <Truck className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
+                      <div>
+                        <span className="text-gray-500 block">Tài xế giao hàng</span>
+                        <strong className="text-gray-800">{selectedOrder.driverName || 'Chưa phân phối tài xế'}</strong>
+                        {selectedOrder.driverPhone && <span className="text-gray-500 block text-[10px]">{selectedOrder.driverPhone}</span>}
+                      </div>
+                    </div>
+                  )}
 
-                  <div className="flex items-start gap-1.5 md:col-span-2 border-t border-gray-100 pt-2 mt-1" id="c-address-row">
-                    <MapPin className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
-                    <div>
-                      <span className="text-gray-500 block">Địa chỉ giao hàng</span>
-                      <span className="text-gray-700 font-semibold">{selectedOrder.deliveryAddress || 'Nhận tại cửa hàng'}</span>
+                  {!(!isGrab && selectedOrder.orderType === 'customer_pickup') && (
+                    <div className="flex items-start gap-1.5 md:col-span-2 border-t border-gray-100 pt-2 mt-1" id="c-address-row">
+                      <MapPin className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
+                      <div>
+                        <span className="text-gray-500 block">Địa chỉ giao hàng</span>
+                        <span className="text-gray-700 font-semibold">{selectedOrder.deliveryAddress || 'Nhận tại cửa hàng'}</span>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
 
               {/* Items List Table inside Detail Panel */}
-              <div id="details-items-table" className="flex-1 overflow-y-auto">
+              {/* P8: highlight ring 2s khi chuyển đơn từ thông báo (chỉ SPF) */}
+              <div id="details-items-table" className={`flex-1 overflow-y-auto transition-shadow duration-500 ${highlightItemsTable ? 'ring-2 ring-inset ring-[#0973B9]' : ''}`}>
                 <div id="table-header-items" className="flex bg-[#ededed] border-b border-[#ccc] text-gray-700 font-bold sticky top-0 z-10 h-7 items-center">
                   <div className="w-[32%] px-2 text-left pl-4 text-xs">Tên món</div>
                   <div className="w-[18%] px-2 text-right text-xs">Đơn giá</div>
@@ -1349,6 +1562,70 @@ export default function DeliveryView({
                   </div>
                 </div>
 
+                {/* P10: hành động phụ ShopeeFood — Báo hết món / Báo trễ / Giả lập Shopee sửa đơn */}
+                {!isGrab && (selectedOrder.status === 'unconfirmed' || selectedOrder.status === 'confirmed') && !pickedOrderIds.includes(selectedOrder.id) && (
+                  <div id="spf-secondary-actions" className="flex items-center gap-1.5 flex-wrap">
+                    <button
+                      id="spf-out-of-stock-btn"
+                      onClick={() => {
+                        setOutOfStockItemIds([]);
+                        setShowOutOfStockModal(true);
+                      }}
+                      className="px-2.5 py-1.5 text-[11px] font-bold text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-300 rounded transition"
+                    >
+                      🍽 Báo hết món
+                    </button>
+                    <button
+                      id="spf-delay-btn"
+                      onClick={() => {
+                        setDelayMinutes(15);
+                        setShowDelayModal(true);
+                      }}
+                      className="px-2.5 py-1.5 text-[11px] font-bold text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-300 rounded transition"
+                    >
+                      ⏱ Báo trễ
+                    </button>
+                    <button
+                      id="spf-sim-edit-btn"
+                      onClick={() => {
+                        if (onSimulateShopeeEdit) onSimulateShopeeEdit(selectedOrder.id);
+                      }}
+                      className="px-2.5 py-1.5 text-[11px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-dashed border-amber-400 rounded transition"
+                      title="Nút demo: giả lập ShopeeFood cập nhật đơn sau khi gửi"
+                    >
+                      ⚡ Giả lập Shopee sửa đơn
+                    </button>
+                  </div>
+                )}
+
+                {/* P1/P2: khối tài chính CHỈ-ĐỌC — Shopee luôn thanh toán qua ví đối soát, không thu tiền tại quầy */}
+                {!isGrab && selectedOrder.status !== 'cancelled' && (
+                  <div id="spf-finance-readonly" className="bg-[#F0F6FE] border border-[#0973B9]/30 rounded p-2.5 flex flex-col gap-1 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-600 font-medium">Khách trả Shopee:</span>
+                      <span id="spf-customer-paid" className="font-bold text-gray-900 font-mono">{formatVND(selectedOrder.totalPrice)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-600 font-medium">Quán thực nhận (sau HH/thuế/KM):</span>
+                      <span id="spf-merchant-net" className="font-bold text-[#0973B9] font-mono">
+                        {formatVND(selectedOrder.merchantNetAmount ?? Math.round(selectedOrder.totalPrice * 0.8))}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2 border-t border-[#0973B9]/15 pt-1.5 mt-0.5">
+                      <span className="text-[10px] text-gray-500 italic">ShopeeFood thanh toán qua ví đối soát — không thu tiền tại quầy</span>
+                      {selectedOrder.settlementStatus === 'received' ? (
+                        <span id="spf-settlement-badge" className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-full px-2 py-0.5 shrink-0">
+                          ✓ Đã nhận vào ví
+                        </span>
+                      ) : (
+                        <span id="spf-settlement-badge" className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-300 rounded-full px-2 py-0.5 shrink-0">
+                          Chờ đối soát
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Primary dynamic status action button */}
                 <div id="action-buttons-box" className="flex items-center justify-between gap-2 border-t border-gray-100 pt-2">
                   {/* Delete / Confirm grouping on the left */}
@@ -1361,6 +1638,7 @@ export default function DeliveryView({
                           setRejectOrderId(selectedOrder.id);
                           setRejectReasonType('Hết món ăn');
                           setRejectReasonCustom('Hết món ăn / Nguyên liệu chế biến');
+                          setSpfCancelReasonCode(79);
                           setShowRejectModal(true);
                         }}
                         className="px-4 py-2.5 text-xs text-red-500 hover:bg-red-50 font-bold rounded transition border border-red-200 flex items-center"
@@ -1370,29 +1648,44 @@ export default function DeliveryView({
                     )}
 
                     {/* Confirmed cancel option as requested by brief */}
+                    {/* P5: SPF sau khi tài xế đã lấy (PICKED) → không thể hủy nữa */}
                     {selectedOrder.status === 'confirmed' && (
                       <button
                         id="deliv-cancel-btn"
+                        disabled={!isGrab && pickedOrderIds.includes(selectedOrder.id)}
                         onClick={() => {
                           setCancelOrderId(selectedOrder.id);
                           setCancelReasonText('');
+                          setSpfCancelReasonCode(79);
                           setShowCancelModal(true);
                         }}
-                        className="px-4 py-2.5 text-xs text-rose-500 hover:bg-rose-50 font-bold rounded transition border border-rose-200 flex items-center"
+                        title={
+                          !isGrab && pickedOrderIds.includes(selectedOrder.id)
+                            ? 'Tài xế đã lấy hàng — không thể hủy đơn ở bước này'
+                            : undefined
+                        }
+                        className={`px-4 py-2.5 text-xs font-bold rounded transition border flex items-center ${
+                          !isGrab && pickedOrderIds.includes(selectedOrder.id)
+                            ? 'text-gray-400 border-gray-200 bg-gray-50 cursor-not-allowed'
+                            : 'text-rose-500 hover:bg-rose-50 border-rose-200'
+                        }`}
                       >
                         HỦY ĐƠN
                       </button>
                     )}
 
                     {/* Print icon button */}
-                    <button
-                      id="deliv-print-btn-bottom"
-                      onClick={() => setShowPrintReceipt(true)}
-                      className="p-2.5 text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 rounded transition border border-gray-200 flex items-center justify-center"
-                      title="In tạm tính"
-                    >
-                      <Printer className="w-4 h-4" />
-                    </button>
+                    {/* P9: điểm còn open — prototype chọn ẨN nút In tạm tính với đơn ShopeeFood (không thu tiền tại quầy) */}
+                    {isGrab && (
+                      <button
+                        id="deliv-print-btn-bottom"
+                        onClick={() => setShowPrintReceipt(true)}
+                        className="p-2.5 text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 rounded transition border border-gray-200 flex items-center justify-center"
+                        title="In tạm tính"
+                      >
+                        <Printer className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
 
                   {selectedOrder.status === 'unconfirmed' && (
@@ -1407,7 +1700,8 @@ export default function DeliveryView({
                     </button>
                   )}
 
-                  {selectedOrder.status === 'confirmed' && (
+                  {/* Grab: GIAO HÀNG → THU TIỀN (giữ nguyên 100% luồng cũ) */}
+                  {isGrab && selectedOrder.status === 'confirmed' && (
                     !shippedOrderIds.includes(selectedOrder.id) ? (
                       <button
                         id="complete-action-submit-btn"
@@ -1434,6 +1728,29 @@ export default function DeliveryView({
                     )
                   )}
 
+                  {/* ShopeeFood: giữ nhãn "GIAO HÀNG" — hành vi = in tem bàn giao + PICKED; KHÔNG có bước THU TIỀN */}
+                  {!isGrab && selectedOrder.status === 'confirmed' && (
+                    !pickedOrderIds.includes(selectedOrder.id) ? (
+                      <button
+                        id="complete-action-submit-btn"
+                        onClick={() => {
+                          handleShopeeHandover(selectedOrder);
+                        }}
+                        className="px-8 py-2.5 text-white font-bold bg-[#1aa059] hover:bg-[#168a4d] rounded shadow active:scale-95 transition text-[13px] flex items-center gap-1"
+                      >
+                        <Check className="w-4 h-4" /> GIAO HÀNG
+                      </button>
+                    ) : (
+                      <div
+                        id="spf-picked-waiting-chip"
+                        className="flex items-center gap-1.5 text-emerald-700 bg-emerald-50 border border-emerald-300 rounded px-3 py-2 font-bold text-xs"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        <span>Đã bàn giao tài xế — chờ ShopeeFood xác nhận giao</span>
+                      </div>
+                    )
+                  )}
+
                   {selectedOrder.status === 'completed' && (
                     <div id="success-done-status" className="flex items-center gap-1.5 text-green-600 font-extrabold pr-2 py-2">
                       <CheckCircle className="w-5 h-5" />
@@ -1449,6 +1766,11 @@ export default function DeliveryView({
                       </div>
                       {selectedOrder.note && (
                         <span className="text-[11px] text-gray-500 font-medium font-sans">Lý do: {selectedOrder.note}</span>
+                      )}
+                      {!isGrab && selectedOrder.cancelReasonCode && (
+                        <span id="spf-cancel-reason-code" className="text-[10px] text-gray-400 font-medium font-sans">
+                          Mã lý do gửi ShopeeFood: {selectedOrder.cancelReasonCode}
+                        </span>
                       )}
                     </div>
                   )}
@@ -1502,42 +1824,77 @@ export default function DeliveryView({
             
             {/* Body Form */}
             <div className="px-6 pb-4 flex flex-col gap-3 text-gray-700">
-              <div className="flex flex-col gap-1.5">
-                <label className="font-medium text-gray-500 text-xs">Vui lòng nhập lý do từ chối đơn hàng này:</label>
-                <textarea 
-                  placeholder="Nhập lý do chi tiết từ chối..."
-                  value={rejectReasonCustom}
-                  onChange={(e) => setRejectReasonCustom(e.target.value)}
-                  rows={3}
-                  className="w-full bg-white border border-gray-300 rounded-lg p-2.5 text-xs focus:ring-1 focus:ring-[#245FDF] focus:border-[#245FDF] focus:outline-none font-medium leading-relaxed text-gray-900"
-                  autoFocus
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5 mt-1.5">
-                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Gợi ý lý do nhanh:</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {[
-                    'Hết món ăn / Nguyên liệu chế biến',
-                    'Nhà hàng quá tải, chuẩn bị không kịp',
-                    'Không có tài xế tiếp nhận đơn',
-                    'Cửa hàng đang đóng cửa / Nghỉ lễ'
-                  ].map((reason) => (
-                    <button
-                      key={reason}
-                      type="button"
-                      onClick={() => setRejectReasonCustom(reason)}
-                      className={`px-3 py-1.5 rounded-lg border text-[11px] transition font-medium ${
-                        rejectReasonCustom === reason
-                          ? 'bg-[#F0F6FE] border-[#245FDF]/50 text-[#245FDF]'
-                          : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
-                      }`}
-                    >
-                      {reason}
-                    </button>
-                  ))}
+              {/* P5: SPF chỉ chấp nhận 3 mã lý do API (79/80/81) — thay text tự do bằng radio */}
+              {!isGrab ? (
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-medium text-gray-500 text-xs">Chọn lý do từ chối (ShopeeFood chỉ chấp nhận 3 lý do):</label>
+                  <div className="flex flex-col gap-1.5" id="spf-reject-reason-list">
+                    {SPF_CANCEL_REASONS.map((r) => (
+                      <label
+                        key={r.code}
+                        className={`flex items-start gap-2.5 p-2.5 rounded-lg border cursor-pointer transition ${
+                          spfCancelReasonCode === r.code
+                            ? 'bg-[#F0F6FE] border-[#0973B9]/50'
+                            : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="spf-reject-reason"
+                          checked={spfCancelReasonCode === r.code}
+                          onChange={() => setSpfCancelReasonCode(r.code)}
+                          className="mt-0.5 h-3.5 w-3.5 text-[#0973B9] focus:ring-[#0973B9]"
+                        />
+                        <div className="flex flex-col">
+                          <span className="font-bold text-gray-900 text-xs">
+                            {r.label} <span className="text-[10px] text-gray-400 font-mono">(mã {r.code})</span>
+                          </span>
+                          <span className="text-[10px] text-gray-500">{r.desc}</span>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="font-medium text-gray-500 text-xs">Vui lòng nhập lý do từ chối đơn hàng này:</label>
+                    <textarea
+                      placeholder="Nhập lý do chi tiết từ chối..."
+                      value={rejectReasonCustom}
+                      onChange={(e) => setRejectReasonCustom(e.target.value)}
+                      rows={3}
+                      className="w-full bg-white border border-gray-300 rounded-lg p-2.5 text-xs focus:ring-1 focus:ring-[#245FDF] focus:border-[#245FDF] focus:outline-none font-medium leading-relaxed text-gray-900"
+                      autoFocus
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5 mt-1.5">
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Gợi ý lý do nhanh:</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        'Hết món ăn / Nguyên liệu chế biến',
+                        'Nhà hàng quá tải, chuẩn bị không kịp',
+                        'Không có tài xế tiếp nhận đơn',
+                        'Cửa hàng đang đóng cửa / Nghỉ lễ'
+                      ].map((reason) => (
+                        <button
+                          key={reason}
+                          type="button"
+                          onClick={() => setRejectReasonCustom(reason)}
+                          className={`px-3 py-1.5 rounded-lg border text-[11px] transition font-medium ${
+                            rejectReasonCustom === reason
+                              ? 'bg-[#F0F6FE] border-[#245FDF]/50 text-[#245FDF]'
+                              : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
+                          }`}
+                        >
+                          {reason}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Footer Action */}
@@ -1552,9 +1909,15 @@ export default function DeliveryView({
               <button 
                 type="button"
                 onClick={() => {
-                  const finalReason = rejectReasonCustom.trim() || 'Từ chối bởi nhà hàng';
                   if (onDeleteOrder && rejectOrderId) {
-                    onDeleteOrder(rejectOrderId, finalReason);
+                    if (!isGrab) {
+                      // SPF: gửi đúng mã lý do API 79/80/81
+                      const reason = SPF_CANCEL_REASONS.find((r) => r.code === spfCancelReasonCode);
+                      onDeleteOrder(rejectOrderId, reason ? reason.label : 'Từ chối bởi nhà hàng', spfCancelReasonCode);
+                    } else {
+                      const finalReason = rejectReasonCustom.trim() || 'Từ chối bởi nhà hàng';
+                      onDeleteOrder(rejectOrderId, finalReason);
+                    }
                   }
                   setShowRejectModal(false);
                 }}
@@ -1581,42 +1944,77 @@ export default function DeliveryView({
             
             {/* Body Form */}
             <div className="px-6 pb-4 flex flex-col gap-3 text-gray-700">
-              <div className="flex flex-col gap-1.5">
-                <label className="font-medium text-gray-500 text-xs">Vui lòng nhập lý do hủy bỏ đơn hàng đã xác nhận này:</label>
-                <textarea 
-                  placeholder="Nhập lý do cụ thể hủy đơn (ví dụ: khách gọi điện hủy, hết nguyên liệu chế biến gấp...)"
-                  value={cancelReasonText}
-                  onChange={(e) => setCancelReasonText(e.target.value)}
-                  rows={3}
-                  className="w-full bg-white border border-gray-300 rounded-lg p-2.5 text-xs focus:ring-1 focus:ring-[#245FDF] focus:border-[#245FDF] focus:outline-none font-medium leading-relaxed text-gray-900"
-                  autoFocus
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5 mt-1.5">
-                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Gợi ý lý do nhanh:</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {[
-                    'Khách hàng yêu cầu hủy đơn',
-                    'Nhà hàng hết món đột xuất',
-                    'Không có tài xế giao hàng',
-                    'Trùng lặp đơn hàng'
-                  ].map((reason) => (
-                    <button
-                      key={reason}
-                      type="button"
-                      onClick={() => setCancelReasonText(reason)}
-                      className={`px-3 py-1.5 rounded-lg border text-[11px] transition font-medium ${
-                        cancelReasonText === reason
-                          ? 'bg-[#F0F6FE] border-[#245FDF]/50 text-[#245FDF]'
-                          : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
-                      }`}
-                    >
-                      {reason}
-                    </button>
-                  ))}
+              {/* P5: SPF chỉ chấp nhận 3 mã lý do API (79/80/81) — thay text tự do bằng radio */}
+              {!isGrab ? (
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-medium text-gray-500 text-xs">Chọn lý do hủy đơn (ShopeeFood chỉ chấp nhận 3 lý do):</label>
+                  <div className="flex flex-col gap-1.5" id="spf-cancel-reason-list">
+                    {SPF_CANCEL_REASONS.map((r) => (
+                      <label
+                        key={r.code}
+                        className={`flex items-start gap-2.5 p-2.5 rounded-lg border cursor-pointer transition ${
+                          spfCancelReasonCode === r.code
+                            ? 'bg-[#F0F6FE] border-[#0973B9]/50'
+                            : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="spf-cancel-reason"
+                          checked={spfCancelReasonCode === r.code}
+                          onChange={() => setSpfCancelReasonCode(r.code)}
+                          className="mt-0.5 h-3.5 w-3.5 text-[#0973B9] focus:ring-[#0973B9]"
+                        />
+                        <div className="flex flex-col">
+                          <span className="font-bold text-gray-900 text-xs">
+                            {r.label} <span className="text-[10px] text-gray-400 font-mono">(mã {r.code})</span>
+                          </span>
+                          <span className="text-[10px] text-gray-500">{r.desc}</span>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="font-medium text-gray-500 text-xs">Vui lòng nhập lý do hủy bỏ đơn hàng đã xác nhận này:</label>
+                    <textarea
+                      placeholder="Nhập lý do cụ thể hủy đơn (ví dụ: khách gọi điện hủy, hết nguyên liệu chế biến gấp...)"
+                      value={cancelReasonText}
+                      onChange={(e) => setCancelReasonText(e.target.value)}
+                      rows={3}
+                      className="w-full bg-white border border-gray-300 rounded-lg p-2.5 text-xs focus:ring-1 focus:ring-[#245FDF] focus:border-[#245FDF] focus:outline-none font-medium leading-relaxed text-gray-900"
+                      autoFocus
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5 mt-1.5">
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Gợi ý lý do nhanh:</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        'Khách hàng yêu cầu hủy đơn',
+                        'Nhà hàng hết món đột xuất',
+                        'Không có tài xế giao hàng',
+                        'Trùng lặp đơn hàng'
+                      ].map((reason) => (
+                        <button
+                          key={reason}
+                          type="button"
+                          onClick={() => setCancelReasonText(reason)}
+                          className={`px-3 py-1.5 rounded-lg border text-[11px] transition font-medium ${
+                            cancelReasonText === reason
+                              ? 'bg-[#F0F6FE] border-[#245FDF]/50 text-[#245FDF]'
+                              : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300'
+                          }`}
+                        >
+                          {reason}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Footer Action */}
@@ -1631,9 +2029,15 @@ export default function DeliveryView({
               <button 
                 type="button"
                 onClick={() => {
-                  const finalReason = cancelReasonText.trim() || 'Hủy bỏ bởi nhà hàng';
                   if (onDeleteOrder && cancelOrderId) {
-                    onDeleteOrder(cancelOrderId, finalReason);
+                    if (!isGrab) {
+                      // SPF: gửi đúng mã lý do API 79/80/81
+                      const reason = SPF_CANCEL_REASONS.find((r) => r.code === spfCancelReasonCode);
+                      onDeleteOrder(cancelOrderId, reason ? reason.label : 'Hủy bỏ bởi nhà hàng', spfCancelReasonCode);
+                    } else {
+                      const finalReason = cancelReasonText.trim() || 'Hủy bỏ bởi nhà hàng';
+                      onDeleteOrder(cancelOrderId, finalReason);
+                    }
                   }
                   setShowCancelModal(false);
                 }}
@@ -1851,7 +2255,8 @@ export default function DeliveryView({
         </div>
       )}
 
-      {paymentOrder && (() => {
+      {/* Màn TÍNH TIỀN đầy đủ chỉ dành cho Grab — đơn ShopeeFood không thu tiền tại quầy (P1/P2) */}
+      {paymentOrder && paymentOrder.channel === 'Grab' && (() => {
         const itemsSum = paymentOrder.items.reduce((acc, item) => acc + item.totalPrice, 0);
         // Calculate service fee exactly similar to ratio in screen
         const serviceFee = Math.round(itemsSum * 0.06875);
@@ -2611,235 +3016,446 @@ export default function DeliveryView({
               </div>
             )}
 
-
-
-            {/* Immersive Kitchen Print Simulation Overlay */}
-            {showKitchenPrintOverlay && kitchenPrintOrder && (
-              <div className="fixed inset-0 z-[80] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-sm font-sans text-xs select-none">
-                <div className="w-[440px] max-w-full bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 text-left text-slate-100">
-                  
-                  {/* Header info */}
-                  <div className="p-4 bg-slate-800 border-b border-slate-700 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-[#0973B9] flex items-center justify-center text-white font-bold text-xs shrink-0 animate-ping">
-                        🖨️
-                      </div>
-                      <div className="w-8 h-8 rounded-full bg-[#0973B9] flex items-center justify-center text-white font-bold text-xs absolute shrink-0">
-                        🖨️
-                      </div>
-                      <div className="flex flex-col gap-0.5 ml-1">
-                        <span className="font-extrabold text-sm tracking-wide text-white uppercase flex items-center gap-2">
-                          MISA CUKCUK - TRUYỀN TẢI IN BẾP
-                          <span className="bg-sky-500 text-[8px] px-1 py-0.5 rounded text-slate-950 font-black animate-pulse">AUTOMATIC</span>
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-medium">Đang tự động in mẫu in gửi bếp...</span>
-                      </div>
-                    </div>
-                    <div className="text-right text-slate-400 font-mono text-[10px]">
-                      PORT: PRINTER_LPT1
-                    </div>
-                  </div>
-
-                  {/* Main printed outputs simulator - Centered kitchen receipt paper */}
-                  <div className="p-6 flex flex-col bg-slate-950 max-h-[70vh] overflow-y-auto items-stretch">
-                    
-                    {/* Simulated Kitchen Receipt paper */}
-                    <div className="flex flex-col gap-1.5">
-                      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider pl-1 flex items-center gap-1">
-                        📝 Mẫu phiếu in bếp (Kitchen Slip)
-                      </span>
-                      <div className="bg-white text-slate-900 p-5 rounded shadow-xl border border-slate-300 font-mono text-[11px] leading-relaxed relative overflow-hidden select-text min-h-[380px]">
-                        {/* Cut lines paper visual effect */}
-                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-b from-gray-200 to-transparent"></div>
-                        
-                        <div className="text-center font-bold">
-                          <div className="text-[13px] font-black">BẾP CHẾ BIẾN (KITCHEN)</div>
-                          <div className="text-[9px] text-gray-500 font-sans tracking-tight mt-0.5">*** PHIẾU BÁO CUNG ỨNG - KHÔNG THANH TOÁN ***</div>
-                          <div className="border-t border-dashed border-gray-400 my-2"></div>
-                        </div>
-
-                        <div className="flex justify-between items-center text-xs my-1">
-                          <span className="font-bold">MÃ ĐƠN HÀNG:</span>
-                          <span className="font-black text-lg text-black">{kitchenPrintOrder.code}</span>
-                        </div>
-                        <div className="flex justify-between text-[10px] text-gray-600 mb-2">
-                          <span>Giờ đặt: {kitchenPrintOrder.orderTime.split(' - ')[0]}</span>
-                          <span>In: {new Date().toLocaleTimeString('vi-VN')}</span>
-                        </div>
-
-                        <div className="border-t border-dashed border-gray-400 my-1"></div>
-                        <div className="grid grid-cols-12 font-bold text-gray-800 py-1 border-b border-gray-150">
-                          <span className="col-span-8">TÊN MÓN ĂN</span>
-                          <span className="col-span-2 text-center">SL</span>
-                          <span className="col-span-2 text-right">G.CHÚ</span>
-                        </div>
-
-                        <div className="flex flex-col gap-1.5 py-1.5">
-                          {kitchenPrintOrder.items.map((item) => (
-                            <div key={item.id} className="grid grid-cols-12 items-start py-0.5 border-b border-gray-100 last:border-0 text-xs">
-                              <span className="col-span-8 font-extrabold text-black">{item.name}</span>
-                              <span className="col-span-2 text-center font-black text-sm bg-gray-100 rounded py-0.5">{item.qty}</span>
-                              <span className={`col-span-2 text-right text-[10px] font-sans font-semibold ${isGrab ? 'text-sky-700' : 'text-[#0973B9]'}`}>{item.note || 'Không'}</span>
-                            </div>
-                          ))}
-                        </div>
-
-                        <div className="border-t border-dashed border-gray-400 my-2"></div>
-                        <div className="text-[10px] text-gray-600">
-                          <div className="font-bold text-black font-sans mb-1 text-[11px]">Ghi chú đơn:</div>
-                          <p className="font-sans italic leading-relaxed text-gray-700 bg-yellow-50 p-2 border border-yellow-100 rounded">
-                            {kitchenPrintOrder.note || 'Không có ghi chú đơn hàng từ khách hàng.'}
-                          </p>
-                        </div>
-                        
-                        <div className="text-center font-sans text-[8px] font-black tracking-widest text-gray-400 mt-6 select-none uppercase">
-                          *MISA-CUKCUK-KITCHEN*
-                        </div>
-                      </div>
-                    </div>
-
-                  </div>
-
-                  {/* Progressive loading simulation bottom bar */}
-                  <div className="p-4 bg-slate-800 border-t border-slate-700 flex flex-col gap-2 shrink-0">
-                    <div className="flex items-center justify-between text-[11px] font-bold text-slate-300">
-                      <span className="flex items-center gap-1.5 animate-pulse">
-                        <span className="w-2 h-2 rounded-full bg-[#0973B9] shrink-0"></span>
-                        Đang truyền dữ liệu in & gửi bếp...
-                      </span>
-                      <span>95% Hoàn thành</span>
-                    </div>
-                    <div className="w-full bg-slate-700 rounded-full h-2 overflow-hidden">
-                      <div className="bg-gradient-to-r from-[#0973B9] to-sky-400 h-2 rounded-full w-[95%] transition-all duration-1000"></div>
-                    </div>
-                    <p className="text-[9px] text-slate-500 font-medium text-center font-sans tracking-wide mt-0.5">
-                      ⚠️ Khuyến nghị: Không tắt màn hình hoặc can thiệp cáp kết nối máy in nhiệt MISA CUKCUK.
-                    </p>
-                  </div>
-
-                </div>
-              </div>
-            )}
-
-            {/* Immersive Delivery Print Simulation Overlay */}
-            {showDeliveryPrintOverlay && deliveryPrintOrder && (
-              <div className="fixed inset-0 z-[80] flex items-center justify-center p-6 bg-slate-950/85 backdrop-blur-xs font-sans text-xs select-none text-left">
-                <div className="w-[440px] max-w-full bg-slate-900 rounded-2xl shadow-2xl border border-slate-750 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 text-slate-100">
-                  
-                  {/* Header info */}
-                  <div className="p-4 bg-slate-800 border-b border-slate-700 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="relative w-8 h-8 flex items-center justify-center">
-                        <div className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping"></div>
-                        <div className="w-8 h-8 rounded-full bg-[#1aa059] flex items-center justify-center text-white font-bold text-xs shrink-0">
-                          🖨️
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-0.5 ml-1">
-                        <span className="font-extrabold text-sm tracking-wide text-white uppercase flex items-center gap-2">
-                          IN PHIẾU GIAO HÀNG
-                          <span className="bg-emerald-500 text-[8px] px-1.5 py-0.5 rounded text-slate-950 font-black animate-pulse">AUTOMATIC</span>
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-medium">Đang tự động in phiếu giao hàng...</span>
-                      </div>
-                    </div>
-                    <div className="text-right text-slate-400 font-mono text-[10px]">
-                      PORT: PRINTER_LPT2
-                    </div>
-                  </div>
-
-                  {/* Main printed outputs simulator - Centered delivery receipt paper */}
-                  <div className="p-6 flex flex-col bg-slate-950 max-h-[70vh] overflow-y-auto items-stretch">
-                    
-                    {/* Simulated Delivery Slip paper */}
-                    <div className="flex flex-col gap-1.5">
-                      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider pl-1 flex items-center gap-1">
-                        📝 Phiếu giao hàng (Delivery Slip)
-                      </span>
-                      <div className="bg-white text-slate-900 p-5 rounded shadow-xl border border-slate-300 font-mono text-[11px] leading-relaxed relative overflow-hidden select-text min-h-[380px]">
-                        {/* Cut lines paper visual effect */}
-                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-b from-gray-200 to-transparent"></div>
-                        
-                        <div className="text-center font-bold">
-                          <div className="text-[13px] font-black uppercase">MISA CUKCUK - PHIẾU GIAO HÀNG</div>
-                          <div className="text-[9px] text-gray-500 font-sans tracking-tight mt-0.5">*** HÓA ĐƠN GIAO HÀNG KHÁCH HÀNG ***</div>
-                          <div className="border-t border-dashed border-gray-400 my-2"></div>
-                        </div>
-
-                        <div className="flex justify-between items-center text-xs my-1">
-                          <span className="font-bold">MÃ ĐƠN HÀNG:</span>
-                          <span className="font-black text-lg text-black">{deliveryPrintOrder.code}</span>
-                        </div>
-                        <div className="flex justify-between text-[10px] text-gray-600 mb-2">
-                          <span>Giờ đặt: {deliveryPrintOrder.orderTime.split(' - ')[0]}</span>
-                          <span>In: {new Date().toLocaleTimeString('vi-VN')}</span>
-                        </div>
-
-                        <div className="border-t border-dashed border-gray-400 my-1"></div>
-                        
-                        {/* Recipient Details */}
-                        <div className="text-[10px] text-gray-700 font-sans flex flex-col gap-1 my-2 bg-slate-50 p-2.5 rounded border border-slate-200">
-                          <div><strong>Khách hàng:</strong> {deliveryPrintOrder.customerPhone ? ('A. ' + (deliveryPrintOrder.channel === 'Grab' ? 'Grab' : 'Shopee') + ' Customer') : 'A. Tuấn'}</div>
-                          <div><strong>Điện thoại:</strong> {deliveryPrintOrder.customerPhone || '01256.862.536'}</div>
-                          <div><strong>Tài xế:</strong> {deliveryPrintOrder.driverName || 'Chưa phân phối'}</div>
-                          <div><strong>Địa chỉ:</strong> {deliveryPrintOrder.deliveryAddress || 'Nhận tại cửa hàng'}</div>
-                        </div>
-
-                        <div className="border-t border-dashed border-gray-400 my-1"></div>
-                        <div className="grid grid-cols-12 font-bold text-gray-800 py-1 border-b border-gray-150">
-                          <span className="col-span-6">TÊN MÓN</span>
-                          <span className="col-span-2 text-center">SL</span>
-                          <span className="col-span-4 text-right">THÀNH TIỀN</span>
-                        </div>
-
-                        <div className="flex flex-col gap-1.5 py-1.5">
-                          {deliveryPrintOrder.items.map((item) => (
-                            <div key={item.id} className="grid grid-cols-12 items-start py-0.5 border-b border-gray-100 last:border-0 text-xs">
-                              <span className="col-span-6 font-extrabold text-black truncate">{item.name}</span>
-                              <span className="col-span-2 text-center font-black text-sm bg-gray-100 rounded py-0.5">{item.qty}</span>
-                              <span className="col-span-4 text-right font-black">{formatVND(item.totalPrice)}</span>
-                            </div>
-                          ))}
-                        </div>
-
-                        <div className="border-t border-dashed border-gray-400 my-2"></div>
-                        <div className="flex justify-between font-extrabold text-black text-xs">
-                          <span>TỔNG TIỀN ĐƠN:</span>
-                          <span>{formatVND(deliveryPrintOrder.totalPrice)}</span>
-                        </div>
-                        
-                        <div className="text-center font-sans text-[8px] font-black tracking-widest text-gray-400 mt-6 select-none uppercase">
-                          *MISA-CUKCUK-SHIPPING*
-                        </div>
-                      </div>
-                    </div>
-
-                  </div>
-
-                  {/* Progressive loading simulation bottom bar */}
-                  <div className="p-4 bg-slate-800 border-t border-slate-700 flex flex-col gap-2 shrink-0">
-                    <div className="flex items-center justify-between text-[11px] font-bold text-slate-300">
-                      <span className="flex items-center gap-1.5 animate-pulse">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
-                        Đang truyền dữ liệu in phiếu giao hàng...
-                      </span>
-                      <span>100% Hoàn thành</span>
-                    </div>
-                    <div className="w-full bg-slate-700 rounded-full h-2 overflow-hidden">
-                      <div className="bg-gradient-to-r from-emerald-500 to-teal-400 h-2 rounded-full w-full transition-all duration-1000"></div>
-                    </div>
-                    <p className="text-[9px] text-slate-500 font-medium text-center font-sans tracking-wide mt-0.5">
-                      ⚠️ Khuyến nghị: Không tắt màn hình hoặc can thiệp cáp kết nối máy in nhiệt MISA CUKCUK.
-                    </p>
-                  </div>
-
-                </div>
-              </div>
-            )}
-
           </div>
         );
       })()}
+
+      {/* P10a: Báo hết món — multi-select món, cảnh báo API SPF chỉ hủy CẢ đơn */}
+      {showOutOfStockModal && selectedOrder && !isGrab && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px] font-sans text-xs select-none text-left">
+          <div className="w-[480px] max-w-full bg-white rounded-xl shadow-2xl border border-gray-150 flex flex-col overflow-hidden animate-in scale-in duration-200">
+            {/* Header Modal */}
+            <div className="h-[62px] flex items-center justify-between px-6 pt-6 pb-4 shrink-0 border-none">
+              <h3 className="text-base font-semibold text-gray-900">Báo hết món — đơn {selectedOrder.code}</h3>
+              <button onClick={() => setShowOutOfStockModal(false)} className="text-[#717680] hover:text-gray-900 transition">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body Form */}
+            <div className="px-6 pb-4 flex flex-col gap-3 text-gray-700">
+              <div className="flex flex-col gap-1.5">
+                <label className="font-medium text-gray-500 text-xs">Chọn món đã hết trong đơn:</label>
+                <div className="flex flex-col gap-1.5 max-h-[180px] overflow-y-auto" id="spf-out-of-stock-list">
+                  {selectedOrder.items.map((item) => {
+                    const isChecked = outOfStockItemIds.includes(item.id);
+                    return (
+                      <label
+                        key={item.id}
+                        className={`flex items-center gap-2.5 p-2 rounded-lg border cursor-pointer transition ${
+                          isChecked ? 'bg-[#F0F6FE] border-[#0973B9]/50' : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            setOutOfStockItemIds((prev) =>
+                              isChecked ? prev.filter((id) => id !== item.id) : [...prev, item.id]
+                            );
+                          }}
+                          className="h-3.5 w-3.5 rounded text-[#0973B9] focus:ring-[#0973B9]"
+                        />
+                        <span className="font-semibold text-gray-900 flex-1">{item.name}</span>
+                        <span className="text-gray-500 font-mono">x{item.qty}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Cảnh báo đỏ — ràng buộc API */}
+              <div id="spf-out-of-stock-warning" className="bg-red-50 border border-red-300 rounded-lg p-3 text-red-700 font-semibold leading-relaxed flex items-start gap-2">
+                <span className="text-sm">⚠</span>
+                <span>
+                  API ShopeeFood <strong>chỉ hỗ trợ hủy CẢ đơn</strong>, không hủy được từng món.
+                  Vui lòng <strong>gọi xác nhận với khách</strong> trước khi thao tác — đơn sẽ bị hủy với lý do "Hết món" (mã 79).
+                </span>
+              </div>
+            </div>
+
+            {/* Footer Action */}
+            <div className="h-14 bg-[#FAFAFA] border-t border-[#E9EAEB] px-6 flex items-center justify-end gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowOutOfStockModal(false)}
+                className="h-[32px] min-w-[84px] px-4 bg-white hover:bg-gray-50 border border-[#D5D7DA] rounded-lg text-gray-700 font-semibold transition text-xs uppercase"
+              >
+                BỎ QUA
+              </button>
+              <button
+                type="button"
+                id="spf-out-of-stock-confirm-btn"
+                disabled={outOfStockItemIds.length === 0}
+                onClick={() => {
+                  const names = selectedOrder.items
+                    .filter((it) => outOfStockItemIds.includes(it.id))
+                    .map((it) => it.name)
+                    .join(', ');
+                  if (onDeleteOrder) {
+                    onDeleteOrder(selectedOrder.id, `Hết món: ${names}`, 79);
+                  }
+                  setShowOutOfStockModal(false);
+                }}
+                className={`h-[32px] px-5 font-bold rounded-lg shadow-sm transition text-xs uppercase ${
+                  outOfStockItemIds.length === 0
+                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    : 'bg-rose-600 hover:bg-rose-700 text-white active:scale-95'
+                }`}
+              >
+                HỦY CẢ ĐƠN (LÝ DO 79)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* P10b: Báo trễ — gửi busy_info cho ShopeeFood, KHÔNG đổi trạng thái đơn */}
+      {showDelayModal && selectedOrder && !isGrab && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px] font-sans text-xs select-none text-left">
+          <div className="w-[420px] max-w-full bg-white rounded-xl shadow-2xl border border-gray-150 flex flex-col overflow-hidden animate-in scale-in duration-200">
+            {/* Header Modal */}
+            <div className="h-[62px] flex items-center justify-between px-6 pt-6 pb-4 shrink-0 border-none">
+              <h3 className="text-base font-semibold text-gray-900">Báo trễ — đơn {selectedOrder.code}</h3>
+              <button onClick={() => setShowDelayModal(false)} className="text-[#717680] hover:text-gray-900 transition">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body Form */}
+            <div className="px-6 pb-4 flex flex-col gap-3 text-gray-700">
+              <label className="font-medium text-gray-500 text-xs">Quán cần thêm bao nhiêu phút để chuẩn bị món?</label>
+              <div className="flex gap-1.5" id="spf-delay-minute-chips">
+                {[10, 15, 20, 30].map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setDelayMinutes(m)}
+                    className={`flex-1 py-2.5 rounded-lg border font-bold transition ${
+                      delayMinutes === m
+                        ? 'bg-[#0973B9] text-white border-[#0973B9]'
+                        : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    +{m} phút
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-gray-500 italic bg-amber-50 border border-amber-200 rounded p-2 leading-relaxed">
+                ShopeeFood sẽ thông báo cho khách và tài xế thời gian chuẩn bị mới. Trạng thái đơn <strong>giữ nguyên</strong> — không cần thao tác gì thêm.
+              </p>
+            </div>
+
+            {/* Footer Action */}
+            <div className="h-14 bg-[#FAFAFA] border-t border-[#E9EAEB] px-6 flex items-center justify-end gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowDelayModal(false)}
+                className="h-[32px] min-w-[84px] px-4 bg-white hover:bg-gray-50 border border-[#D5D7DA] rounded-lg text-gray-700 font-semibold transition text-xs uppercase"
+              >
+                BỎ QUA
+              </button>
+              <button
+                type="button"
+                id="spf-delay-confirm-btn"
+                onClick={() => {
+                  setDelayNotices((prev) => ({ ...prev, [selectedOrder.id]: delayMinutes }));
+                  setShowDelayModal(false);
+                }}
+                className="h-[32px] px-5 bg-[#0973B9] hover:bg-[#00497D] text-white font-bold rounded-lg shadow-sm transition active:scale-95 text-xs uppercase"
+              >
+                GỬI BÁO TRỄ +{delayMinutes} PHÚT
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Immersive Kitchen Print Simulation Overlay */}
+      {showKitchenPrintOverlay && kitchenPrintOrder && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-sm font-sans text-xs select-none">
+          <div className="w-[440px] max-w-full bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 text-left text-slate-100">
+            
+            {/* Header info */}
+            <div className="p-4 bg-slate-800 border-b border-slate-700 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-[#0973B9] flex items-center justify-center text-white font-bold text-xs shrink-0 animate-ping">
+                  🖨️
+                </div>
+                <div className="w-8 h-8 rounded-full bg-[#0973B9] flex items-center justify-center text-white font-bold text-xs absolute shrink-0">
+                  🖨️
+                </div>
+                <div className="flex flex-col gap-0.5 ml-1">
+                  <span className="font-extrabold text-sm tracking-wide text-white uppercase flex items-center gap-2">
+                    MISA CUKCUK - TRUYỀN TẢI IN BẾP
+                    <span className="bg-sky-500 text-[8px] px-1 py-0.5 rounded text-slate-950 font-black animate-pulse">AUTOMATIC</span>
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-medium">Đang tự động in mẫu in gửi bếp...</span>
+                </div>
+              </div>
+              <div className="text-right text-slate-400 font-mono text-[10px]">
+                PORT: PRINTER_LPT1
+              </div>
+            </div>
+
+            {/* Main printed outputs simulator - Centered kitchen receipt paper */}
+            <div className="p-6 flex flex-col bg-slate-950 max-h-[70vh] overflow-y-auto items-stretch">
+              
+              {/* Simulated Kitchen Receipt paper */}
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider pl-1 flex items-center gap-1">
+                  📝 Mẫu phiếu in bếp (Kitchen Slip)
+                </span>
+                <div className="bg-white text-slate-900 p-5 rounded shadow-xl border border-slate-300 font-mono text-[11px] leading-relaxed relative overflow-hidden select-text min-h-[380px]">
+                  {/* Cut lines paper visual effect */}
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-b from-gray-200 to-transparent"></div>
+                  
+                  <div className="text-center font-bold">
+                    <div className="text-[13px] font-black">BẾP CHẾ BIẾN (KITCHEN)</div>
+                    <div className="text-[9px] text-gray-500 font-sans tracking-tight mt-0.5">*** PHIẾU BÁO CUNG ỨNG - KHÔNG THANH TOÁN ***</div>
+                    {/* P10c: dấu "ĐÃ CẬP NHẬT" khi Shopee sửa đơn sau khi gửi */}
+                    {kitchenPrintOrder.updatedByShopee && (
+                      <div className="border-2 border-black font-black text-[12px] py-1 my-2 tracking-widest">*** ĐÃ CẬP NHẬT ***</div>
+                    )}
+                    <div className="border-t border-dashed border-gray-400 my-2"></div>
+                  </div>
+
+                  <div className="flex justify-between items-center text-xs my-1">
+                    <span className="font-bold">MÃ ĐƠN HÀNG:</span>
+                    <span className="font-black text-lg text-black">{kitchenPrintOrder.code}</span>
+                  </div>
+                  <div className="flex justify-between text-[10px] text-gray-600 mb-2">
+                    <span>Giờ đặt: {kitchenPrintOrder.orderTime.split(' - ')[0]}</span>
+                    <span>In: {new Date().toLocaleTimeString('vi-VN')}</span>
+                  </div>
+
+                  <div className="border-t border-dashed border-gray-400 my-1"></div>
+                  <div className="grid grid-cols-12 font-bold text-gray-800 py-1 border-b border-gray-150">
+                    <span className="col-span-8">TÊN MÓN ĂN</span>
+                    <span className="col-span-2 text-center">SL</span>
+                    <span className="col-span-2 text-right">G.CHÚ</span>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5 py-1.5">
+                    {kitchenPrintOrder.items.map((item) => (
+                      <div key={item.id} className="grid grid-cols-12 items-start py-0.5 border-b border-gray-100 last:border-0 text-xs">
+                        <span className="col-span-8 font-extrabold text-black">{item.name}</span>
+                        <span className="col-span-2 text-center font-black text-sm bg-gray-100 rounded py-0.5">{item.qty}</span>
+                        <span className={`col-span-2 text-right text-[10px] font-sans font-semibold ${isGrab ? 'text-sky-700' : 'text-[#0973B9]'}`}>{item.note || 'Không'}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="border-t border-dashed border-gray-400 my-2"></div>
+                  <div className="text-[10px] text-gray-600">
+                    <div className="font-bold text-black font-sans mb-1 text-[11px]">Ghi chú đơn:</div>
+                    <p className="font-sans italic leading-relaxed text-gray-700 bg-yellow-50 p-2 border border-yellow-100 rounded">
+                      {kitchenPrintOrder.note || 'Không có ghi chú đơn hàng từ khách hàng.'}
+                    </p>
+                  </div>
+                  
+                  <div className="text-center font-sans text-[8px] font-black tracking-widest text-gray-400 mt-6 select-none uppercase">
+                    *MISA-CUKCUK-KITCHEN*
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Progressive loading simulation bottom bar */}
+            <div className="p-4 bg-slate-800 border-t border-slate-700 flex flex-col gap-2 shrink-0">
+              <div className="flex items-center justify-between text-[11px] font-bold text-slate-300">
+                <span className="flex items-center gap-1.5 animate-pulse">
+                  <span className="w-2 h-2 rounded-full bg-[#0973B9] shrink-0"></span>
+                  Đang truyền dữ liệu in & gửi bếp...
+                </span>
+                <span>95% Hoàn thành</span>
+              </div>
+              <div className="w-full bg-slate-700 rounded-full h-2 overflow-hidden">
+                <div className="bg-gradient-to-r from-[#0973B9] to-sky-400 h-2 rounded-full w-[95%] transition-all duration-1000"></div>
+              </div>
+              <p className="text-[9px] text-slate-500 font-medium text-center font-sans tracking-wide mt-0.5">
+                ⚠️ Khuyến nghị: Không tắt màn hình hoặc can thiệp cáp kết nối máy in nhiệt MISA CUKCUK.
+              </p>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Immersive Delivery Print Simulation Overlay */}
+      {showDeliveryPrintOverlay && deliveryPrintOrder && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-6 bg-slate-950/85 backdrop-blur-xs font-sans text-xs select-none text-left">
+          <div className="w-[440px] max-w-full bg-slate-900 rounded-2xl shadow-2xl border border-slate-750 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 text-slate-100">
+            
+            {/* Header info */}
+            <div className="p-4 bg-slate-800 border-b border-slate-700 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="relative w-8 h-8 flex items-center justify-center">
+                  <div className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping"></div>
+                  <div className="w-8 h-8 rounded-full bg-[#1aa059] flex items-center justify-center text-white font-bold text-xs shrink-0">
+                    🖨️
+                  </div>
+                </div>
+                <div className="flex flex-col gap-0.5 ml-1">
+                  <span className="font-extrabold text-sm tracking-wide text-white uppercase flex items-center gap-2">
+                    {deliveryPrintOrder.channel === 'ShopeeFood'
+                      ? (deliveryPrintOrder.orderType === 'customer_pickup' ? 'IN TEM ĐƠN TỰ ĐẾN LẤY' : 'IN TEM BÀN GIAO TÀI XẾ')
+                      : 'IN PHIẾU GIAO HÀNG'}
+                    <span className="bg-emerald-500 text-[8px] px-1.5 py-0.5 rounded text-slate-950 font-black animate-pulse">AUTOMATIC</span>
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-medium">
+                    {deliveryPrintOrder.channel === 'ShopeeFood' ? 'Đang tự động in tem bàn giao...' : 'Đang tự động in phiếu giao hàng...'}
+                  </span>
+                </div>
+              </div>
+              <div className="text-right text-slate-400 font-mono text-[10px]">
+                PORT: PRINTER_LPT2
+              </div>
+            </div>
+
+            {/* Main printed outputs simulator - Centered delivery receipt paper */}
+            <div className="p-6 flex flex-col bg-slate-950 max-h-[70vh] overflow-y-auto items-stretch">
+              
+              {/* Simulated Delivery Slip paper */}
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider pl-1 flex items-center gap-1">
+                  {deliveryPrintOrder.channel === 'ShopeeFood' ? '📝 Tem bàn giao ShopeeFood' : '📝 Phiếu giao hàng (Delivery Slip)'}
+                </span>
+                <div className="bg-white text-slate-900 p-5 rounded shadow-xl border border-slate-300 font-mono text-[11px] leading-relaxed relative overflow-hidden select-text min-h-[380px]">
+                  {/* Cut lines paper visual effect */}
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-b from-gray-200 to-transparent"></div>
+
+                  {deliveryPrintOrder.channel === 'ShopeeFood' ? (
+                    <>
+                      {/* P6 — Tem bàn giao SPF: mã rút gọn cỡ lớn + món/SL, KHÔNG địa chỉ/tên khách/tổng tiền */}
+                      <div className="text-center font-bold">
+                        <div className="text-[11px] font-black uppercase">
+                          {deliveryPrintOrder.orderType === 'customer_pickup' ? 'TEM ĐƠN TỰ ĐẾN LẤY' : 'TEM BÀN GIAO TÀI XẾ'} — SHOPEEFOOD
+                        </div>
+                        <div id="spf-slip-short-code" className="text-[44px] leading-none font-black tracking-widest my-2">
+                          {shortCode(deliveryPrintOrder.code)}
+                        </div>
+                        <div className="text-[10px] text-gray-600">Mã đầy đủ: {deliveryPrintOrder.code}</div>
+                        {deliveryPrintOrder.orderType === 'customer_pickup' && (
+                          <div className="border border-dashed border-black font-black text-[12px] py-1 my-2">
+                            KHÁCH TỰ ĐẾN LẤY — Mã nhận đơn: {deliveryPrintOrder.pickupCode || '—'}
+                          </div>
+                        )}
+                        {deliveryPrintOrder.updatedByShopee && (
+                          <div className="border-2 border-black font-black text-[12px] py-1 my-2 tracking-widest">*** ĐÃ CẬP NHẬT ***</div>
+                        )}
+                        <div className="border-t border-dashed border-gray-400 my-2"></div>
+                      </div>
+
+                      <div className="grid grid-cols-12 font-bold text-gray-800 py-1 border-b border-gray-150">
+                        <span className="col-span-9">TÊN MÓN</span>
+                        <span className="col-span-3 text-right">SL</span>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5 py-1.5">
+                        {deliveryPrintOrder.items.map((item) => (
+                          <div key={item.id} className="grid grid-cols-12 items-start py-0.5 border-b border-gray-100 last:border-0 text-xs">
+                            <span className="col-span-9 font-extrabold text-black truncate">{item.name}</span>
+                            <span className="col-span-3 text-right font-black text-sm">x{item.qty}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="border-t border-dashed border-gray-400 my-2"></div>
+                      <div className="flex justify-between font-extrabold text-black text-xs">
+                        <span>TỔNG SỐ MÓN:</span>
+                        <span>{deliveryPrintOrder.items.reduce((acc, item) => acc + item.qty, 0)}</span>
+                      </div>
+                      <div className="text-center text-[9px] text-gray-500 font-sans mt-3">
+                        Không thu tiền tại quầy — ShopeeFood đối soát qua ví
+                      </div>
+
+                      <div className="text-center font-sans text-[8px] font-black tracking-widest text-gray-400 mt-4 select-none uppercase">
+                        *MISA-CUKCUK-SHOPEEFOOD*
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-center font-bold">
+                        <div className="text-[13px] font-black uppercase">MISA CUKCUK - PHIẾU GIAO HÀNG</div>
+                        <div className="text-[9px] text-gray-500 font-sans tracking-tight mt-0.5">*** HÓA ĐƠN GIAO HÀNG KHÁCH HÀNG ***</div>
+                        <div className="border-t border-dashed border-gray-400 my-2"></div>
+                      </div>
+
+                      <div className="flex justify-between items-center text-xs my-1">
+                        <span className="font-bold">MÃ ĐƠN HÀNG:</span>
+                        <span className="font-black text-lg text-black">{deliveryPrintOrder.code}</span>
+                      </div>
+                      <div className="flex justify-between text-[10px] text-gray-600 mb-2">
+                        <span>Giờ đặt: {deliveryPrintOrder.orderTime.split(' - ')[0]}</span>
+                        <span>In: {new Date().toLocaleTimeString('vi-VN')}</span>
+                      </div>
+
+                      <div className="border-t border-dashed border-gray-400 my-1"></div>
+
+                      {/* Recipient Details */}
+                      <div className="text-[10px] text-gray-700 font-sans flex flex-col gap-1 my-2 bg-slate-50 p-2.5 rounded border border-slate-200">
+                        <div><strong>Khách hàng:</strong> {deliveryPrintOrder.customerPhone ? ('A. ' + (deliveryPrintOrder.channel === 'Grab' ? 'Grab' : 'Shopee') + ' Customer') : 'A. Tuấn'}</div>
+                        <div><strong>Điện thoại:</strong> {deliveryPrintOrder.customerPhone || '01256.862.536'}</div>
+                        <div><strong>Tài xế:</strong> {deliveryPrintOrder.driverName || 'Chưa phân phối'}</div>
+                        <div><strong>Địa chỉ:</strong> {deliveryPrintOrder.deliveryAddress || 'Nhận tại cửa hàng'}</div>
+                      </div>
+
+                      <div className="border-t border-dashed border-gray-400 my-1"></div>
+                      <div className="grid grid-cols-12 font-bold text-gray-800 py-1 border-b border-gray-150">
+                        <span className="col-span-6">TÊN MÓN</span>
+                        <span className="col-span-2 text-center">SL</span>
+                        <span className="col-span-4 text-right">THÀNH TIỀN</span>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5 py-1.5">
+                        {deliveryPrintOrder.items.map((item) => (
+                          <div key={item.id} className="grid grid-cols-12 items-start py-0.5 border-b border-gray-100 last:border-0 text-xs">
+                            <span className="col-span-6 font-extrabold text-black truncate">{item.name}</span>
+                            <span className="col-span-2 text-center font-black text-sm bg-gray-100 rounded py-0.5">{item.qty}</span>
+                            <span className="col-span-4 text-right font-black">{formatVND(item.totalPrice)}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="border-t border-dashed border-gray-400 my-2"></div>
+                      <div className="flex justify-between font-extrabold text-black text-xs">
+                        <span>TỔNG TIỀN ĐƠN:</span>
+                        <span>{formatVND(deliveryPrintOrder.totalPrice)}</span>
+                      </div>
+
+                      <div className="text-center font-sans text-[8px] font-black tracking-widest text-gray-400 mt-6 select-none uppercase">
+                        *MISA-CUKCUK-SHIPPING*
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+            </div>
+
+            {/* Progressive loading simulation bottom bar */}
+            <div className="p-4 bg-slate-800 border-t border-slate-700 flex flex-col gap-2 shrink-0">
+              <div className="flex items-center justify-between text-[11px] font-bold text-slate-300">
+                <span className="flex items-center gap-1.5 animate-pulse">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                  Đang truyền dữ liệu in phiếu giao hàng...
+                </span>
+                <span>100% Hoàn thành</span>
+              </div>
+              <div className="w-full bg-slate-700 rounded-full h-2 overflow-hidden">
+                <div className="bg-gradient-to-r from-emerald-500 to-teal-400 h-2 rounded-full w-full transition-all duration-1000"></div>
+              </div>
+              <p className="text-[9px] text-slate-500 font-medium text-center font-sans tracking-wide mt-0.5">
+                ⚠️ Khuyến nghị: Không tắt màn hình hoặc can thiệp cáp kết nối máy in nhiệt MISA CUKCUK.
+              </p>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

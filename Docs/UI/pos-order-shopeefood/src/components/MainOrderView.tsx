@@ -32,6 +32,8 @@ interface MainOrderViewProps {
   setGrabSelectedOrderId?: (id: string | null) => void;
   setShopeeActiveTab?: (tab: any) => void;
   setGrabActiveTab?: (tab: any) => void;
+  // P7: còn đơn SPF chưa mở → nhấp nháy badge đến khi mở đơn
+  shopeeAlerting?: boolean;
 }
 
 export default function MainOrderView({
@@ -48,7 +50,8 @@ export default function MainOrderView({
   setShopeeSelectedOrderId,
   setGrabSelectedOrderId,
   setShopeeActiveTab,
-  setGrabActiveTab
+  setGrabActiveTab,
+  shopeeAlerting = false
 }: MainOrderViewProps) {
   const [dropdownOpen, setDropdownOpen] = React.useState(true);
   const [activeSubTab, setActiveSubTab] = React.useState<string>('payment');
@@ -489,8 +492,13 @@ export default function MainOrderView({
                     Giao hàng từ ShopeeFood
                   </span>
                 </div>
-                {/* Number count no longer blinks */}
-                <span id="badge-shopee-count" className="bg-orange-600 text-white font-bold text-xs h-5 px-2 rounded-full flex items-center justify-center">
+                {/* P7: badge nhấp nháy liên tục khi còn đơn SPF chưa được mở */}
+                <span
+                  id="badge-shopee-count"
+                  className={`bg-orange-600 text-white font-bold text-xs h-5 px-2 rounded-full flex items-center justify-center ${
+                    shopeeAlerting ? 'animate-pulse ring-2 ring-red-500 ring-offset-1' : ''
+                  }`}
+                >
                   {shopeeUnconfirmedCount}
                 </span>
 

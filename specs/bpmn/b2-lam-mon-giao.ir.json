@@ -1,0 +1,43 @@
+{
+  "process": { "id": "Process_b2", "title": "B2 · Làm món → Giao hàng → Hoàn thành" },
+  "lanes": [
+    { "id": "Lane_staff",  "name": "Nhân viên" },
+    { "id": "Lane_spf",    "name": "ShopeeFood" },
+    { "id": "Lane_driver", "name": "Tài xế / Khách" },
+    { "id": "Lane_cc",     "name": "Phần mềm CukCuk" }
+  ],
+  "nodes": [
+    { "id": "Start_1",      "kind": "start",   "lane": "Lane_staff",  "name": "Đơn đã xác nhận" },
+    { "id": "Task_kitchen", "kind": "task",    "lane": "Lane_staff",  "name": "In tem chế biến + gửi bếp / bar" },
+    { "id": "GW_stock",     "kind": "gateway", "lane": "Lane_staff",  "name": "Đủ món để làm không?" },
+    { "id": "Task_oos",     "kind": "task",    "lane": "Lane_staff",  "name": "Hết món → báo khách rồi hủy đơn" },
+    { "id": "End_oos",      "kind": "end",     "lane": "Lane_staff",  "name": "Đơn hủy do hết món" },
+    { "id": "Task_ready",   "kind": "task",    "lane": "Lane_staff",  "name": "Báo món đã xong" },
+    { "id": "GW_ship",      "kind": "gateway", "lane": "Lane_spf",    "name": "Cách giao?" },
+    { "id": "Task_assign",  "kind": "task",    "lane": "Lane_spf",    "name": "Điều tài xế tới lấy" },
+    { "id": "Task_pickup",  "kind": "task",    "lane": "Lane_driver", "name": "Tài xế tới lấy, đối chiếu mã đơn rút gọn + món" },
+    { "id": "Task_slip",    "kind": "task",    "lane": "Lane_staff",  "name": "In phiếu bàn giao (nếu bật) + giao túi cho tài xế" },
+    { "id": "Task_deliver", "kind": "task",    "lane": "Lane_driver", "name": "Giao hàng cho khách" },
+    { "id": "Task_self",    "kind": "task",    "lane": "Lane_staff",  "name": "Khách tự đến lấy: đối chiếu mã với khách, giao tận tay" },
+    { "id": "Task_delivered","kind": "task",   "lane": "Lane_spf",    "name": "ShopeeFood báo đã giao xong" },
+    { "id": "Task_complete","kind": "task",    "lane": "Lane_cc",     "name": "In hóa đơn + ghi nhận doanh thu; xem tiền ShopeeFood trả về" },
+    { "id": "End_done",     "kind": "end",     "lane": "Lane_cc",     "name": "Đơn hoàn thành" }
+  ],
+  "flows": [
+    { "id": "F1",  "src": "Start_1",      "tgt": "Task_kitchen" },
+    { "id": "F2",  "src": "Task_kitchen", "tgt": "GW_stock" },
+    { "id": "F3",  "src": "GW_stock",     "tgt": "Task_oos",   "name": "Hết món" },
+    { "id": "F4",  "src": "Task_oos",     "tgt": "End_oos" },
+    { "id": "F5",  "src": "GW_stock",     "tgt": "Task_ready", "name": "Đủ món" },
+    { "id": "F6",  "src": "Task_ready",   "tgt": "GW_ship" },
+    { "id": "F7",  "src": "GW_ship",      "tgt": "Task_assign","name": "Tài xế giao" },
+    { "id": "F8",  "src": "Task_assign",  "tgt": "Task_pickup" },
+    { "id": "F9",  "src": "Task_pickup",  "tgt": "Task_slip" },
+    { "id": "F10", "src": "Task_slip",    "tgt": "Task_deliver" },
+    { "id": "F11", "src": "Task_deliver", "tgt": "Task_delivered" },
+    { "id": "F12", "src": "GW_ship",      "tgt": "Task_self",  "name": "Khách tự đến lấy" },
+    { "id": "F13", "src": "Task_self",    "tgt": "Task_delivered" },
+    { "id": "F14", "src": "Task_delivered","tgt": "Task_complete" },
+    { "id": "F15", "src": "Task_complete","tgt": "End_done" }
+  ]
+}
