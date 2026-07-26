@@ -1,8 +1,0 @@
-{
-  "name": "htlanh2 POS Order ShopeeFood ",
-  "description": "Quản lý đơn hàng tích hợp Grab và ShopeeFood cho hệ thống nhà hàng CUKCUK MISA",
-  "requestFramePermissions": [],
-  "majorCapabilities": [
-    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
-  ]
-}

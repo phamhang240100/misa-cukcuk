@@ -1,0 +1,97 @@
+@startuml
+!theme plain
+title Luồng xử lý đơn ShopeeFood tại POS
+
+|ShopeeFood|
+start
+:Có đơn mới, gửi webhook đơn [M_ASSIGNED];
+|CukCuk|
+:Trả 200 ngay [ShopeeFood đánh dấu M_RECEIVED], lấy chi tiết đơn;
+note right
+Lưới an toàn: định kỳ 2-5 phút polling order.get_list
+để bù đơn/status bị miss [ShopeeFood không gửi lại
+webhook đã miss]
+end note
+:Tạo đơn ở tab Chưa xác nhận;
+:Báo chuông, ghim đơn, nhấp nháy tab Đơn online;
+|Nhân viên|
+if (Nhân viên thao tác đơn?) then (Có)
+  if (Nhân viên chọn?) then (Từ chối)
+    :Chọn lý do từ chối [hết món / quá tải / đóng cửa];
+    |CukCuk|
+    :Gửi từ chối sang ShopeeFood [OUT_OF_SERVICE];
+    :Chuyển đơn sang tab Hủy;
+    stop
+  else (Xác nhận)
+    :Bấm Xác nhận;
+  endif
+else (Không ai bấm)
+  |CukCuk|
+  if (Quán có bật tự động xác nhận?) then (Bật)
+    :Chờ hết X phút mà không ai bấm, hệ thống tự xác nhận;
+  else (Tắt)
+    :Đơn chờ tiếp, để quá hạn thì ShopeeFood tự hủy;
+    stop
+  endif
+endif
+
+|CukCuk|
+:Gửi xác nhận sang ShopeeFood [CONFIRM], tạo order, chuyển tab Đang xử lý;
+|ShopeeFood|
+:Ghi nhận quán đã xác nhận [CONFIRMED];
+note right
+  ShopeeFood CHƯA điều tài xế ở bước này.
+  Chỉ khi quán bấm Giao hàng (order.ready)
+  thì ShopeeFood mới bắt đầu tìm tài xế.
+end note
+|CukCuk|
+if (Tự động gửi bếp/bar bật?) then (Bật)
+  :Tự in phiếu chế biến gửi bếp/bar;
+else (Tắt)
+  |Nhân viên|
+  :Bấm Gửi bếp/bar;
+  |CukCuk|
+  :In phiếu chế biến gửi bếp/bar;
+endif
+|Nhân viên|
+:Làm món;
+
+|CukCuk|
+if (Có yêu cầu hủy trước khi tài xế lấy?) then (Có)
+  :Đã gửi bếp nên in phiếu báo hủy cho bếp;
+  :Chuyển đơn sang tab Hủy;
+  stop
+else (Không)
+endif
+
+|Nhân viên|
+:Chuẩn bị món xong;
+if (Kiểu giao?) then (Tài xế giao)
+  :Bấm Giao hàng;
+  |CukCuk|
+  :Gọi order.ready, in tem giao hàng [mã rút gọn + món];
+  |ShopeeFood|
+  :Bắt đầu tìm tài xế [ASSIGNING_DRIVER];
+  |ShopeeFood|
+  :Tài xế đến lấy hàng [PICKED];
+  |CukCuk|
+  :Chuyển đơn sang tab Đã xử lý;
+  |ShopeeFood|
+  :Tài xế giao cho khách [DELIVERED];
+  |CukCuk|
+  :Nhận DELIVERED, chuyển đơn sang Đã hoàn thành, hóa đơn, ghi doanh thu;
+  stop
+else (Khách tự lấy tại quán)
+  |Nhân viên|
+  :Bấm Giao cho khách [gọi order.ready];
+  :Khách đến, đối chiếu mã đơn, giao cho khách;
+  |CukCuk|
+  :Khách đã lấy, chuyển thẳng Đã hoàn thành, hóa đơn, ghi doanh thu;
+  note right
+  Khách tự lấy: lấy xong là hoàn thành, không qua bước Đã xử lý.
+  ShopeeFood xác nhận hoàn thành khi khách báo đã nhận,
+  hoặc tự động sau 60 phút.
+  end note
+  stop
+endif
+@enduml

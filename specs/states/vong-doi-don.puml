@@ -1,0 +1,52 @@
+@startuml
+!theme plain
+skinparam defaultFontName Helvetica
+skinparam state {
+  FontSize 15
+  AttributeFontSize 13
+}
+skinparam ArrowFontSize 13
+title Vòng đời đơn hàng ShopeeFood tại MISA CukCuk
+
+state "Chưa xác nhận" as ChuaXN #FFF3CD
+ChuaXN : Đơn mới tiếp nhận từ ShopeeFood.
+ChuaXN : Hệ thống thông báo liên tục đến khi được xử lý
+
+state "Đang xử lý" as DangXL #D6E4FF
+DangXL : Đơn đã được xác nhận.
+DangXL : Tem chế biến in tự động, bếp/bar bắt đầu chế biến
+
+state "Đã xử lý" as DaXL #E8DAEF
+DaXL : Tài xế đã nhận hàng và đang giao đến khách
+
+state "Đã hoàn thành" as Done #D5F5E3
+Done : Khách đã nhận hàng.
+Done : Hệ thống ghi nhận doanh thu và phát hành hóa đơn
+
+state "Hủy" as Huy #FADBD8
+Huy : Đơn bị từ chối hoặc hủy bởi nhà hàng / ShopeeFood
+
+[*] --> ChuaXN : Khách đặt hàng trên ứng dụng ShopeeFood
+ChuaXN --> DangXL : Xác nhận đơn\n(thủ công hoặc tự động sau X phút)
+ChuaXN --> Huy : Từ chối đơn\n(hết món / quá tải / ngoài giờ bán)
+DangXL --> Huy : Hủy đơn — chỉ thực hiện được trước khi tài xế nhận hàng\n(đơn đã chuyển bếp sẽ in phiếu báo hủy)
+DangXL --> DaXL : Tài xế nhận hàng\n(đối chiếu mã đơn rút gọn)
+DangXL --> Done : Đơn khách tự nhận tại quán
+DaXL --> Done : Tài xế giao hàng thành công
+Done --> [*]
+Huy --> [*]
+
+note right of DaXL
+  <b>Khóa thao tác hủy đơn</b>
+  ShopeeFood không cho phép nhà hàng hủy đơn
+  sau khi tài xế đã nhận hàng
+end note
+
+note bottom of Done
+  <b>Tự động ghi nhận hoàn thành</b>
+  Đơn chuyển trạng thái hoàn thành theo xác nhận giao hàng
+  từ ShopeeFood; nhân viên không cần thao tác thêm.
+  Trường hợp không nhận được thông báo, hệ thống tự động
+  kiểm tra và cập nhật trạng thái định kỳ mỗi 2-5 phút.
+end note
+@enduml

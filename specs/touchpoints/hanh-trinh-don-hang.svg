@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1936" height="433.5" viewBox="0 0 1936 433.5" font-family="Helvetica Neue, Helvetica, Arial, sans-serif">
+<rect width="1936" height="433.5" fill="#ffffff"/>
+<text x="30" y="42" font-size="21" font-weight="700" fill="#212529">Hành trình một đơn hàng ShopeeFood tại MISA CukCuk</text>
+<rect x="30" y="82" width="244" height="277.5" rx="9" fill="#FFFFFF" stroke="#DEE2E6" stroke-width="1.2"/>
+<rect x="30" y="82" width="244" height="4" rx="2" fill="#868E96"/>
+<text x="44" y="110" font-size="11.5" font-weight="700" fill="#ADB5BD" letter-spacing="1">01</text>
+<text x="44" y="131" font-size="14.5" font-weight="700" fill="#212529">Khách đặt hàng</text>
+<rect x="44" y="139" width="87" height="19" rx="9.5" fill="#868E96" fill-opacity="0.12"/>
+<text x="53" y="152.5" font-size="11" font-weight="600" fill="#868E96">Khách hàng</text>
+<text x="44" y="174" font-size="12.4" fill="#343A40">Khách chọn món và thanh toán</text>
+<text x="44" y="190.5" font-size="12.4" fill="#343A40">trên ứng dụng ShopeeFood</text>
+<line x1="44" y1="219.0" x2="260" y2="219.0" stroke="#E9ECEF"/>
+<text x="44" y="234.0" font-size="9.8" font-weight="700" fill="#495057" letter-spacing="0.9">YÊU CẦU</text>
+<text x="44" y="249.0" font-size="12.4" fill="#495057">Thực đơn và giá hiển thị đúng với</text>
+<text x="44" y="265.5" font-size="12.4" fill="#495057">nhà hàng</text>
+<line x1="44" y1="279.0" x2="260" y2="279.0" stroke="#E9ECEF"/>
+<text x="44" y="294.0" font-size="9.8" font-weight="700" fill="#E8590C" letter-spacing="0.9">GIẢI PHÁP</text>
+<text x="44" y="309.0" font-size="12.4" fill="#E8590C">Đồng bộ thực đơn một chiều từ</text>
+<text x="44" y="325.5" font-size="12.4" fill="#E8590C">CukCuk, bắt buộc ghép nối món</text>
+<text x="44" y="342.0" font-size="12.4" fill="#E8590C">trước khi đăng</text>
+<line x1="279" y1="220.75" x2="290" y2="220.75" stroke="#CED4DA" stroke-width="1.6"/>
+<path d="M 290 220.75 l -7 -4.5 l 0 9 z" fill="#CED4DA"/>
+<rect x="302" y="82" width="244" height="277.5" rx="9" fill="#FFFFFF" stroke="#DEE2E6" stroke-width="1.2"/>
+<rect x="302" y="82" width="244" height="4" rx="2" fill="#4C6EF5"/>
+<text x="316" y="110" font-size="11.5" font-weight="700" fill="#ADB5BD" letter-spacing="1">02</text>
+<text x="316" y="131" font-size="14.5" font-weight="700" fill="#212529">Đơn về máy bán hàng</text>
+<rect x="316" y="139" width="73" height="19" rx="9.5" fill="#4C6EF5" fill-opacity="0.12"/>
+<text x="325" y="152.5" font-size="11" font-weight="600" fill="#4C6EF5">Hệ thống</text>
+<text x="316" y="174" font-size="12.4" fill="#343A40">ShopeeFood đẩy đơn sang CukCuk,</text>
+<text x="316" y="190.5" font-size="12.4" fill="#343A40">đơn vào tab Chưa xác nhận</text>
+<line x1="316" y1="219.0" x2="532" y2="219.0" stroke="#E9ECEF"/>
+<text x="316" y="234.0" font-size="9.8" font-weight="700" fill="#495057" letter-spacing="0.9">YÊU CẦU</text>
+<text x="316" y="249.0" font-size="12.4" fill="#495057">Không bỏ sót đơn, kể cả giờ cao</text>
+<text x="316" y="265.5" font-size="12.4" fill="#495057">điểm</text>
+<line x1="316" y1="279.0" x2="532" y2="279.0" stroke="#E9ECEF"/>
+<text x="316" y="294.0" font-size="9.8" font-weight="700" fill="#E8590C" letter-spacing="0.9">GIẢI PHÁP</text>
+<text x="316" y="309.0" font-size="12.4" fill="#E8590C">Chuông báo và nhấp nháy liên tục;</text>
+<text x="316" y="325.5" font-size="12.4" fill="#E8590C">hệ thống tự kiểm tra định kỳ để</text>
+<text x="316" y="342.0" font-size="12.4" fill="#E8590C">bù đơn thiếu</text>
+<line x1="551" y1="220.75" x2="562" y2="220.75" stroke="#CED4DA" stroke-width="1.6"/>
+<path d="M 562 220.75 l -7 -4.5 l 0 9 z" fill="#CED4DA"/>
+<rect x="574" y="82" width="244" height="277.5" rx="9" fill="#FFFFFF" stroke="#E8590C" stroke-width="1.8"/>
+<rect x="574" y="82" width="244" height="4" rx="2" fill="#E8590C"/>
+<text x="588" y="110" font-size="11.5" font-weight="700" fill="#ADB5BD" letter-spacing="1">03</text>
+<text x="588" y="131" font-size="14.5" font-weight="700" fill="#212529">Xác nhận đơn</text>
+<rect x="588" y="139" width="77" height="19" rx="9.5" fill="#E8590C" fill-opacity="0.12"/>
+<text x="597" y="152.5" font-size="11" font-weight="600" fill="#E8590C">Nhân viên</text>
+<text x="588" y="174" font-size="12.4" fill="#343A40">Nhà hàng quyết định nhận hoặc từ</text>
+<text x="588" y="190.5" font-size="12.4" fill="#343A40">chối đơn</text>
+<line x1="588" y1="219.0" x2="804" y2="219.0" stroke="#E9ECEF"/>
+<text x="588" y="234.0" font-size="9.8" font-weight="700" fill="#495057" letter-spacing="0.9">YÊU CẦU</text>
+<text x="588" y="249.0" font-size="12.4" fill="#495057">Xác nhận kịp thời hạn của</text>
+<text x="588" y="265.5" font-size="12.4" fill="#495057">ShopeeFood, tránh bị hủy đơn</text>
+<line x1="588" y1="279.0" x2="804" y2="279.0" stroke="#E9ECEF"/>
+<text x="588" y="294.0" font-size="9.8" font-weight="700" fill="#E8590C" letter-spacing="0.9">GIẢI PHÁP</text>
+<text x="588" y="309.0" font-size="12.4" fill="#E8590C">Xác nhận một thao tác; tự động</text>
+<text x="588" y="325.5" font-size="12.4" fill="#E8590C">xác nhận sau X phút nếu chưa ai</text>
+<text x="588" y="342.0" font-size="12.4" fill="#E8590C">xử lý</text>
+<line x1="823" y1="220.75" x2="834" y2="220.75" stroke="#CED4DA" stroke-width="1.6"/>
+<path d="M 834 220.75 l -7 -4.5 l 0 9 z" fill="#CED4DA"/>
+<rect x="846" y="82" width="244" height="277.5" rx="9" fill="#FFFFFF" stroke="#DEE2E6" stroke-width="1.2"/>
+<rect x="846" y="82" width="244" height="4" rx="2" fill="#7048E8"/>
+<text x="860" y="110" font-size="11.5" font-weight="700" fill="#ADB5BD" letter-spacing="1">04</text>
+<text x="860" y="131" font-size="14.5" font-weight="700" fill="#212529">Chế biến</text>
+<rect x="860" y="139" width="79" height="19" rx="9.5" fill="#7048E8" fill-opacity="0.12"/>
+<text x="869" y="152.5" font-size="11" font-weight="600" fill="#7048E8">Bếp / Bar</text>
+<text x="860" y="174" font-size="12.4" fill="#343A40">Đơn được chuyển xuống bếp và bar</text>
+<text x="860" y="190.5" font-size="12.4" fill="#343A40">để làm món</text>
+<line x1="860" y1="219.0" x2="1076" y2="219.0" stroke="#E9ECEF"/>
+<text x="860" y="234.0" font-size="9.8" font-weight="700" fill="#495057" letter-spacing="0.9">YÊU CẦU</text>
+<text x="860" y="249.0" font-size="12.4" fill="#495057">Bếp nhận đúng món và đúng ghi</text>
+<text x="860" y="265.5" font-size="12.4" fill="#495057">chú, không phải chép tay</text>
+<line x1="860" y1="279.0" x2="1076" y2="279.0" stroke="#E9ECEF"/>
+<text x="860" y="294.0" font-size="9.8" font-weight="700" fill="#E8590C" letter-spacing="0.9">GIẢI PHÁP</text>
+<text x="860" y="309.0" font-size="12.4" fill="#E8590C">Tem chế biến in tự động ngay khi</text>
+<text x="860" y="325.5" font-size="12.4" fill="#E8590C">đơn được xác nhận</text>
+<line x1="1095" y1="220.75" x2="1106" y2="220.75" stroke="#CED4DA" stroke-width="1.6"/>
+<path d="M 1106 220.75 l -7 -4.5 l 0 9 z" fill="#CED4DA"/>
+<rect x="1118" y="82" width="244" height="277.5" rx="9" fill="#FFFFFF" stroke="#E8590C" stroke-width="1.8"/>
+<rect x="1118" y="82" width="244" height="4" rx="2" fill="#E8590C"/>
+<text x="1132" y="110" font-size="11.5" font-weight="700" fill="#ADB5BD" letter-spacing="1">05</text>
+<text x="1132" y="131" font-size="14.5" font-weight="700" fill="#212529">Bàn giao</text>
+<rect x="1132" y="139" width="131" height="19" rx="9.5" fill="#E8590C" fill-opacity="0.12"/>
+<text x="1141" y="152.5" font-size="11" font-weight="600" fill="#E8590C">Nhân viên · Tài xế</text>
+<text x="1132" y="174" font-size="12.4" fill="#343A40">Tài xế đến quán nhận hàng</text>
+<line x1="1132" y1="219.0" x2="1348" y2="219.0" stroke="#E9ECEF"/>
+<text x="1132" y="234.0" font-size="9.8" font-weight="700" fill="#495057" letter-spacing="0.9">YÊU CẦU</text>
+<text x="1132" y="249.0" font-size="12.4" fill="#495057">Giao đúng đơn cho đúng tài xế,</text>
+<text x="1132" y="265.5" font-size="12.4" fill="#495057">nhanh và không nhầm</text>
+<line x1="1132" y1="279.0" x2="1348" y2="279.0" stroke="#E9ECEF"/>
+<text x="1132" y="294.0" font-size="9.8" font-weight="700" fill="#E8590C" letter-spacing="0.9">GIẢI PHÁP</text>
+<text x="1132" y="309.0" font-size="12.4" fill="#E8590C">Đối chiếu bằng mã đơn rút gọn cỡ</text>
+<text x="1132" y="325.5" font-size="12.4" fill="#E8590C">lớn kèm danh sách món</text>
+<line x1="1367" y1="220.75" x2="1378" y2="220.75" stroke="#CED4DA" stroke-width="1.6"/>
+<path d="M 1378 220.75 l -7 -4.5 l 0 9 z" fill="#CED4DA"/>
+<rect x="1390" y="82" width="244" height="277.5" rx="9" fill="#FFFFFF" stroke="#DEE2E6" stroke-width="1.2"/>
+<rect x="1390" y="82" width="244" height="4" rx="2" fill="#0CA678"/>
+<text x="1404" y="110" font-size="11.5" font-weight="700" fill="#ADB5BD" letter-spacing="1">06</text>
+<text x="1404" y="131" font-size="14.5" font-weight="700" fill="#212529">Giao hàng hoàn tất</text>
+<rect x="1404" y="139" width="141" height="19" rx="9.5" fill="#0CA678" fill-opacity="0.12"/>
+<text x="1413" y="152.5" font-size="11" font-weight="600" fill="#0CA678">Tài xế · Khách hàng</text>
+<text x="1404" y="174" font-size="12.4" fill="#343A40">Tài xế giao đến khách, ShopeeFood</text>
+<text x="1404" y="190.5" font-size="12.4" fill="#343A40">xác nhận đã giao</text>
+<line x1="1404" y1="219.0" x2="1620" y2="219.0" stroke="#E9ECEF"/>
+<text x="1404" y="234.0" font-size="9.8" font-weight="700" fill="#495057" letter-spacing="0.9">YÊU CẦU</text>
+<text x="1404" y="249.0" font-size="12.4" fill="#495057">Trạng thái đơn hai bên phải khớp</text>
+<text x="1404" y="265.5" font-size="12.4" fill="#495057">nhau</text>
+<line x1="1404" y1="279.0" x2="1620" y2="279.0" stroke="#E9ECEF"/>
+<text x="1404" y="294.0" font-size="9.8" font-weight="700" fill="#E8590C" letter-spacing="0.9">GIẢI PHÁP</text>
+<text x="1404" y="309.0" font-size="12.4" fill="#E8590C">Đơn tự chuyển hoàn thành theo</text>
+<text x="1404" y="325.5" font-size="12.4" fill="#E8590C">xác nhận giao hàng, có cơ chế bù</text>
+<text x="1404" y="342.0" font-size="12.4" fill="#E8590C">nếu thiếu tín hiệu</text>
+<line x1="1639" y1="220.75" x2="1650" y2="220.75" stroke="#CED4DA" stroke-width="1.6"/>
+<path d="M 1650 220.75 l -7 -4.5 l 0 9 z" fill="#CED4DA"/>
+<rect x="1662" y="82" width="244" height="277.5" rx="9" fill="#FFFFFF" stroke="#DEE2E6" stroke-width="1.2"/>
+<rect x="1662" y="82" width="244" height="4" rx="2" fill="#0B7285"/>
+<text x="1676" y="110" font-size="11.5" font-weight="700" fill="#ADB5BD" letter-spacing="1">07</text>
+<text x="1676" y="131" font-size="14.5" font-weight="700" fill="#212529">Ghi nhận doanh thu</text>
+<rect x="1676" y="139" width="73" height="19" rx="9.5" fill="#0B7285" fill-opacity="0.12"/>
+<text x="1685" y="152.5" font-size="11" font-weight="600" fill="#0B7285">Chủ quán</text>
+<text x="1676" y="174" font-size="12.4" fill="#343A40">Đơn hoàn thành được ghi vào</text>
+<text x="1676" y="190.5" font-size="12.4" fill="#343A40">doanh thu của nhà hàng</text>
+<line x1="1676" y1="219.0" x2="1892" y2="219.0" stroke="#E9ECEF"/>
+<text x="1676" y="234.0" font-size="9.8" font-weight="700" fill="#495057" letter-spacing="0.9">YÊU CẦU</text>
+<text x="1676" y="249.0" font-size="12.4" fill="#495057">Biết chính xác số tiền thực nhận</text>
+<text x="1676" y="265.5" font-size="12.4" fill="#495057">sau hoa hồng và thuế</text>
+<line x1="1676" y1="279.0" x2="1892" y2="279.0" stroke="#E9ECEF"/>
+<text x="1676" y="294.0" font-size="9.8" font-weight="700" fill="#E8590C" letter-spacing="0.9">GIẢI PHÁP</text>
+<text x="1676" y="309.0" font-size="12.4" fill="#E8590C">Ghi nhận doanh thu và phát hành</text>
+<text x="1676" y="325.5" font-size="12.4" fill="#E8590C">hóa đơn tự động, tách rõ tiền</text>
+<text x="1676" y="342.0" font-size="12.4" fill="#E8590C">khách trả và tiền thực nhận</text>
+<line x1="1376" y1="72" x2="1376" y2="365.5" stroke="#E03131" stroke-width="1.4" stroke-dasharray="5 4" stroke-opacity="0.75"/>
+<text x="1376" y="64" font-size="11.8" font-weight="600" fill="#E03131" text-anchor="middle">Khóa hủy đơn từ mốc này</text>
+<rect x="30" y="381.5" width="1876" height="38" rx="8" fill="#FFF7F0" stroke="#E8590C" stroke-opacity="0.35"/>
+<text x="46" y="405.5" font-size="13" fill="#7A3E0B"><tspan font-weight="700">Toàn bộ hành trình, nhân viên chỉ thao tác 2 lần</tspan> — xác nhận đơn (bước 03) và bàn giao cho tài xế (bước 05). Các bước còn lại do hệ thống tự thực hiện.</text>
+</svg>

@@ -49,6 +49,23 @@ flowchart TD
 | C-B | Món ở CukCuk, **chưa** có ở SPF | Chọn đồng bộ → SPF tạo mới → "Đã kết nối" |
 | C-C | Món ở SPF, **chưa** có ở CukCuk | Không auto tạo (M5); user tạo ở thực đơn chính CukCuk rồi map |
 
+### BR-MAP-01 — Cơ chế xác định "khớp ~80%" (auto fuzzy-match tên)
+
+> Áp dụng khi: đồng bộ menu lần đầu và mỗi khi có món mới ở CukCuk. So khớp tên giữa DS món CukCuk ↔ DS món ShopeeFood. Áp dụng **tương tự** cho **nhóm món** và **nhóm sở thích phục vụ / topping**.
+
+1. **Chuẩn hóa tên trước khi so** (cả 2 phía, để tránh lệch vặt):
+   - Về chữ thường; gộp khoảng trắng thừa về 1; bỏ dấu câu và ký tự đặc biệt (`( ) - / , .` …); **bỏ dấu tiếng Việt** khi so (để "Cà phê sữa" khớp "Ca phe sua").
+2. **Điểm giống** = độ tương đồng chuỗi giữa 2 tên đã chuẩn hóa, thang **0–100%**, **không phụ thuộc thứ tự từ** (so theo tập từ + ký tự). Thuật toán cụ thể (Levenshtein / token-set-ratio…) do dev chọn, miễn thỏa các case mục 4.
+3. **Ngưỡng & hành vi:**
+   - Điểm **≥ 80%** → **tự ghép cặp gợi ý** (trạng thái *Gợi ý — chờ chủ quán duyệt*).
+   - Điểm **< 80%** → để món ở danh sách **Chưa map**.
+4. **Xử lý nhập nhằng (bắt buộc):**
+   - 1 món CukCuk khớp ≥80% với **nhiều** món SPF → chọn cặp **điểm cao nhất**.
+   - Nếu có **≥2 cặp cùng điểm cao nhất** → **KHÔNG** tự ghép, đưa vào *Chưa map* cho chủ quán chọn (tránh ghép nhầm).
+   - Mỗi món chỉ thuộc **1 cặp (1:1)**; đã ghép rồi không xét lại ở vòng sau.
+5. **Bắt buộc chủ quán xác nhận:** gợi ý **không phải** chốt — chủ quán duyệt / bỏ / ghép lại thủ công. Chưa xác nhận thì **không đồng bộ** (gắn với cảnh báo hủy diệt M2).
+6. **Ngưỡng 80% là cấu hình được** (mặc định 80%) — cho phép chỉnh khi vận hành thực tế thấy quá chặt/quá lỏng.
+
 ## 3. Cấu trúc màn hình "Thiết lập" (sau kết nối)
 ### Tab MENU
 Cột hiển thị DS món: **Tên món · Giá bán SPF · Nhóm thực đơn · Trạng thái hết món** `[XMIND]`.
@@ -90,8 +107,9 @@ Mapping nhóm STPV + STPV `[MAP]`:
 - **Giờ làm việc:** mặc định 08:00–22:00 mọi ngày; **tối đa 3 khung/ngày**, không trùng khoảng; "Cài đặt nhanh" áp 1 ngày cho cả tuần; trong giờ → đồng bộ mở cửa/nhận đơn, ngoài giờ → đóng `[XMIND]`.
 - **Cài đặt ngày lễ:** mặc định off; bật → đặt trước ngày nghỉ `[XMIND]`.
 - **Cài đặt đơn hàng** (chuyển sang Module 03):
-  - ☑ **Tự động xác nhận Order** — DEC-CONFIRM-01: mặc định thủ công + auto sau ~2'; nếu bật, 2 lựa chọn: *Tất cả đơn* / *Chỉ đơn đã thanh toán*.
-  - ☑ **Tự động in hóa đơn tạm tính** — "Khi xác nhận" (mặc định) / "Khi gửi bếp".
+  - ☑ **Tự động xác nhận Order** — DEC-CONFIRM-01: mặc định thủ công; nếu bật, đặt **X phút** (quá X phút chưa thao tác → tự xác nhận) + 2 lựa chọn: *Tất cả đơn* / *Chỉ đơn đã thanh toán*.
+  - ☑ **Tự động gửi bếp/bar** (🆕 chốt 2026-07-24) — ngay khi đơn xác nhận → tự gửi bếp/bar + in tem bếp; tắt → nhân viên bấm *Gửi bếp/bar* thủ công.
+  - ~~☑ Tự động in hóa đơn tạm tính~~ — **ĐÃ BỎ** (2026-07-24): tạm tính là nghiệp vụ đơn tại quán, không áp cho đơn ShopeeFood. Chi tiết: `specs/activity/activity-flows.md`.
 - **🆕 Nút "Tạm ngưng bán online"** (DEC-PAUSE-01, U4): gọi **`set_restaurant_busy`** `[API §3.4]` (busy_reason_type: 1 hết món / 2 quá tải / 3 blackout) — đóng cửa tức thì, không đợi lịch. ⚠️ Lưu ý: SPF chỉ cho busy **tối đa đến 5h sáng hôm sau** bất kể start_date. Endpoint đã có, không cần hỏi SPF.
 - **Giờ hoạt động** dùng **`set_operation_time_ranges`** / `get_operation_time_ranges` `[API §3.4]` (theo `day_of_week` hoặc `custom_date`, `is_closed`, mảng `time_ranges` open_time/close_time). Endpoint đã có.
 

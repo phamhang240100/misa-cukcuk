@@ -1,0 +1,67 @@
+@startuml
+!theme plain
+title Luồng kết nối ShopeeFood và đồng bộ thực đơn
+
+|Chủ quán|
+start
+:Mở màn Ứng dụng, bấm Kết nối ShopeeFood;
+|CukCuk|
+:Kiểm tra điều kiện kết nối [chủ gian hàng, whitelist, chưa nối POS khác];
+|ShopeeFood|
+:Kiểm tra gian hàng của quán;
+|CukCuk|
+if (Quán đã có gian hàng trên ShopeeFood?) then (Chưa có)
+  :Hiện popup Chưa có gian hàng, hướng dẫn đăng ký ShopeeFood trước;
+  stop
+else (Đã có)
+  :Sinh mã QR kèm đồng hồ đếm ngược;
+endif
+
+|Chủ quán|
+:Quét QR bằng Shopee Partner App, đăng nhập, đối chiếu tên quán, xác nhận;
+|ShopeeFood|
+:Xác thực chủ quán;
+|CukCuk|
+if (Kết quả xác nhận?) then (Hết hạn hoặc từ chối)
+  :Báo thất bại, hiện nút Tạo mã mới;
+  stop
+else (Thành công)
+  :Lưu kết nối, hiện tên quán, mở màn Thiết lập thực đơn;
+endif
+
+':==== Đồng bộ thực đơn ====
+|CukCuk|
+:Lấy danh sách món CukCuk và món ShopeeFood hiện có;
+:Tự dò trùng tên khoảng 80 phần trăm;
+|Chủ quán|
+if (Món có khớp tên không?) then (Khớp cao)
+  :Duyệt và xác nhận các cặp món được gợi ý;
+else (Chưa khớp)
+  if (Món đang nằm ở đâu?) then (Chỉ có ở CukCuk)
+    :Chọn đồng bộ để tạo mới món trên ShopeeFood;
+  else (Chỉ có trên ShopeeFood)
+    :Tạo món ở thực đơn CukCuk rồi ghép cặp;
+  endif
+endif
+|Chủ quán|
+:Ghép nhóm món và sắp thứ tự hiển thị;
+:Ghép nhóm sở thích phục vụ;
+:Bấm Đồng bộ;
+|CukCuk|
+if (Còn món chưa ghép cặp?) then (Còn)
+  :Cảnh báo các món chưa ghép sẽ bị xóa và mất lượt bán;
+  if (Chủ quán chọn?) then (Hủy)
+    :Dừng đồng bộ, giữ nguyên để ghép cặp tiếp;
+    stop
+  else (Tiếp tục)
+  endif
+else (Đã ghép hết)
+endif
+|CukCuk|
+:Gửi yêu cầu đồng bộ thực đơn, nhóm món và sở thích phục vụ sang ShopeeFood;
+|ShopeeFood|
+:Xử lý đồng bộ và trả kết quả;
+|CukCuk|
+:Hiện kết quả N món thành công, M món lỗi;
+stop
+@enduml

@@ -1,0 +1,34 @@
+@startuml
+!theme plain
+title Vòng đời trạng thái đơn hàng — CukCuk ↔ ShopeeFood
+
+state "Chưa xác nhận" as ChuaXN #FFF3CD
+ChuaXN : ShopeeFood: M_ASSIGNED → M_RECEIVED
+ChuaXN : Đơn mới về, chờ quán xử lý
+
+state "Đang xử lý" as DangXL #D6E4FF
+DangXL : ShopeeFood: CONFIRMED
+DangXL : Đã xác nhận, đang làm món
+
+state "Đã xử lý" as DaXL #E8DAEF
+DaXL : ShopeeFood: PICKED
+DaXL : Tài xế đã lấy hàng, đang giao (chỉ đơn tài xế giao)
+
+state "Đã hoàn thành" as Done #D5F5E3
+Done : ShopeeFood: DELIVERED
+Done : Đã giao khách (tài xế giao xong / khách tự lấy), ghi doanh thu + hóa đơn
+
+state "Hủy" as Huy #FADBD8
+Huy : ShopeeFood: M_OUT_OF_SERVICE → CANCELLED
+Huy : Đơn bị từ chối / hủy / ShopeeFood hủy
+
+[*] --> ChuaXN : Đơn mới về (webhook)
+ChuaXN --> DangXL : Xác nhận\n(thủ công hoặc tự động sau X phút)
+ChuaXN --> Huy : Từ chối\n(hết món / quá tải / đóng cửa)
+DangXL --> Huy : Hủy trước khi lấy hàng\n(đã gửi bếp thì in phiếu báo hủy)
+DangXL --> DaXL : Đơn tài xế giao\ntài xế đến lấy hàng (PICKED)
+DangXL --> Done : Đơn tự lấy\nkhách đến lấy tại quán = hoàn thành
+DaXL --> Done : Tài xế giao xong (DELIVERED)
+Done --> [*]
+Huy --> [*]
+@enduml

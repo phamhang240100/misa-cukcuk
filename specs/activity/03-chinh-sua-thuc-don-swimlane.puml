@@ -1,0 +1,35 @@
+@startuml
+!theme plain
+title Luồng chỉnh sửa thực đơn trên ShopeeFood
+
+|Chủ quán|
+start
+:Mở màn Quản lý thực đơn;
+if (Chọn thao tác?) then (Thêm món)
+  :Chọn món từ thực đơn CukCuk để bán trên ShopeeFood;
+elseif (Sửa món) then (Sửa món)
+  :Sửa tên hiển thị / giá ShopeeFood / mô tả / trạng thái hết hàng;
+elseif (Xóa món) then (Xóa món)
+  :Chọn xóa món khỏi ShopeeFood, xác nhận;
+elseif (Sắp xếp và nhóm) then (Sắp xếp và nhóm)
+  :Sửa nhóm món, sắp thứ tự hiển thị;
+else (Đổi trạng thái bán)
+  :Bật/tắt Có bán - Ngừng bán;
+endif
+|CukCuk|
+if (Món đang chạy khuyến mãi ShopeeFood, bị khóa sửa/xóa?) then (Có)
+  :Báo món khuyến mãi ShopeeFood [CheapMeal / Trùm Deal] không cho sửa/xóa, giữ nguyên;
+  stop
+else (Không)
+  :Lưu thay đổi ở CukCuk;
+endif
+|Chủ quán|
+:Bấm Đăng lên ShopeeFood;
+|CukCuk|
+:Đồng bộ một hoặc nhiều món thay đổi sang ShopeeFood;
+|ShopeeFood|
+:Xử lý cập nhật và trả kết quả;
+|CukCuk|
+:Hiện kết quả cập nhật thành công / lỗi;
+stop
+@enduml
