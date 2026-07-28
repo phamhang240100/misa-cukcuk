@@ -1,0 +1,107 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Inter", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-brand: #245FDF;
+  --color-brand-light: #F0F6FE;
+  
+  --color-text-primary: #10141B;
+  --color-text-secondary: #6B707A;
+  --color-text-hint: #9DA2AC;
+  --color-text-brand: #245FDF;
+  
+  --color-icon-neutral: #6B707A;
+  --color-icon-brand: #245FDF;
+  
+  --color-bg-brand: #245FDF;
+  --color-bg-hover: #F0F6FE;
+  --color-tab-active: #00497D;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: #10141B;
+  font-size: 13px;
+}
+
+.misa-h2 {
+  font-weight: 600;
+  font-size: 20px;
+}
+
+.misa-h3 {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.misa-body-regular {
+  font-size: 13px;
+}
+
+.misa-body-small {
+  font-size: 12px;
+}
+
+@keyframes bell-fill-flash {
+  0% {
+    fill: currentColor;
+    transform: rotate(0deg);
+  }
+  12.5% {
+    fill: currentColor;
+    transform: rotate(20deg);
+  }
+  25% {
+    fill: transparent;
+    transform: rotate(-20deg);
+  }
+  37.5% {
+    fill: transparent;
+    transform: rotate(16deg);
+  }
+  50% {
+    fill: currentColor;
+    transform: rotate(-16deg);
+  }
+  62.5% {
+    fill: currentColor;
+    transform: rotate(10deg);
+  }
+  75% {
+    fill: transparent;
+    transform: rotate(-10deg);
+  }
+  87.5% {
+    fill: transparent;
+    transform: rotate(4deg);
+  }
+  100% {
+    fill: currentColor;
+    transform: rotate(0deg);
+  }
+}
+
+.animate-bell-flash {
+  animation: bell-fill-flash 0.9s infinite ease-in-out;
+  transform-origin: top center;
+  display: inline-block;
+}
+
+@keyframes pulse-fast {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.95);
+  }
+}
+
+.animate-pulse-fast {
+  animation: pulse-fast 0.75s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+

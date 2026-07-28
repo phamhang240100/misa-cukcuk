@@ -2,7 +2,9 @@
 
 > Dựng từ `[API]` Order Status Machine + PaymentMethod/MerchantPaidStatus + `[Q&A]`.
 > Mục tiêu: hiểu hành trình **khách hàng** trên ShopeeFood và **điểm chạm nào tác động đến thao tác trên POS CukCuk**.
-> Ký hiệu trạng thái SPF: `M_ASSIGNED=5, M_RECEIVED=6, CONFIRMED=3, PICKED=1, DELIVERED=2, M_OUT_OF_SERVICE=7, CANCELLED=8, ASSIGNING_DRIVER=11`.
+> Ký hiệu trạng thái SPF: `M_ASSIGNED=5, M_RECEIVED=6, CONFIRMED=3, PICKED=1, DELIVERED=2, M_OUT_OF_SERVICE=7, CANCELLED=8, ASSIGNING_DRIVER=11`, **`DRIVER_IN_CHARGED=10`** (bổ sung 28/07 — enum có thật trong `[API §2]`, bản trước thiếu).
+>
+> ⚠️ **CẬP NHẬT 2026-07-28:** bộ trạng thái hiển thị phía CukCuk đã đổi thành **Chờ xác nhận · Chờ chuẩn bị đơn · Chờ giao hàng · Đang giao hàng · Chờ thanh toán · Đã thanh toán · Đã hủy**, và đơn ShopeeFood **CÓ nút Thu tiền**. Bảng ánh xạ đầy đủ: `modules/03-nhan-don-pos.md §0.1`.
 
 ## 1. Sơ đồ luồng end-to-end
 
@@ -71,7 +73,15 @@ sequenceDiagram
 > - **(a) Tiền khách phải trả** = tiền món − khuyến mại + phí giao hàng + phí áp dụng + tip + một số phí khác của SPF (theo từng thời điểm). → hiển thị **tham khảo**.
 > - **(b) Tiền nhà hàng thực nhận** = **tiền món − khuyến mại quán tài trợ − commission − thuế** (seller tax của cá nhân/hộ KD, SPF thu hộ & nộp hộ). → chỉ số **đối soát chính**.
 >
-> Các trường phục vụ tính (b) đều có trong `order.get_details`: `order_value`, `merchant_price` (đã trừ phần quán tài trợ cho món), `merchant_discount`/`total_merchant_discount` (tổng tiền giảm **quán chịu** cả đơn), `commission_amount`, seller tax. Phí giao/dịch vụ/KM-SPF-tài-trợ là **buyer-side (`customer_bill`)**, **không** trả cho merchant `[Q&A 22062026-Q1, 1206-F.7]` — nên **không đưa vào công thức (b)**.
+> ⚠️ **ĐÍNH CHÍNH (2026-07-27, đối chiếu PDF API v0.0.17):** bản trước ghi *"các trường phục vụ tính (b) **đều có trong `order.get_details`**… seller tax"* — **SAI**. Thực tế:
+> - `order.get_details` có: `order_value`, `merchant_price`, `total_merchant_discount`, `merchant_discounts[]`, `commission_amount`.
+> - **`tax_fee` (seller tax) KHÔNG có trong `order.get_details`** — chỉ có trong **`order.get_list`**. Trong `get_details`, thứ duy nhất chứa chữ "tax" là `vat_info.tax_number` = **MST của khách** xin hóa đơn, không phải thuế quán bị khấu trừ.
+> - ⇒ Poller đối soát **phải gọi `order.get_list`** (trả cùng lúc `tax_fee` + `pay_to_merchant{type,status}`), không chỉ `get_details`.
+> - `commission_amount` và block `customer_bill` tuy được schema đánh dấu *Required* nhưng **không xuất hiện trong sample reply** của chính tài liệu → đang là câu hỏi mở **Q-PAY-B**.
+>
+> Phí giao/dịch vụ/KM-SPF-tài-trợ là **buyer-side (`customer_bill`)**, **không** trả cho merchant `[Q&A 22062026-Q1, 1206-F.7]` — nên **không đưa vào công thức (b)**.
+>
+> 📎 Chi tiết field-level + rule hiển thị POS: **`modules/04-thanh-toan-doi-soat.md`**.
 
 ## 4. Khoảng trống hành trình cần làm rõ (đã chuyển sang câu hỏi SPF)
 - Thời điểm thông tin tài xế (tên/SĐT/biển số) thực sự về CukCuk.

@@ -4,8 +4,8 @@ description: >
   BA Clarity — Live-research subagent. Given a project's business domain and core
   entities, searches the web for domain-specific business flows, edge cases, and
   best-practice BA checklists, then returns a domain-aware question bank for the
-  completeness/consistency analysts to merge. Spawned by /ba:analyze (Step 2) and
-  /ba:refine (Step 3) in parallel with completeness-analyst and consistency-checker.
+  completeness/consistency analysts to merge. Spawned by the analyze and refine modes of /ba:spec
+  in parallel with completeness-analyst and consistency-checker.
   Never invoked directly by user.
 tools: WebSearch, WebFetch, Read, Write, Glob
 model: sonnet

@@ -1,7 +1,40 @@
+> # ⛔ FILE NÀY ĐÃ BỊ THAY THẾ (2026-07-29)
+> **Dùng [`05-web-be-shopeefood.md`](05-web-be-shopeefood.md) §2 và §9.**
+> Giữ file này chỉ để tra lịch sử quyết định. ⛔ **Không dùng để build** — nhiều mục ở đây đã lỗi thời so với `Tích hợp ShopeeFood với CukCuk.xmind` (28/07 23:39) và 6 quyết định chốt ngày 28–29/07.
+
 # Module 01 — Kết nối / Authorization (CukCuk ↔ ShopeeFood)
 
 > Vai trò: **ISV Partner** · Cơ chế: **OAuth2 Device Authorization** (`[API-Auth]`).
 > Nguồn: `[API-Auth]` (chuẩn) + `[Q&A A.*]` + `[XMIND]` (nháp UI) + `[RESEARCH]` (UX).
+
+## 0. ⚠️ CẬP NHẬT 2026-07-28
+
+> Nguồn: phiên làm rõ với BA 28/07 + prototype Web BE `[PROTO-BE]`. Chi tiết: `../.clarity/webbe-prototype-map-2026-07-28.md`.
+
+**✅ Spec này ĐÚNG — prototype mới là chỗ sai.** §5 (ngắt kết nối qua QR + dò 10s/5 phút) và §2 (poll device-code) đã khớp `[API-Auth]`. Prototype đang:
+- bấm *Ngắt kết nối* là hiện luôn *"Đã ngắt kết nối với ShopeeFood!"* → **sai**, chủ quán tưởng đã ngắt trong khi vẫn đang kết nối
+- có nút *"Xác nhận đã quét mã QR kết nối"* → **bỏ** (`WBE-D17`), hệ thống tự nhận biết cho nhất quán với luồng ngắt kết nối vốn cũng tự dò
+
+**Bổ sung mới:**
+
+| # | Rule |
+|---|---|
+| `BR-DISC-03` | Quá **5 phút** chưa xác nhận trên Partner App → **coi như chưa ngắt**, quay về *Đã kết nối*, báo *"Bạn chưa hoàn tất ngắt kết nối trên ứng dụng ShopeeFood Partner."* ⛔ Không được hiện "đã ngắt" khi chưa chắc |
+| `BR-DISC-04` | Chủ quán có thể **ngắt thẳng trên Partner App** không qua CukCuk ⇒ CukCuk chỉ phát hiện khi mất hiệu lực truy cập → **phải** hiện chỉ báo *"Mất kết nối ShopeeFood"* (`SG-05`, `TK6`), không im lặng |
+| `BR-DISC-05` | **Ngắt rồi nối lại CÙNG gian hàng** → **giữ nguyên toàn bộ dữ liệu ghép nối**, không phải ghép lại từ đầu (`WBE-D10`) |
+| `BR-DISC-08` | **Nối sang gian hàng ShopeeFood KHÁC** → **XÓA dữ liệu ghép nối cũ** (chốt 28/07, theo XMind cũ). Phải cảnh báo trước, nguyên văn:<br>*"Bạn có chắc chắn muốn kết nối với 1 Merchant ID gian hàng ShopeeFood khác không? Nếu kết nối mới dữ liệu gian hàng hiện tại trên Cukcuk sẽ bị xóa"* — nút **Đồng ý** / **Không đồng ý**<br>· Đồng ý → sau khi kết nối thành công, hiển thị lại **màn liên kết thực đơn từ ShopeeFood về CukCuk**<br>· Không đồng ý → không có gì thay đổi |
+| `BR-DISC-06` | ⚠️ **Giả định cần SPF xác nhận (`Q-DISC-01`):** ngắt kết nối chỉ thu hồi quyền truy cập — **gian hàng và thực đơn trên ShopeeFood vẫn còn, khách vẫn đặt được**, chỉ là đơn không chảy về CukCuk nữa |
+| `BR-DISC-07` | **Chặn ngắt kết nối khi còn đơn ShopeeFood chưa hoàn thành** (`WBE-D13`): *"Còn {n} đơn ShopeeFood chưa hoàn thành. Xử lý xong rồi mới ngắt kết nối được."* |
+| `WBE-D14` | **Mã QR hết hạn** → làm **mờ mã + nút "Tạo mã mới"**. Không đóng modal, không tự sinh mã mới |
+| `WBE-D15` | **Gian hàng đã liên kết nhà hàng CukCuk khác** → báo **rõ tên**: *"Gian hàng ShopeeFood này đã liên kết với nhà hàng **{tên quán}** trên MISA CukCuk. Ngắt kết nối ở quán đó trước rồi thực hiện lại."* |
+| `WBE-D24` | **Ẩn** *Mã cấu hình Endpoint (Webhook)* và *Phạm vi truy cập quyền dữ liệu (Scopes)* khỏi panel chi tiết ứng dụng — chủ quán không cấu hình 2 thứ này. Panel chỉ giữ: tên nhà cung cấp · phiên bản tích hợp · trạng thái kết nối · tài khoản đang kết nối |
+
+**Đóng điểm mở:** đồng hồ **900 giây** ở màn QR là **đúng** — đó là hạn của **mã QR**; `3600s` là hạn của **quyền truy cập** sau khi kết nối xong. Hai thứ khác nhau, không mâu thuẫn (`WBE-D`/`WBE-Q-B1`).
+
+⛔ **ĐÍNH CHÍNH (28/07):** modal *"Bạn đã có gian hàng trên ShopeeFood chưa?"* **KHÔNG có trong thiết kế** — BA xác nhận đã bỏ. Câu chữ của nó vẫn còn trong file prototype nhưng là **code chết**: cờ bật modal chưa bao giờ được đặt thành bật, nên modal không mở được. Bản trước của mục này ghi nhầm là có ⇒ đã gỡ.
+*(Bài học: trích được câu chữ trong prototype **không** chứng minh tính năng còn sống — phải kiểm tra có nút nào mở nó không. Rà đầy đủ: `../.clarity/deadcode-audit-2026-07-28.md`.)*
+
+⇒ Điều kiện `P1` / `E5` (phải có gian hàng ShopeeFood trước) **vẫn đúng về nghiệp vụ**, chỉ là **không thể hiện bằng modal hỏi đầu luồng**.
 
 ## 1. Điều kiện tiên quyết (prerequisite)
 | # | Điều kiện | Nguồn |

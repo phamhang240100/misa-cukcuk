@@ -15,42 +15,37 @@ Display the full BA Clarity workflow, when to use each command, and a quick star
 
 ## BA Clarity — Workflow Overview
 
-BA Clarity helps you turn raw ideas and messy requirements into dev-ready specs, then into a visual prototype, through structured analysis and iterative clarification.
+BA Clarity turns raw ideas and messy requirements into dev-ready specs, then into a visual prototype.
 
 ---
 
 ### The Workflow
 
 ```
-CLARIFY SPECS
-  /ba:discuss   →   /ba:analyze   →   /ba:refine   →   /ba:export
-    (explore)        (structure)       (clarify)        (deliver)
-
-BUILD PROTOTYPE
-  /ba:prototype-brand  →  /ba:prototype-plan  →  /ba:prototype-execute
-    (identity)             (screens & flows)       (scaffold)
+SPECS                              PROTOTYPE
+  /ba:spec  (one command,            /ba:prototype-brand   → identity
+   auto-routed modes:)               /ba:prototype-plan    → screens & flows
+   discuss → analyze →               /ba:prototype-execute → scaffold
+   refine → export · status
 ```
 
-**Phase 1 — Explore** `/ba:discuss`
-Free-form conversation when you have an idea but not full requirements yet. BA asks smart questions, logs to `specs/.clarity/discussion-log.md`. Come back across sessions without losing context.
+**`/ba:spec`** — the single entry point for the spec phase. It checks what already exists on disk and routes itself:
 
-**Phase 2 — Structure** `/ba:analyze`
-Feed in anything: pasted text, docs, screenshots, meeting notes, or code. BA extracts actors, actions, business rules, and data flows — then asks clarifying questions across 7 lenses.
+- **discuss** — early-stage idea, no requirements yet. Free-form conversation, logged to `specs/.clarity/discussion-log.md` so you can come back across sessions.
+- **analyze** — you have material (docs, notes, screenshots, code). BA locks a **Scope Map** with you first (modules, priority, in/out of scope), then asks clarifying questions. Small projects (≤3 modules) run in one pass; large projects go **one module per session** — `/clear` and run `/ba:spec` again to continue, progress is saved on disk.
+- **refine** — client sent answers. BA routes each answer to its module, loads only the affected folders, resolves the inline `NEEDS-CLARIFICATION` markers, and records each decision + rationale in that module's `decisions.md`.
 
-**Phase 3 — Clarify** `/ba:refine`
-Got answers from the client? Paste them in. BA reads the existing specs, resolves open questions, updates all documents. Run as many times as needed.
+Whenever a module's spec is written or changed (analyze & refine), a background `testcase-generator` agent regenerates that module's `test-cases.md` — QA test cases with a coverage matrix and full `TC-* → REQ/BR/EC/VAL` traceability — in parallel, without slowing the session down.
+- **export** — generates a clean, jargon-free question list to send to the client.
+- **status** — progress per module + recommended next action.
 
-**Phase 4 — Deliver** `/ba:export`
-Generates a clean, professional question list for the client — no internal jargon, copy-paste ready.
+You never pick the mode by hand — `/ba:spec` detects it and confirms in one sentence. Saying it in words works too: "client replied", "export questions", "where are we?".
 
-**Phase 5 — Brand** `/ba:prototype-brand`
-Pick a visual identity for the prototype. Answer 3 questions (industry, tone, reference app). BA picks palette, fonts, shape, and density using the `ui-ux-pro-max` skill (or a fail-soft static mapping). Output: `specs/brand.md` + `prototype/brand-config.md`.
+**Prototype phase** (after specs are ready):
 
-**Phase 6 — Plan the prototype** `/ba:prototype-plan`
-Turn the module specs into a BA-readable plan of screens and flows — adapted to the project type (admin, mobile, marketing, dashboard, mixed). You review and confirm. Output: `prototype/PROTOTYPE-PLAN.md`.
-
-**Phase 7 — Build the prototype** `/ba:prototype-execute`
-Applies the brand tokens to the theme, then spawns parallel subagents that replicate the starter's example module for every module in the plan. Commits atomically. UI mockup only — no backend logic. Output: pages in `prototype/`.
+- **`/ba:prototype-brand`** — pick the theme contract. 3 questions (industry, tone, reference app) → a curated preset (crisp / soft / enterprise / warm-editorial / dark-pro) + tweakable axes (colors, neutrals, elevation, density, radius, fonts, sidebar/table variants), via Anthropic's `frontend-design` skill (fail-soft static mapping). Output: `specs/brand.md` + `prototype/brand-config.md`.
+- **`/ba:prototype-plan`** — turn module specs into a BA-readable plan of screens and flows, adapted to project type (admin, mobile, marketing, dashboard, mixed). You review and confirm. Output: `prototype/PROTOTYPE-PLAN.md`.
+- **`/ba:prototype-execute`** — applies the theme, builds the foundation (shell/auth/profile/dashboard), **you approve it** (not happy? adjust an axis in brand-config, it resets and regenerates — cheap), then freezes it and spawns parallel builder subagents per module, gated by typecheck + token-lint. Output: pages in `prototype/`.
 
 ---
 
@@ -58,14 +53,10 @@ Applies the brand tokens to the theme, then spawns parallel subagents that repli
 
 | Command | When to use |
 |---|---|
-| `/ba:discuss` | Early-stage idea, brainstorming, incomplete info |
-| `/ba:analyze` | Have enough context, want structured analysis |
-| `/ba:refine` | Client sent answers, need to update specs |
-| `/ba:export` | Ready to send questions/summary to client |
+| `/ba:spec` | Anything spec-related — it figures out the right mode from disk + your message |
 | `/ba:prototype-brand` | Pick visual identity (once per project) |
 | `/ba:prototype-plan` | Generate screen + flow list for BA to confirm |
-| `/ba:prototype-execute` | Scaffold the prototype by replicating starter example per module |
-| `/ba:status` | Check current progress and what's blocking |
+| `/ba:prototype-execute` | Scaffold the prototype from the confirmed plan |
 | `/ba:help` | Show this guide |
 
 ---
@@ -74,50 +65,48 @@ Applies the brand tokens to the theme, then spawns parallel subagents that repli
 
 **Option A — I have a vague idea:**
 ```
-/ba:discuss
-→ Talk through your project
-→ /clear, then /ba:analyze when ready
+/ba:spec           → it starts a discussion
+→ talk it through
+→ /clear, /ba:spec → when there's enough, it moves to analysis
 ```
 
 **Option B — I have docs/notes ready:**
 ```
-/ba:analyze
-→ Paste or upload your materials
-→ Answer clarifying questions (or say "finish" to stop)
-→ /clear, then /ba:refine when client replies
+/ba:spec
+→ paste or upload materials
+→ confirm the Scope Map (modules + working style)
+→ answer clarifying questions (or type "finish")
+→ large project? /clear, /ba:spec — continues one module per session
+→ client replied later? /clear, /ba:spec — paste the answers
 ```
 
 **Option C — specs done, ready for prototype:**
 ```
-/ba:prototype-brand      → pick visual identity
+/ba:prototype-brand   → pick visual identity
 /clear
-/ba:prototype-plan       → confirm screens & flows
+/ba:prototype-plan    → confirm screens & flows
 /clear
-/ba:prototype-execute    → build the prototype
+/ba:prototype-execute → build the prototype
 ```
 
 ---
 
 ### Requirements for prototype phase
 
-Before running `/ba:prototype-execute`, your prototype starter must provide:
-- `prototype/STARTER.md` — convention file describing project type, tech stack, example module path, registration entry files, and mock strategy.
-- `prototype/<example-module-dir>/` — one complete example module the skill can replicate.
+Before `/ba:prototype-execute`, the prototype starter should provide `prototype/STARTER.md` — convention file (project type, tech stack, registration entries, mock strategy, supported theme axes). If missing, execute auto-infers one and asks for confirmation. No example module is required — builders compose from the confirmed plan + PATTERNS.md.
 
-If these are missing, the dev maintaining the starter branch needs to add them. See `plugins/ba/README.md` for the exact format.
+See `plugins/ba/README.md` for the exact format.
 
-External skills used by the prototype phase:
-- [`ui-ux-pro-max-skill`](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) — 161 palettes + 67 UI styles + 57 font pairings + 99 UX rules. Optional: fails soft to a static mapping.
-- Anthropic `frontend-design` skill — aesthetic polish pass. Optional.
-- `agent-browser` — automated visual verification. Optional.
+External skills used by the prototype phase (both optional):
+- Anthropic `frontend-design` — brand direction for `/ba:prototype-brand`. Install: `/plugin install frontend-design@anthropics-claude-code`
+- `agent-browser` — visual verification after build
 
 ---
 
 ### Tips
 
-- Always `/clear` between skills — each skill reads from files, not conversation history
-- Specs are saved to `specs/.clarity/` in your project folder
-- Prototype artifacts are saved to `prototype/` (a git submodule on most projects)
-- `/ba:status` shows what's done, what's blocking, and what to do next
-- You can run `/ba:refine` multiple times as more answers come in
-- You can re-run `/ba:prototype-plan` and re-edit before confirming
+- Always `/clear` between sessions — everything reads from files, not conversation history
+- Large projects: `/clear` between modules too — one module per session keeps specs grounded
+- Each module lives in `specs/modules/<slug>/` (index, requirements, data, rules, edge-cases, decisions); open questions are inline `[NEEDS-CLARIFICATION: ...]` markers
+- Versioning is git — specs carry no changelogs or version numbers
+- Run `/ba:spec` any time you're unsure what's next — status mode tells you

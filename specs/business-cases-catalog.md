@@ -5,7 +5,17 @@
 > Cột **Trạng thái**: `✅ confirmed` (có nguồn chắc) · `🟡 assumed` (suy luận hợp lý, nên xác nhận) · `🔴 open` (chờ chốt).
 > 3 section chính bám đúng 3 luồng sếp yêu cầu: **① Liên kết · ② Thiết lập & Thay đổi (rule/cấu hình) · ③ Xử lý đơn**.
 >
-> Quyết định đã chốt (input, không mở lại): Menu-IA=**kết hợp** · Bước-3-thiết-lập=**hoãn** · auto-confirm=**thủ công + 2'** · mapping=**auto-fuzzy** · luồng-bếp=**CukCuk sẵn có**.
+> Quyết định đã chốt (input, không mở lại): Menu-IA=**kết hợp** · Bước-3-thiết-lập=**hoãn** · auto-confirm=**thủ công + 2'** · ~~mapping=auto-fuzzy~~ · luồng-bếp=**CukCuk sẵn có**.
+>
+> ⚠️ **CẬP NHẬT 2026-07-28** — 4 quyết định nền đã bị lật, phải đọc trước khi dùng file này:
+> | Trước | Nay |
+> |---|---|
+> | mapping = **auto-fuzzy ~80%** | **chỉ tự ghép khi tên TRÙNG KHỚP**, bắt buộc ghép 100% (`WBE-D21`, `WBE-D2`) |
+> | đơn ShopeeFood **không có nút Thu tiền** | **CÓ nút Thu tiền** = báo đơn xong + đóng đơn (`XD-01`) |
+> | POS **5 tab riêng** (`DEC-CHANNEL-01`) | **4 tab**: Chưa xác nhận · Đã xác nhận · Đã hoàn thành · Đã huỷ (`POS-D2`) |
+> | bộ trạng thái *Đang xử lý / Đã xử lý* | **Chờ chuẩn bị đơn · Chờ giao hàng · Đang giao hàng · Chờ thanh toán · Đã thanh toán** (`XD-03`) |
+>
+> Chi tiết: `modules/03-nhan-don-pos.md §0` · `.clarity/delta-2026-07-28.md` · `.clarity/webbe-prototype-map-2026-07-28.md` · `.clarity/pos-prototype-map-2026-07-28.md`
 
 ---
 
@@ -119,8 +129,8 @@
 ### 3b. Đối soát (khi đơn hoàn thành)
 | Case | Nội dung | Nguồn | TT |
 |---|---|---|---|
-| L3-25 | **Tiền quán thực nhận** = tiền món − KM quán tài trợ − commission − thuế | `[Q&A 22062026-Q5]` | ✅ |
-| L3-26 | Field đối soát: `order_value`, `merchant_price`, `merchant_discount`, `commission_amount`, seller tax; **không** dùng `customer_bill` (buyer-side) | `[Q&A 22062026-Q1]` | ✅ |
+| L3-25 | **Tiền quán thực nhận** = tiền món − KM quán tài trợ − commission − thuế.<br>Ánh xạ field: **`Σ(merchant_price × SL) − commission_amount − tax_fee`** (KM quán tài trợ **đã nằm trong** `merchant_price` → ⛔ không trừ `total_merchant_discount` thêm lần nữa) → chờ xác nhận **Q-PAY-A**. Chi tiết: `modules/04-thanh-toan-doi-soat.md` §4 | `[Q&A 22062026-Q5]` + `[API v0.0.17]` | 🟠 |
+| L3-26 | Field đối soát: `order_value`, `merchant_price`, `merchant_discount`, `commission_amount`, seller tax; **không** dùng `customer_bill` (buyer-side).<br>⚠️ **Đính chính 2026-07-27:** **`tax_fee` KHÔNG có trong `order.get_details`** — chỉ có ở **`order.get_list`** ⇒ poller đối soát phải gọi `get_list`. `commission_amount` chưa thấy trong dữ liệu mẫu → **Q-PAY-B**. Chi tiết: `modules/04-thanh-toan-doi-soat.md` §2.3 | `[Q&A 22062026-Q1]` + `[API v0.0.17]` | 🟠 |
 | L3-27 | Đơn hủy: field tiền **không đổi**, chỉ đổi status | `[Q&A F.5]` | ✅ |
 
 ---

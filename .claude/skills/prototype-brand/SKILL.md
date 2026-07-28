@@ -1,188 +1,191 @@
 ---
 name: prototype-brand
 description: >
-  BA Clarity — Generate a visual brand identity for the prototype. Asks BA 3 questions
-  (industry, tone, reference app), delegates to the `ui-ux-pro-max` skill to pick palette,
-  UI style, font pairing, and UX rules from its local database, then distills a 7-token
-  brand-config the execute skill will apply to the theme. Outputs specs/brand.md
-  (human-readable) + prototype/brand-config.md (machine-readable). Fail-soft if
-  ui-ux-pro-max is not installed. Trigger when user says "brand the prototype",
-  "pick a brand", "prototype identity", or runs /ba:prototype-brand.
+  BA Clarity — Generate the theme contract for the prototype. Asks BA 3 questions (industry,
+  tone, reference app), proposes a curated preset "personality" plus per-axis overrides
+  (color, neutrals, elevation, density, radius, fonts, sidebar/table variants), optionally
+  enriched by Anthropic's `frontend-design` skill. Outputs specs/brand.md (human-readable) +
+  prototype/brand-config.md (machine-readable theme contract consumed by prototype-execute).
+  Fail-soft if `frontend-design` is not installed. Trigger when user says "brand the
+  prototype", "pick a brand", "prototype identity", "theme", or runs /ba:prototype-brand.
 ---
 
 # /ba:prototype-brand
 
-Load context → 3-question BA brief → delegate `ui-ux-pro-max` → 7 tokens → save.
+Load context → 3-question BA brief → propose **preset + axes** → BA confirms/tweaks → save theme contract.
+
+## Why presets + axes (not free choice)
+
+In admin UI ~90% of pixels are neutrals and text — accent color alone cannot differentiate clients. Real identity comes from the **combination of axes**: neutral temperature, elevation strategy, density, radius, type, sidebar/table variants. But free axis combinations produce broken looks (low contrast, clashing strategies), so BA picks a **curated preset** and tweaks at most 1–2 axes. Creativity happens here, once per client — never per screen.
 
 ## Step 1 — Load context
 
 Read in parallel:
 - `specs/overview.md` — project name, scope, domain
-- `specs/glossary.md` — domain terms (helpful for matching industry)
+- `specs/glossary.md` — domain terms (helps match industry)
+- `prototype/STARTER.md` § "Theme axes" — which axes this starter actually implements. **An axis the starter doesn't support cannot be configured** — fall back to the starter's default and list it under `unsupported-axes` in the output. If STARTER.md or the section is missing, assume all axes supported and note the assumption.
 
-If missing → warn but continue. Ask BA for project name and industry directly.
+If specs missing → warn but continue; ask BA for project name and industry directly.
 
 ## Step 2 — BA brief (3 questions via `AskUserQuestion`)
 
-Ask all 3 in one `AskUserQuestion` call:
+Ask all 3 in one call:
 
-1. **Industry** — options: `Construction`, `Fintech`, `Healthcare`, `Editorial/media`, `SaaS/productivity`, `Retail/e-commerce`, `Logistics`, `Legal`, `Other`
-2. **Tone** — options: `Precise/corporate`, `Approachable/modern`, `Industrial/utilitarian`, `Editorial/warm`, `Playful/consumer`, `Dark-first pro`
-3. **Reference app** (free-form for "Other", or options): `Linear`, `Procore`, `Stripe`, `Notion`, `Figma`, `Supabase`, `Resend`, `Other (I'll name it)`
+1. **Industry** — `Construction`, `Fintech`, `Healthcare`, `Editorial/media`, `SaaS/productivity`, `Retail/e-commerce`, `Logistics`, `Legal`, `Other`
+2. **Tone** — `Precise/corporate`, `Approachable/modern`, `Industrial/utilitarian`, `Editorial/warm`, `Playful/consumer`, `Dark-first pro`
+3. **Reference app** — `Linear`, `Procore`, `Stripe`, `Notion`, `Figma`, `Supabase`, `Resend`, `Other (I'll name it)`
 
-Collect BA's answers. Keep them in memory for the next step.
+## The theme contract — presets and axes
 
-## Step 3 — Delegate to `ui-ux-pro-max` (if installed)
+### Axes (10)
 
-Check whether `ui-ux-pro-max` skill is available. Common install paths:
-- `~/.claude/plugins/ui-ux-pro-max-skill/`
-- `~/.claude/skills/ui-ux-pro-max/`
-- `<project>/.claude/skills/ui-ux-pro-max/`
+| Axis | Values | What it changes |
+|---|---|---|
+| `primary` | OKLCH | UI chrome color |
+| `accent` | OKLCH | reserved: $ amounts, overdue, compliance flags, focus ring |
+| `neutral` | `warm` / `cool` / `pure` | background + surface + border ramp temperature |
+| `elevation` | `flat-borders` / `soft-shadows` / `filled-surfaces` | how surfaces separate: 1px borders vs shadows vs tinted fills |
+| `density` | `compact` / `comfortable` / `spacious` | row heights, padding scale, text sizes |
+| `radius` | rem | global border-radius scale |
+| `heading-font` + `body-font` | families | body must have tabular numerals; NOT Inter unless reference demands |
+| `sidebar` | `light` / `dark` / `icon-rail` | shell chrome character |
+| `table` | `lined` / `zebra` / `card-rows` | data surface character |
+| `casing` | `sentence` / `title` / `uppercase-labels` | headings + table headers + section labels |
 
-If found: spawn a subagent (`general-purpose`, model `sonnet`) with a prompt like:
+### Presets (pick by tone, modulate by industry/reference)
 
-> Invoke the `ui-ux-pro-max` skill to generate a design system for a project in the `{industry}` industry with `{tone}` tone, referencing `{reference_app}`. Use `search.py --design-system --persist` (or equivalent per the skill's SKILL.md). Output should land in `design-system/MASTER.md` and `assets/design-tokens.json` / `.css`. After the skill finishes, read those files and return:
->
-> - Palette (primary hex, background hex, accent hex)
-> - Typography (heading font, body font)
-> - Shape (border radius value)
-> - Density (spacing scale)
-> - Shadow style (flat vs elevated)
-> - Link to MASTER.md for details
+| Preset | neutral | elevation | density | radius | sidebar | table | casing | feels like |
+|---|---|---|---|---|---|---|---|---|
+| `crisp` | cool | flat-borders | compact | 0.25rem | light | lined | sentence | Linear — precise, engineering |
+| `soft` | cool-white | soft-shadows | comfortable | 0.75rem | light | lined | sentence | Stripe — polished SaaS |
+| `enterprise` | pure | flat-borders | compact | 0rem | dark | zebra | uppercase-labels | Carbon — institutional, dense |
+| `warm-editorial` | warm | soft-shadows | spacious | 0.5rem | light | card-rows | title | calm professional services |
+| `dark-pro` | cool (dark-first) | flat-borders | compact | 0.25rem | icon-rail | lined | sentence | operator console |
 
-Wait for the subagent's report. If it fails for any reason → fall through to Step 3b.
+Tone → preset default: Precise/corporate → `crisp` · Approachable/modern → `soft` · Industrial/utilitarian → `enterprise` · Editorial/warm → `warm-editorial` · Playful/consumer → `soft` + radius 1rem + accent tweak · Dark-first pro → `dark-pro`.
 
-## Step 3b — Fail-soft (if ui-ux-pro-max is not installed or fails)
+Color derivation (primary/accent per tone) and font pairing (per reference app) — reuse these tables:
 
-Use the following static mapping table to derive tokens directly from the BA's 3 answers.
-
-### Industry × Tone → base palette
-
-Pick the palette by the tone first, modulate by industry:
-
-| Tone | Primary (oklch) | Background | Accent |
-|---|---|---|---|
-| Precise/corporate | `oklch(0.55 0.18 250)` (steel blue) | `oklch(0.98 0 0)` (zinc-50) | `oklch(0.6 0.2 30)` (amber) |
-| Approachable/modern | `oklch(0.7 0.15 180)` (teal) | `oklch(0.99 0.005 80)` (stone-50) | `oklch(0.65 0.2 330)` (pink) |
-| Industrial/utilitarian | `oklch(0.45 0.05 60)` (dark khaki) | `oklch(0.96 0.01 60)` (stone-100) | `oklch(0.55 0.2 30)` (orange) |
-| Editorial/warm | `oklch(0.45 0.1 40)` (terracotta) | `oklch(0.96 0.015 80)` (cream) | `oklch(0.35 0.05 20)` (umber) |
-| Playful/consumer | `oklch(0.7 0.2 330)` (pink) | `oklch(0.99 0 0)` (white) | `oklch(0.75 0.18 90)` (yellow) |
-| Dark-first pro | `oklch(0.75 0.12 230)` (ice blue) | `oklch(0.15 0.01 240)` (near-black) | `oklch(0.7 0.2 30)` (amber) |
-
-### Tone → shape + density + shadow
-
-| Tone | Radius | Density | Shadow |
-|---|---|---|---|
-| Precise/corporate | `0.25rem` | compact | flat (none) |
-| Approachable/modern | `0.75rem` | comfortable | soft (1-layer) |
-| Industrial/utilitarian | `0rem` | compact | none |
-| Editorial/warm | `0.5rem` | spacious | soft |
-| Playful/consumer | `1rem` | spacious | soft |
-| Dark-first pro | `0.25rem` | compact | flat |
-
-### Reference app → font pairing (override)
+| Tone | Primary (oklch) | Accent |
+|---|---|---|
+| Precise/corporate | `oklch(0.55 0.18 250)` steel blue | `oklch(0.6 0.2 30)` amber |
+| Approachable/modern | `oklch(0.7 0.15 180)` teal | `oklch(0.65 0.2 330)` pink |
+| Industrial/utilitarian | `oklch(0.45 0.05 60)` dark khaki | `oklch(0.55 0.2 30)` orange |
+| Editorial/warm | `oklch(0.45 0.1 40)` terracotta | `oklch(0.35 0.05 20)` umber |
+| Playful/consumer | `oklch(0.7 0.2 330)` pink | `oklch(0.75 0.18 90)` yellow |
+| Dark-first pro | `oklch(0.75 0.12 230)` ice blue | `oklch(0.7 0.2 30)` amber |
 
 | Reference | Heading font | Body font |
 |---|---|---|
-| Linear | Inter (drop for distinctiveness → `Geist`) | Geist |
+| Linear | `Geist` | `Geist` |
 | Procore | `DM Sans` | `DM Sans` |
 | Stripe | `Sohne` fallback `Geist` | `Geist` |
-| Notion | `Inter` | `Inter` |
-| Figma | `Inter` | `Inter` |
-| Supabase | `Custom` fallback `Geist Mono` for headings | `Geist` |
+| Notion / Figma | `Inter` | `Inter` |
+| Supabase | `Geist Mono` headings | `Geist` |
 | Resend | `Berkeley Mono` fallback `JetBrains Mono` headings | `Inter` |
-| Other/none | `DM Sans` heading | `DM Sans` body |
+| Other/none | `DM Sans` | `DM Sans` |
 
-If the BA typed a custom reference app, try to match it against the table by name similarity; otherwise default to `DM Sans` / `DM Sans`.
+### Validity rules (check before presenting)
 
-### Output
+- Accent must be readable on the background: OKLCH lightness delta ≥ 0.35 in both light and dark modes (execute lightens for dark, but don't start from an impossible pair).
+- `filled-surfaces` requires `neutral: warm|cool` (tinted fills are invisible on `pure`).
+- `icon-rail` sidebar requires ≤ 9 top-level nav groups (check overview module map; more → fall back to `dark`).
+- Same-industry repeat client (BA mentions it or you know it): propose a preset **different** from the previous client's — differentiation between clients is the point.
 
-Combine selections into 7 tokens:
+## Step 3 — Enrich via `frontend-design` (if installed)
 
-```yaml
-primary: <oklch>
-background: <oklch>
-accent: <oklch>
-radius: <rem>
-heading-font: <family>
-body-font: <family>
-density: compact | comfortable | spacious
-shadow: none | flat | soft | layered
-```
+Check availability (registers as `frontend-design:frontend-design`; also look under `~/.claude/plugins/*/frontend-design/`, `~/.claude/plugins/cache/anthropics-claude-code/*/skills/frontend-design/`, `<project>/.claude/skills/frontend-design/`).
 
-## Step 4 — Write outputs
+**If installed**, spawn a subagent (`general-purpose`, model `sonnet`):
 
-### `specs/brand.md` (human-readable for BA review)
+> Invoke the `frontend-design` skill to propose a brand direction for a `{industry}` project, `{tone}` tone, referencing `{reference_app}`. Output feeds a working admin prototype. Return: (1) which of these presets fits best: crisp / soft / enterprise / warm-editorial / dark-pro, (2) values for these axes: primary (OKLCH), accent (OKLCH), neutral warm|cool|pure, elevation flat-borders|soft-shadows|filled-surfaces, density compact|comfortable|spacious, radius (rem), heading-font, body-font (tabular numerals, not Inter unless reference demands), sidebar light|dark|icon-rail, table lined|zebra|card-rows, casing sentence|title|uppercase-labels, (3) a 1-paragraph aesthetic direction with a name (e.g. "Chancery Modern"), (4) a 1-paragraph preview describing how screens will feel. Optionally write a richer doc to `design-system/MASTER.md`.
+
+Subagent fails or not installed → derive everything from the static tables above (fail-soft; mention `/plugin install frontend-design@anthropics-claude-code` for richer results).
+
+## Step 4 — Present & confirm
+
+Show the BA: preset name, the 10 axes as a table, the preview paragraph. Then `AskUserQuestion`:
+
+> Theme proposal: **{preset}** — {aesthetic direction name}. Accept?
+> 1. **Accept** 2. **Tweak an axis** (density / elevation / sidebar / table / radius / colors) 3. **Different preset** (show the other 4)
+
+On tweak: apply, re-check validity rules, re-present. Loop until accept. **Cap tweaks at ~2 axes** — beyond that, suggest switching preset instead (heavy tweaking breaks the curated coherence).
+
+## Step 5 — Write outputs
+
+### `specs/brand.md` (human-readable)
 
 ```markdown
 # Brand — {Project Name}
 
-> Generated: {date}
-
 ## BA brief
-- **Industry**: {industry}
-- **Tone**: {tone}
-- **Reference**: {reference_app}
+- **Industry / Tone / Reference**: {answers}
 
-## Tokens (7)
-| Token | Value | Why |
+## Theme: preset `{preset}`{, tweaked: {axis list} if any}
+
+| Axis | Value | Why |
 |---|---|---|
-| Primary | `{oklch}` | {1-line rationale} |
-| Background | `{oklch}` | ... |
+| Primary | `{oklch}` | {1-line} |
 | Accent | `{oklch}` | ... |
+| Neutral | {value} | ... |
+| Elevation | {value} | ... |
+| Density | {value} | ... |
 | Radius | `{rem}` | ... |
-| Heading font | `{family}` | ... |
-| Body font | `{family}` | ... |
-| Density | `{value}` | ... |
-| Shadow | `{value}` | ... |
+| Heading / Body font | {families} | ... |
+| Sidebar | {value} | ... |
+| Table | {value} | ... |
+| Casing | {value} | ... |
 
 ## Preview idea
-{1 short paragraph describing how screens will feel — e.g. "Compact admin tables with steel-blue accents on a near-white stone background; sharp corners and flat surfaces read as precise and corporate."}
+{1 short paragraph — how screens will feel}
 
 ## Source
-{Either "Generated by ui-ux-pro-max — see design-system/MASTER.md" or "Generated from static mapping (fail-soft — ui-ux-pro-max not installed)."}
+{frontend-design | static mapping (fail-soft)}
 ```
 
-### `prototype/brand-config.md` (machine-readable for execute)
+### `prototype/brand-config.md` (machine-readable — the theme contract)
 
 ```markdown
 # brand-config
 
-<!-- Consumed by /ba:prototype-execute. Do not edit by hand. -->
+<!-- Theme contract. Consumed by /ba:prototype-execute. Do not edit by hand —
+     to change the look, edit axes here IS the steering wheel for regen. -->
 
 project: {name}
-generated: {ISO date}
-source: ui-ux-pro-max | static
+source: frontend-design | static
+preset: {preset}
 
 tokens:
   primary: {oklch}
-  background: {oklch}
   accent: {oklch}
   radius: {rem}
   heading-font: {family}
   body-font: {family}
-  density: {value}
-  shadow: {value}
 
+axes:
+  neutral: {warm|cool|pure}
+  elevation: {flat-borders|soft-shadows|filled-surfaces}
+  density: {compact|comfortable|spacious}
+  sidebar: {light|dark|icon-rail}
+  table: {lined|zebra|card-rows}
+  casing: {sentence|title|uppercase-labels}
+
+unsupported-axes: [{axes the starter doesn't implement — starter default applies}]
 master-doc: {path to design-system/MASTER.md or "n/a"}
 ```
 
-## Step 5 — Show BA the preview + next step
+## Step 6 — Next step
 
-Show the "Preview idea" paragraph from `specs/brand.md` to the user. Then:
-
-> ✅ Brand saved.
-> - Human-readable: `specs/brand.md`
-> - Machine-readable: `prototype/brand-config.md`
-> {if ui-ux-pro-max ran: + `design-system/MASTER.md`}
+> ✅ Theme contract saved (`specs/brand.md` + `prototype/brand-config.md`).
 >
-> **Next step**: `/clear` then `/ba:prototype-plan`, then `/ba:prototype-execute`.
+> **Next**: `/clear` then `/ba:prototype-plan`, then `/ba:prototype-execute`. Don't like the foundation later? Edit the axes in brand-config and regen — the config is the steering wheel, git is the undo.
 
 ## Rules
 
-- **Always suggest**, never ask more than 3 questions — BA doesn't want a design interview.
-- **Fail-soft is real** — the static mapping must produce a valid 7-token set for any combination of the 6 tones × 9 industries × 8 references. Do not abort if `ui-ux-pro-max` is missing.
-- **Brand-config is machine input, not BA reading material** — do not ask BA to edit it. All BA edits happen in `specs/brand.md`, then re-run `/ba:prototype-brand` to refresh.
+- **3 questions max** — BA doesn't want a design interview. Everything else is proposed, not asked.
+- **Fail-soft is real** — static tables must produce a valid contract for any tone × industry × reference combo.
+- **Axes the starter doesn't support are not silently configured** — list them in `unsupported-axes` and tell the BA.
+- **Brand-config is machine input** — BA edits happen via this skill (or by editing axes + regen), not by hand-editing token values.
 
 ## Language
 

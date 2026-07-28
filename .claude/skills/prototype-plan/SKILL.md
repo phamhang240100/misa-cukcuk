@@ -13,17 +13,20 @@ description: >
 
 Load specs → read starter conventions → extract per-module screens & flows → BA confirm → lock plan.
 
-## Step 1 — Load inputs
+## Step 1 — Load inputs (lazy)
 
 Read in parallel:
-- `specs/overview.md` — project name, module list, scope, roles
-- `specs/modules/*.md` — per-module detail (actors, actions, fields, flows)
-- `specs/business-rules.md` — cross-cutting rules
+- `specs/overview.md` — project name, module map, scope, roles
+- `specs/rules.md` — cross-cutting rules (CBR-*)
 - `specs/glossary.md` — domain terms
 - `prototype/STARTER.md` — starter conventions
 
+Then read every module's `specs/modules/{slug}/index.md` (small files: purpose, actors, entities, deps). Do NOT bulk-load the rest; open a module's `data.md` and `requirements.md` only when extracting that module's screens in Step 3, one module at a time. `rules.md`/`edge-cases.md` only if a screen decision depends on them.
+
+(Legacy flat layout `specs/modules/{name}.md`: read those files instead, and suggest running `/ba:spec` to migrate.)
+
 If `specs/` is missing or empty → abort:
-> ❌ No specs found. Run `/ba:analyze` (or `/ba:refine`) first to produce specs.
+> ❌ No specs found. Run `/ba:spec` first to produce specs.
 
 If `prototype/STARTER.md` is missing → warn, but continue. Ask BA the project type with `AskUserQuestion`:
 > ⚠️ `prototype/STARTER.md` not found. Ask the dev to add it, or pick the project type now to proceed.
@@ -42,14 +45,39 @@ From STARTER.md (or BA answer), map project type to **screen vocabulary** used i
 
 Use `AskUserQuestion` only for the `mixed` case, asking the BA to tag each module.
 
+## Step 3a — Inject shell/auth/profile/dashboard (admin + dashboard only)
+
+Before extracting business modules, prepend these **built-in sections** to the plan. Their *presence* is built-in for `admin` and `dashboard` project types (the BA does not need to spec them) — but the Dashboard's *contents* are derived from the module specs, per below.
+
+Order at the top of the plan:
+
+1. **App Shell** — persistent chrome: sidebar nav (grouped by module family), top header (breadcrumb auto from route, theme toggle, user menu with Profile + Sign out), responsive collapse.
+2. **Auth** — 3 screens outside the shell:
+   - **Sign-In Page** — email + password + "Forgot" link + link to Register. No SSO unless BA asks.
+   - **Register Page** — request-an-account form (first/last name, email, role, office, LSO number if legal-domain, password + confirm, AUP checkbox). Submit → "Request submitted, await admin approval" success screen.
+   - **Forgot Password Page** — email input → "Check your email" confirmation screen.
+3. **Dashboard** — landing at `/` inside the shell. **Derive the contents from the module specs** — the dashboard is the single most client-specific screen and the cheapest differentiation you have; a generic dashboard wastes it. Compose:
+   - **4 KPI cards** from the P0 modules: entity counts (from `data.md` entities), financial sums (money-typed fields), and counts of records in attention states (from `data.md` state machines — e.g. "overdue", "pending approval")
+   - **1 "today's activity" list** from whichever P0 entity carries dates (appointments, hearings, deliveries — read the domain from `overview.md`)
+   - **1 exceptions panel** from state-machine "bad" states across modules (items needing attention)
+   - **1 recent-activity feed**
+   Name every KPI/panel with the domain's own vocabulary (from `glossary.md`) — "Hearings today", not "Today's items". Only fall back to generic labels when specs are too thin to derive.
+4. **Profile** — personal info form (name, phone, ext), security card (change password, sign out everywhere), active sessions table, recent activity. Accessible from user menu in shell.
+
+If project type is `mobile` or `marketing` — **skip** this step. These app archetypes don't need the same shell.
+
+For project type `mixed` — ask BA via `AskUserQuestion` whether the shell/auth/profile apply.
+
+Each injected section uses the same Fields + Actions + States format as business modules. Write them generically (no specific-entity invention). Examples: Dashboard KPIs use "Entity count / Outstanding financial / Exceptions flagged / Variance" instead of naming entities the spec hasn't agreed on.
+
 ## Step 3 — Extract per-module screens & flows
 
-For each module spec, extract:
-- **Entity** (what the module manages)
-- **Actors** (who uses it, from spec Section 2)
-- **Actions** (list/create/read/update/delete/archive + any custom actions mentioned)
-- **Key fields** (the 3–5 most important fields for list columns)
-- **Flows** (from spec Section 4 — happy path + key alternates)
+Process **one module at a time** — this is when you open that module's `data.md` + `requirements.md`. For each module, extract:
+- **Entity** (what the module manages — `index.md` / `data.md`)
+- **Actors** (who uses it — `index.md`)
+- **Actions** (list/create/read/update/delete/archive + custom actions — `requirements.md` REQ sections)
+- **Key fields** (the 3–5 most important fields for list columns — `data.md`)
+- **Flows** (happy path + key alternates — the Flow blocks inside `requirements.md`)
 
 Translate each into the chosen screen vocabulary. Example for admin:
 - action "list" → **{Entity} List** — search, filter by {key fields}, button `+ New {Entity}`

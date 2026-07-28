@@ -87,8 +87,5 @@
     "type": "command",
     "command": "node .claude/hooks/gsd-statusline.js"
   },
-  "enabledPlugins": {
-    "deploy@duongvanha-skills": false,
-    "ba@duongvanha-skills": false
-  }
+  "enabledPlugins": {}
 }

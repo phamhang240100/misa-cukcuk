@@ -1,26 +1,11 @@
-# Edge Cases & Error Scenarios
+# Global Edge Cases
 
-> ID format: `EC-{MODULE_PREFIX}-{NUMBER}`
-> Severity: 🔴 Critical / 🟡 Important / 🟢 Nice-to-have
+> ONLY system-wide edge cases live here, as `EC-GLOBAL-NN` (e.g. session expiry mid-action, concurrent edits, system offline). Module-specific edge cases live in `modules/{slug}/edge-cases.md`.
 
----
+## EC-GLOBAL-01: {Scenario title}
 
-## {Module Name}
-
-### EC-{PREFIX}-001: {Scenario title}
-- **Severity**: {🔴/🟡/🟢}
-- **Scenario**: {specific situation described}
-- **Current behavior**: {how existing system handles it, if known}
-- **Expected handling**: {what the new system should do}
+- **Severity**: 🔴 Critical / 🟡 Important / 🟢 Nice-to-have
+- **Condition**: {specific situation}
+- **Expected handling**: {what the system should do}
 - **User sees**: {message, UI state}
-- **Related rules**: BR-{ID}
-- **Ref**: {Clarity Report ID}
-
----
-
-## Summary
-
-| Module | Total | 🔴 | 🟡 | 🟢 |
-|--------|-------|-----|-----|-----|
-| {module} | {n} | {n} | {n} | {n} |
-| **TOTAL** | **{N}** | **{n}** | **{n}** | **{n}** |
+- **Related**: CBR-{NN}
